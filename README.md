@@ -48,7 +48,9 @@
 
 ## 📱 Screenshots & Preview
 
-*(Add screenshots or GIFs of your app here)*
+| Dashboard & Spending | Group Detail & Settlements | Receipt Scanner | Settings & Data |
+| :---: | :---: | :---: | :---: |
+| ![Dashboard](screenshots/Screenshot_20261112-122305_SplitUp.png) | ![Group Detail](screenshots/Screenshot_20261112-122313_SplitUp.png) | ![Scanner](screenshots/markup_24883.png) | ![Settings](screenshots/markup_24886.png) |
 
 ---
 

@@ -164,6 +164,7 @@ fun PersonalExpensesScreen(
                         selected = selectedPersonalTab == 0,
                         onClick = { selectedPersonalTab = 0 },
                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                        icon = {},
                         colors = SegmentedButtonDefaults.colors(
                             activeContainerColor = MaterialTheme.colorScheme.primary,
                             activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -177,6 +178,7 @@ fun PersonalExpensesScreen(
                         selected = selectedPersonalTab == 1,
                         onClick = { selectedPersonalTab = 1 },
                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                        icon = {},
                         colors = SegmentedButtonDefaults.colors(
                             activeContainerColor = MaterialTheme.colorScheme.primary,
                             activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -190,6 +192,7 @@ fun PersonalExpensesScreen(
                         selected = selectedPersonalTab == 2,
                         onClick = { selectedPersonalTab = 2 },
                         shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                        icon = {},
                         colors = SegmentedButtonDefaults.colors(
                             activeContainerColor = MaterialTheme.colorScheme.primary,
                             activeContentColor = MaterialTheme.colorScheme.onPrimary,

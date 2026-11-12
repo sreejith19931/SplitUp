@@ -471,7 +471,7 @@ fun OnboardingSetupScreen(
                                         enabled = !contactsPermissionState.status.isGranted,
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
-                                        Text(if (contactsPermissionState.status.isGranted) "Granted ✓" else "Grant")
+                                        Text(if (contactsPermissionState.status.isGranted) "Granted" else "Grant")
                                     }
                                 }
                             }
@@ -547,7 +547,7 @@ fun OnboardingSetupScreen(
                                         enabled = !cameraPermissionState.status.isGranted,
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
-                                        Text(if (cameraPermissionState.status.isGranted) "Granted ✓" else "Grant")
+                                        Text(if (cameraPermissionState.status.isGranted) "Granted" else "Grant")
                                     }
                                 }
                             }
@@ -600,13 +600,13 @@ fun OnboardingSetupScreen(
                                         )
                                     ) {
                                         Icon(
-                                            if (isNotificationListenerActive) Icons.Rounded.CheckCircle else Icons.Rounded.Notifications,
+                                            if (isNotificationListenerActive) Icons.Rounded.Notifications else Icons.Rounded.Notifications,
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            if (isNotificationListenerActive) "Access Granted ✓" else "Enable Access in Settings",
+                                            if (isNotificationListenerActive) "Access Granted" else "Enable Access in Settings",
                                             fontWeight = FontWeight.Bold
                                         )
                                     }

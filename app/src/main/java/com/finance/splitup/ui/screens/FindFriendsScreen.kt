@@ -153,7 +153,7 @@ fun FindFriendsScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 ) {
                                     Text(
-                                        "On SplitUp ✓",
+                                        "On SplitUp",
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onPrimary,

@@ -292,7 +292,7 @@ fun GroupDetailContent(
                                         text = when {
                                             bal > 0.01 -> "+$currencySymbol${String.format(Locale.US, "%.2f", bal)} (is owed)"
                                             bal < -0.01 -> "-$currencySymbol${String.format(Locale.US, "%.2f", -bal)} (owes)"
-                                            else -> "${currencySymbol}0.00 (Fully Settled ✓)"
+                                            else -> "${currencySymbol}0.00 (Fully Settled)"
                                         },
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                         fontWeight = FontWeight.Bold,
@@ -1383,7 +1383,7 @@ fun GroupDetailContent(
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Rounded.Payment, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Confirm Payment", fontWeight = FontWeight.Bold)
                         }
@@ -1804,7 +1804,7 @@ fun MemberSearchAndAddDialog(
                                         Text(cloudSearchedContact!!.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                     }
                                     if (isCloudUserSelfOrExisting) {
-                                        Text("Already in Group ✓", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                        Text("Already in Group", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                     } else {
                                         Button(
                                             onClick = {
@@ -1868,7 +1868,7 @@ fun MemberSearchAndAddDialog(
                                                 color = com.finance.splitup.ui.theme.EmeraldSuccess.copy(alpha = 0.2f)
                                             ) {
                                                 Text(
-                                                    "Already in Group ✓",
+                                                    "Already in Group",
                                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = com.finance.splitup.ui.theme.EmeraldSuccess,
@@ -1899,7 +1899,7 @@ fun MemberSearchAndAddDialog(
                                         color = com.finance.splitup.ui.theme.EmeraldSuccess.copy(alpha = 0.2f)
                                     ) {
                                         Text(
-                                            "Member ✓",
+                                            "Member",
                                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = com.finance.splitup.ui.theme.EmeraldSuccess,

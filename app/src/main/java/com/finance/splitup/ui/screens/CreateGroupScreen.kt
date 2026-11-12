@@ -283,7 +283,7 @@ fun CreateGroupScreen(
                                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                                         ) {
                                             Text(
-                                                "You (Creator) ✓",
+                                                "You (Creator)",
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.primary,
@@ -296,7 +296,7 @@ fun CreateGroupScreen(
                                             color = com.finance.splitup.ui.theme.EmeraldSuccess.copy(alpha = 0.2f)
                                         ) {
                                             Text(
-                                                "Added ✓",
+                                                "Added",
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = com.finance.splitup.ui.theme.EmeraldSuccess,
@@ -337,9 +337,9 @@ fun CreateGroupScreen(
                                 memberSearchQuery = ""
                             }) {
                                 if (isCreator) {
-                                    Icon(Icons.Rounded.CheckCircle, contentDescription = "Creator", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Rounded.Person, contentDescription = "Creator", tint = MaterialTheme.colorScheme.primary)
                                 } else if (isAlreadyAdded) {
-                                    Icon(Icons.Rounded.CheckCircle, contentDescription = "Added", tint = com.finance.splitup.ui.theme.EmeraldSuccess)
+                                    Icon(Icons.Rounded.Person, contentDescription = "Added", tint = com.finance.splitup.ui.theme.EmeraldSuccess)
                                 } else if (contact.isSplitUpMember) {
                                     Icon(Icons.Rounded.Add, contentDescription = "Add", tint = MaterialTheme.colorScheme.primary)
                                 } else {

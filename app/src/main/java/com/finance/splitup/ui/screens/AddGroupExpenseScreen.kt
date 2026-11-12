@@ -475,14 +475,14 @@ fun AddGroupExpenseScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = if (isFullyAllocated) Icons.Rounded.CheckCircle else Icons.Rounded.Warning,
+                            imageVector = if (isFullyAllocated) Icons.Rounded.Info else Icons.Rounded.Warning,
                             contentDescription = null,
                             tint = if (isFullyAllocated) EmeraldSuccess else CrimsonDanger,
                             modifier = Modifier.size(20.dp)
                         )
                         Column {
                             Text(
-                                text = if (isFullyAllocated) "✓ $currencySymbol${String.format(Locale.US, "%.2f", customSum)} fully allocated!"
+                                text = if (isFullyAllocated) "$currencySymbol${String.format(Locale.US, "%.2f", customSum)} fully allocated!"
                                        else if (diff > 0) "⚠️ $currencySymbol${String.format(Locale.US, "%.2f", diff)} remaining to allocate"
                                        else "⚠️ Overallocated by $currencySymbol${String.format(Locale.US, "%.2f", abs(diff))}",
                                 style = MaterialTheme.typography.bodyMedium,

@@ -272,7 +272,7 @@ fun ReceiptAllocationScreen(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Icon(Icons.Rounded.DoneAll, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Rounded.Balance, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Split Evenly", fontSize = 13.sp)
                         }
@@ -424,7 +424,7 @@ fun ReceiptAllocationScreen(
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.Rounded.CheckCircle, contentDescription = null)
+                Icon(Icons.Rounded.Receipt, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = if (isPersonalExpense) "Add as Personal Expense" else "Add as Group Expense",

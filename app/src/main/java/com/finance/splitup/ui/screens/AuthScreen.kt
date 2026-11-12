@@ -242,7 +242,7 @@ fun AuthScreen(
                 val hasUpper = password.any { it.isUpperCase() }
                 val strengthCount = listOf(lengthOk, hasDigit, hasUpper).count { it }
                 val strengthText = when (strengthCount) {
-                    3 -> "Strong Password ✓"
+                    3 -> "Strong Password"
                     2 -> "Medium Strength"
                     else -> "Weak Password (min 6 chars, 1 uppercase, 1 digit)"
                 }

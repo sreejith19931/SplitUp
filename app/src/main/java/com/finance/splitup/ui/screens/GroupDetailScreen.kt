@@ -161,13 +161,36 @@ fun GroupDetailContent(
                         Icon(Icons.Rounded.Edit, contentDescription = "Edit Group", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     val hasUnsettledBalances = netBalances.any { kotlin.math.abs(it.value) > 0.01 }
-                    if (!hasUnsettledBalances) {
-                        IconButton(onClick = {
-                            viewModel.archiveGroup(group.id)
-                            android.widget.Toast.makeText(context, "Group '${group.name}' archived", android.widget.Toast.LENGTH_SHORT).show()
-                            onBack?.invoke()
-                        }) {
-                            Icon(Icons.Rounded.Archive, contentDescription = "Archive Group", tint = MaterialTheme.colorScheme.secondary)
+                    if (group.isArchived) {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.unarchiveGroup(group.id)
+                                android.widget.Toast.makeText(context, "Group '${group.name}' unarchived", android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.height(36.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                        ) {
+                            Icon(Icons.Rounded.Unarchive, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Unarchive", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else if (!hasUnsettledBalances) {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.archiveGroup(group.id)
+                                android.widget.Toast.makeText(context, "Group '${group.name}' archived", android.widget.Toast.LENGTH_SHORT).show()
+                                onBack?.invoke()
+                            },
+                            modifier = Modifier.height(36.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                        ) {
+                            Icon(Icons.Rounded.Archive, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Archive", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     IconButton(onClick = { showDeleteGroupConfirmDialog = true }) {

@@ -49,7 +49,11 @@ fun GroupsScreen(
 
     val filteredGroups = remember(groups, selectedGroupTypeFilter) {
         groups.filter { group ->
-            selectedGroupTypeFilter == null || group.type.equals(selectedGroupTypeFilter, ignoreCase = true)
+            if (selectedGroupTypeFilter == "Archived") {
+                group.isArchived
+            } else {
+                !group.isArchived && (selectedGroupTypeFilter == null || group.type.equals(selectedGroupTypeFilter, ignoreCase = true))
+            }
         }
     }
 
@@ -185,7 +189,7 @@ fun GroupsScreen(
                                             shape = RoundedCornerShape(10.dp)
                                         )
                                     }
-                                    val types = listOf("Trip", "Roommates", "Dinner", "Other")
+                                    val types = listOf("Trip", "Roommates", "Dinner", "Other", "Archived")
                                     items(types) { type ->
                                         FilterChip(
                                             selected = selectedGroupTypeFilter == type,
@@ -200,7 +204,7 @@ fun GroupsScreen(
                             }
 
                             item {
-                                Text("Your Active Groups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(if (selectedGroupTypeFilter == "Archived") "Archived Groups" else "Your Active Groups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                             }
 
                             if (filteredGroups.isEmpty()) {

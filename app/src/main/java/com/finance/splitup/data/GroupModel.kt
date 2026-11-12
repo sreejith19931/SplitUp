@@ -35,7 +35,8 @@ data class Group(
     val createdBy: String = "",
     val updatedAt: Long = System.currentTimeMillis(),
     val emoji: String = "✈️",
-    val colorHex: String = "#3B82F6"
+    val colorHex: String = "#3B82F6",
+    val isArchived: Boolean = false
 ) {
     val allMembers: List<String>
         get() = (members + pendingMembers).distinct()

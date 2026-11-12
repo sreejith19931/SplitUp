@@ -958,15 +958,35 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     }
 
     fun archiveGroup(groupId: String) {
-        val group = groups.value.find { it.id == groupId }
-        val groupName = group?.name ?: "Group"
+        val group = groups.value.find { it.id == groupId } ?: return
+        val updated = group.copy(isArchived = true, updatedAt = System.currentTimeMillis())
+        viewModelScope.launch {
+            if (repository != null) {
+                repository.insertGroup(updated)
+                triggerImmediateSync()
+            } else {
+                _groupsFallback.update { current -> current.map { if (it.id == groupId) updated else it } }
+            }
+        }
         postSystemNotification(
             "📦 Group Archived",
-            "You archived the settled group '$groupName'.",
+            "You archived the group '${group.name}'.",
             CHANNEL_GROUP_ACTIVITY,
             groupId = groupId
         )
-        deleteGroup(groupId)
+    }
+
+    fun unarchiveGroup(groupId: String) {
+        val group = groups.value.find { it.id == groupId } ?: return
+        val updated = group.copy(isArchived = false, updatedAt = System.currentTimeMillis())
+        viewModelScope.launch {
+            if (repository != null) {
+                repository.insertGroup(updated)
+                triggerImmediateSync()
+            } else {
+                _groupsFallback.update { current -> current.map { if (it.id == groupId) updated else it } }
+            }
+        }
     }
 
     private suspend fun verifyGroupActiveOrPurge(groupId: String): Boolean {

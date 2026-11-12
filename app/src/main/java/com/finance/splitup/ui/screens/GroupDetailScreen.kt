@@ -160,7 +160,7 @@ fun GroupDetailContent(
                     IconButton(onClick = { showEditGroupDialog = true }) {
                         Icon(Icons.Rounded.Edit, contentDescription = "Edit Group", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    val hasUnsettledBalances = netBalances.any { kotlin.math.abs(it.value) > 0.01 } || group.expenses.isNotEmpty()
+                    val hasUnsettledBalances = netBalances.any { kotlin.math.abs(it.value) > 0.01 }
                     if (!hasUnsettledBalances) {
                         IconButton(onClick = {
                             viewModel.archiveGroup(group.id)

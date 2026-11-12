@@ -5,19 +5,17 @@
 [![Android](https://img.shields.io/badge/Platform-Android-3DDC84?style=flat&logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7f52ff?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-UI-4285F4?style=flat&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Version](https://img.shields.io/badge/Version-1.2.0-blue.svg)](https://github.com/sreejith19931/SplitUp/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.1-blue.svg)](https://github.com/sreejith19931/SplitUp/releases)
 [![Website](https://img.shields.io/badge/Website-splitup.vercel.app-000000?style=flat&logo=vercel)](https://splitup.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## ⚡ What's New in v1.2.0
+## ⚡ What's New in v1.2.1
 
-- 📦 **Settled Group Archiving**: Fully settled groups can now be archived using the new explicit `Archive` option and managed under the new **"Archived"** tab in Groups.
-- 🌑 **Enhanced Dashboard Quick Actions**: Full-screen dimming scrim when opening the `+` quick action menu for improved focus.
-- ✨ **UI Hygiene & Neutrality**: Removed check mark symbols across non-checkbox pages and neutralized settings sub-page backgrounds to prevent unwanted color tints.
-- 🛡️ **Refined Danger Zone & Settings**: Added clean error-tinted borders to Danger Zone cards and buttons in Data Management.
-- ⚡ **Optimized Performance & Build**: Upgraded build code to `3` with zero build warnings and verified stable compilation.
+- 🔄 **In-App Update Checker**: Automated GitHub release checking on app launch with pop-up notification and an explicit "Check for Updates" button in the About screen.
+- 📱 **Uniform Screenshot Gallery**: Refined website and repository screenshot cards to have consistent uniform heights (`380px`) featuring all 5 core screens (`Groups`, `Analysis`, `Personal Expenses`, `Settings`, `Dashboard`).
+- ⚡ **Optimized Stability & Build**: Upgraded to release `1.2.1` with verified signed production builds and zero build warnings.
 
 ---
 

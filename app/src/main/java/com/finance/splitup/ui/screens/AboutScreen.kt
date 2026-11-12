@@ -11,9 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.finance.splitup.BuildConfig
 import com.finance.splitup.ui.components.LogoStyle
 import com.finance.splitup.ui.components.SplitUpLogo
@@ -125,6 +127,42 @@ fun AboutScreen(
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            var isCheckingUpdates by remember { mutableStateOf(false) }
+            val context = LocalContext.current
+            val coroutineScope = rememberCoroutineScope()
+
+            OutlinedButton(
+                onClick = {
+                    isCheckingUpdates = true
+                    coroutineScope.launch {
+                        com.finance.splitup.data.UpdateChecker.checkLatestRelease(
+                            onUpdateAvailable = { version, url ->
+                                isCheckingUpdates = false
+                                com.finance.splitup.data.UpdateChecker.openReleaseUrl(context, url)
+                            },
+                            onUpToDate = {
+                                isCheckingUpdates = false
+                                android.widget.Toast.makeText(context, "You are already on the latest version (v${BuildConfig.VERSION_NAME})!", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (isCheckingUpdates) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Checking for updates...")
+                } else {
+                    Icon(Icons.Rounded.SystemUpdate, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Check for Updates")
                 }
             }
 

@@ -23,6 +23,14 @@ jobs:
       - name: Grant Execute Permission for Gradle
         run: chmod +x gradlew
 
+      - name: Restore google-services.json
+        run: |
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > app/google-services.json
+          elif [ -f "app/google-services.json.template" ]; then
+            cp app/google-services.json.template app/google-services.json
+          fi
+
       - name: Decode Keystore (if secret present)
         run: |
           if [ -n "${{ secrets.SIGNING_KEY_BASE64 }}" ]; then

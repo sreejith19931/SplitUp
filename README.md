@@ -48,9 +48,9 @@
 
 ## 📱 Screenshots & Preview
 
-| Dashboard & Spending | Group Detail & Settlements | Receipt Scanner | Settings & Data |
+| Groups | Personal Expenses | Settings | Dashboard |
 | :---: | :---: | :---: | :---: |
-| ![Dashboard](screenshots/Screenshot_20261112-122305_SplitUp.png) | ![Group Detail](screenshots/Screenshot_20261112-122313_SplitUp.png) | ![Scanner](screenshots/markup_24883.png) | ![Settings](screenshots/markup_24886.png) |
+| ![Groups](screenshots/markup_24883.png) | ![Personal Expenses](screenshots/markup_24886.png) | ![Settings](screenshots/markup_24887.png) | ![Dashboard](screenshots/Screenshot_20261112-122305_SplitUp.png) |
 
 ---
 

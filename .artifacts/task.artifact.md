@@ -1,0 +1,5 @@
+- `[/]` Add sub-routes (`SecuritySettingsRoute`, `DataManagementRoute`) to `AppScreens.kt`
+- `[ ]` Create `SecuritySettingsScreen.kt` for security, biometrics, PIN, and payment handles
+- `[ ]` Create `DataManagementScreen.kt` for backups, exports, and danger zone actions
+- `[ ]` Redesign `SettingsScreen.kt` with categorized M3 `ListItem` cards and sub-navigation links
+- `[ ]` Wire up new routes in `MainActivity.kt` and verify build & unit tests

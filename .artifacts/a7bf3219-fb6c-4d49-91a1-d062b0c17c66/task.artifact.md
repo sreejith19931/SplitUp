@@ -1,0 +1,5 @@
+- `[x]` Create reusable `AnimatedCounter` in CommonComponents.kt
+- `[x]` Add animated number counters and haptics to DashboardScreen.kt
+- `[x]` Add animated counters and spring physics to PersonalExpensesScreen.kt
+- `[x]` Enhance GroupDetailScreen.kt with animated balances and tactile haptics
+- `[x]` Verify build and test suite

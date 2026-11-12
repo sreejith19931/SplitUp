@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/screenshots/(.*)", "destination": "/landing/screenshots/$1" },
+    { "source": "/logo.svg", "destination": "/landing/logo.svg" },
+    { "source": "/(.*)", "destination": "/landing/index.html" }
+  ]
+}

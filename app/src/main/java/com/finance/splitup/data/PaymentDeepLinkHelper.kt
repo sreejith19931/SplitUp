@@ -28,6 +28,7 @@ object PaymentDeepLinkHelper {
             val uri = Uri.parse("upi://pay?pa=$cleanVpa&pn=${Uri.encode(payeeName)}&am=$formattedAmount&cu=$currStr&tn=${Uri.encode(note)}")
             val intent = Intent(Intent.ACTION_VIEW, uri)
             val chooser = Intent.createChooser(intent, "Pay via UPI App")
+            com.finance.splitup.MainActivity.isExternalActionInProgress = true
             context.startActivity(chooser)
             true
         } catch (e: Exception) {

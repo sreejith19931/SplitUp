@@ -71,7 +71,14 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     var currentExtractedReceipt: com.finance.splitup.data.ExtractedReceipt? = null
     var targetGroupIdForReceipt: String? = null
     var budgetWarningMessage by mutableStateOf<String?>(null)
-    var themeMode by mutableStateOf(com.finance.splitup.ui.theme.ThemeMode.SYSTEM)
+    var themeMode by mutableStateOf(
+        try {
+            val saved = prefs?.getString("theme_mode", "SYSTEM") ?: "SYSTEM"
+            com.finance.splitup.ui.theme.ThemeMode.valueOf(saved)
+        } catch (_: Exception) {
+            com.finance.splitup.ui.theme.ThemeMode.SYSTEM
+        }
+    )
     var isBiometricLockEnabled by mutableStateOf(prefs?.getBoolean("biometrics_enabled", false) ?: false)
     var defaultCurrency by mutableStateOf(prefs?.getString("default_currency", Currencies.EUR) ?: Currencies.EUR)
 
@@ -184,6 +191,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
 
     fun updateThemeMode(mode: com.finance.splitup.ui.theme.ThemeMode) {
         themeMode = mode
+        prefs?.edit()?.putString("theme_mode", mode.name)?.apply()
     }
 
     fun toggleBiometricLock(enabled: Boolean) {
@@ -598,11 +606,12 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                             }
                         }
 
-                        // Check deleted groups & automatically delete any local groups missing from active cloud snapshots or in tombstones
+                        // Check deleted groups & automatically delete any local groups present in tombstones
                         if (repository != null) {
                             val localGroups = repository.getAllGroups().firstOrNull() ?: emptyList()
                             for (localGroup in localGroups) {
-                                if (deletedGroupIds.contains(localGroup.id) || !activeIds.contains(localGroup.id) || com.finance.splitup.data.CloudSyncManager.isGroupLocallyTombstoned(context, localGroup.id)) {
+                                val isExplicitlyDeleted = deletedGroupIds.contains(localGroup.id) || com.finance.splitup.data.CloudSyncManager.isGroupLocallyTombstoned(context, localGroup.id)
+                                if (isExplicitlyDeleted) {
                                     com.finance.splitup.data.CloudSyncManager.markGroupLocallyTombstoned(context, localGroup.id)
                                     if (notifiedGroupIds.add("deleted_${localGroup.id}")) {
                                         postSystemNotification(
@@ -620,7 +629,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                             }
                         } else {
                             _groupsFallback.update { current ->
-                                current.filter { !deletedGroupIds.contains(it.id) && activeIds.contains(it.id) && !com.finance.splitup.data.CloudSyncManager.isGroupLocallyTombstoned(context, it.id) }
+                                current.filter { !deletedGroupIds.contains(it.id) && !com.finance.splitup.data.CloudSyncManager.isGroupLocallyTombstoned(context, it.id) }
                             }
                         }
                     } catch (e: Exception) {

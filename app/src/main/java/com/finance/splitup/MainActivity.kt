@@ -40,6 +40,10 @@ import com.finance.splitup.viewmodel.FinanceViewModel
 class MainActivity : FragmentActivity() {
     private val currentIntentState = mutableStateOf<android.content.Intent?>(null)
 
+    companion object {
+        var isExternalActionInProgress: Boolean = false
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentIntentState.value = intent
@@ -64,9 +68,6 @@ class MainActivity : FragmentActivity() {
                 when (authState) {
                     is com.finance.splitup.viewmodel.AuthState.Authenticated -> {
                         viewModel.triggerCloudSync()
-                    }
-                    is com.finance.splitup.viewmodel.AuthState.Unauthenticated -> {
-                        viewModel.clearLocalDataOnSignOut()
                     }
                     else -> {}
                 }
@@ -252,9 +253,10 @@ fun SplitUpApp(
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP && viewModel.isBiometricLockEnabled) {
                 val activity = context as? FragmentActivity
-                if (activity?.isChangingConfigurations != true) {
+                if (activity?.isChangingConfigurations != true && !MainActivity.isExternalActionInProgress) {
                     isAppUnlocked = false
                 }
+                MainActivity.isExternalActionInProgress = false
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

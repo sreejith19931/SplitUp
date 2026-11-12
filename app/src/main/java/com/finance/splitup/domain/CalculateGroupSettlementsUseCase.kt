@@ -44,9 +44,20 @@ class CalculateGroupSettlementsUseCase {
                 balances[matchedPayer] = (balances[matchedPayer] ?: 0.0) - convertedAmount
 
                 if (expense.splitMode == "CUSTOM" && expense.memberSplits.isNotEmpty()) {
-                    for ((member, shareAmount) in expense.memberSplits) {
+                    val totalRawShares = expense.memberSplits.values.sumOf { abs(it) }
+                    val splitsList = expense.memberSplits.entries.toList()
+                    val count = splitsList.size
+                    var accumulatedShare = 0.0
+                    splitsList.forEachIndexed { index, (member, shareAmount) ->
                         val matchedMember = matchMember(member)
-                        val convertedShare = Currencies.convert(abs(shareAmount), expense.currency, targetCurrency)
+                        val ratio = if (totalRawShares > 0) abs(shareAmount) / totalRawShares else 1.0 / count
+                        val convertedShare = if (index == count - 1) {
+                            round((convertedAmount - accumulatedShare) * 100) / 100.0
+                        } else {
+                            val rounded = round((convertedAmount * ratio) * 100) / 100.0
+                            accumulatedShare += rounded
+                            rounded
+                        }
                         balances[matchedMember] = (balances[matchedMember] ?: 0.0) + convertedShare
                     }
                 } else {
@@ -67,9 +78,20 @@ class CalculateGroupSettlementsUseCase {
                 balances[matchedPayer] = (balances[matchedPayer] ?: 0.0) + convertedAmount
 
                 if (expense.splitMode == "CUSTOM" && expense.memberSplits.isNotEmpty()) {
-                    for ((member, shareAmount) in expense.memberSplits) {
+                    val totalRawShares = expense.memberSplits.values.sumOf { abs(it) }
+                    val splitsList = expense.memberSplits.entries.toList()
+                    val count = splitsList.size
+                    var accumulatedShare = 0.0
+                    splitsList.forEachIndexed { index, (member, shareAmount) ->
                         val matchedMember = matchMember(member)
-                        val convertedShare = Currencies.convert(abs(shareAmount), expense.currency, targetCurrency)
+                        val ratio = if (totalRawShares > 0) abs(shareAmount) / totalRawShares else 1.0 / count
+                        val convertedShare = if (index == count - 1) {
+                            round((convertedAmount - accumulatedShare) * 100) / 100.0
+                        } else {
+                            val rounded = round((convertedAmount * ratio) * 100) / 100.0
+                            accumulatedShare += rounded
+                            rounded
+                        }
                         balances[matchedMember] = (balances[matchedMember] ?: 0.0) - convertedShare
                     }
                 } else {

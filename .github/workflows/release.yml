@@ -54,13 +54,29 @@ jobs:
       - name: Build Signed Release APK
         run: ./gradlew assembleRelease --stacktrace
 
+      - name: Prepare Release Version and Artifacts
+        id: release_prep
+        run: |
+          RAW_REF="${{ github.ref_name }}"
+          VERSION_NUM=$(echo "$RAW_REF" | sed -E 's/^[vV]//')
+          if [ -z "$VERSION_NUM" ] || [ "$VERSION_NUM" = "main" ] || [ "$VERSION_NUM" = "master" ]; then
+            VERSION_NUM=$(grep 'versionName =' app/build.gradle.kts | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
+          fi
+          echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_ENV
+
+          mkdir -p release_assets
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -f "$APK_PATH" ]; then
+            cp "$APK_PATH" "release_assets/SplitUp v${VERSION_NUM}.apk"
+          fi
+
       - name: Create GitHub Release & Attach Release APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: SplitUp Release ${{ github.ref_name }}
+          name: SplitUp v${{ env.VERSION_NUM }}
           body: |
-            ## ⚡ What's New in ${{ github.ref_name }}
+            ## ⚡ What's New in v${{ env.VERSION_NUM }}
             
             - 📦 **Settled Group Archiving**: Option to archive fully settled groups and manage/unarchive them under the new "Archived" tab in Groups.
             - 🌑 **Enhanced Dashboard Quick Actions**: Full-screen dimming scrim when opening the `+` quick action menu for improved focus.
@@ -68,6 +84,6 @@ jobs:
             - 🛡️ **Refined Danger Zone & Settings**: Added clean error-tinted borders to Danger Zone cards and buttons in Data Management.
             - ⚡ **Optimized Performance & Build**: Upgraded build code with zero build warnings and verified stable compilation.
           files: |
-            app/build/outputs/apk/release/app-release.apk
+            release_assets/SplitUp v${{ env.VERSION_NUM }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

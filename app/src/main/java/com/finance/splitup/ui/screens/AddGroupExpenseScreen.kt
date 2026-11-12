@@ -57,6 +57,7 @@ fun AddGroupExpenseScreen(
     var expenseDate by remember { mutableStateOf(existingExpense?.date ?: "Today") }
     var splitMode by remember { mutableStateOf(existingExpense?.splitMode ?: "EQUAL") } // "EQUAL" or "CUSTOM"
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     val currencySymbol = Currencies.getSymbol(selectedCurrency)
 
@@ -518,9 +519,10 @@ fun AddGroupExpenseScreen(
             } else {
                 abs(customSum - rawAmount) < 0.01 && rawAmount > 0.0
             }
-            val isFormValid = title.isNotBlank() && rawAmount > 0.0 && isSplitValid
+            val isFormValid = title.isNotBlank() && rawAmount > 0.0 && isSplitValid && !isSubmitting
 
             Button(
+                enabled = isFormValid,
                 onClick = {
                     val amountVal = abs(rawAmount)
                     val categoryVal = selectedCategory
@@ -536,6 +538,7 @@ fun AddGroupExpenseScreen(
                         if (abs(customSum - rawAmount) >= 0.01) {
                             errorMessage = "Split total ($currencySymbol${String.format(Locale.US, "%.2f", customSum)}) must match total ($currencySymbol${String.format(Locale.US, "%.2f", rawAmount)})."
                         } else {
+                            isSubmitting = true
                             val memberSplitsMap = group?.allMembers?.filter { splitAmong[it] == true }?.associateWith { customAmounts[it]?.parseAmount() ?: 0.0 } ?: emptyMap()
                             if (existingExpense != null) {
                                 val updated = existingExpense.copy(

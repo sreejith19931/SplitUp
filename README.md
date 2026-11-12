@@ -46,9 +46,9 @@
 
 ## 📱 Screenshots & Preview
 
-| Groups | Personal Expenses | Settings | Dashboard |
-| :---: | :---: | :---: | :---: |
-| ![Groups](screenshots/Groups.png) | ![Personal Expenses](screenshots/PersonalExpenses.png) | ![Settings](screenshots/Settings.png) | ![Dashboard](screenshots/Dashboard.png) |
+| Groups | Analysis | Personal Expenses | Settings | Dashboard |
+| :---: | :---: | :---: | :---: | :---: |
+| ![Groups](screenshots/Groups.png) | ![Analysis](screenshots/Analysis.png) | ![Personal Expenses](screenshots/PersonalExpenses.png) | ![Settings](screenshots/Settings.png) | ![Dashboard](screenshots/Dashboard.png) |
 
 ---
 

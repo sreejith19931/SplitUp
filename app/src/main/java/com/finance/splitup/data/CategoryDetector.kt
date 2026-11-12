@@ -32,8 +32,8 @@ object CategoryDetector {
                     savedData.split(";").forEach { pair ->
                         val parts = pair.split("=")
                         if (parts.size == 2) {
-                            val key = parts[0].trim()
-                            val cat = parts[1].trim()
+                            val key = try { java.net.URLDecoder.decode(parts[0].trim(), "UTF-8") } catch (_: Exception) { parts[0].trim() }
+                            val cat = try { java.net.URLDecoder.decode(parts[1].trim(), "UTF-8") } catch (_: Exception) { parts[1].trim() }
                             if (key.isNotEmpty() && cat.isNotEmpty()) {
                                 learnedUserMappings[key] = cat
                             }
@@ -92,7 +92,11 @@ object CategoryDetector {
     private fun persistLearnedMappings(context: Context) {
         try {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val serialized = learnedUserMappings.entries.take(500).joinToString(";") { "${it.key}=${it.value}" }
+            val serialized = learnedUserMappings.entries.take(500).joinToString(";") {
+                val encKey = java.net.URLEncoder.encode(it.key, "UTF-8")
+                val encVal = java.net.URLEncoder.encode(it.value, "UTF-8")
+                "$encKey=$encVal"
+            }
             prefs.edit().putString(KEY_LEARNED_MAP, serialized).apply()
         } catch (e: Exception) {
             android.util.Log.e("CategoryDetector", "Failed to persist learned mappings", e)

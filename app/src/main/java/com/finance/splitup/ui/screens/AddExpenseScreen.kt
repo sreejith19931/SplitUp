@@ -51,6 +51,7 @@ fun AddExpenseScreen(
     var expandedCategoryDropdown by remember { mutableStateOf(false) }
     var expandedCurrencyDropdown by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     var isCategoryManuallySelected by remember { mutableStateOf(existingExpense != null || initialCategory != null) }
     var isIncome by remember { mutableStateOf(initialIsIncome) }
@@ -351,9 +352,10 @@ fun AddExpenseScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             val amt = amount.parseAmount()
-            val isFormValid = title.isNotBlank() && amt > 0.0
+            val isFormValid = title.isNotBlank() && amt > 0.0 && !isSubmitting
 
             Button(
+                enabled = isFormValid,
                 onClick = {
                     val finalDate = com.finance.splitup.data.DateUtils.normalizeExpenseDate(expenseDate)
 
@@ -362,6 +364,7 @@ fun AddExpenseScreen(
                     } else if (amt <= 0) {
                         errorMessage = "Please enter a valid amount greater than 0."
                     } else {
+                        isSubmitting = true
                         if (isIncome) {
                             viewModel.addExpense(
                                 title = title,

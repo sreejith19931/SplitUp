@@ -6,7 +6,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7f52ff?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-UI-4285F4?style=flat&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Version](https://img.shields.io/badge/Version-1.2.1-blue.svg)](https://github.com/sreejith19931/SplitUp/releases)
-[![Website](https://img.shields.io/badge/Website-splitup.vercel.app-000000?style=flat&logo=vercel)](https://splitup.vercel.app)
+[![Website](https://img.shields.io/badge/Website-splitupfin.vercel.app-000000?style=flat&logo=vercel)](https://splitupfin.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---

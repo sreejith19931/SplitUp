@@ -16,3 +16,6 @@ local.properties
 /app/build
 /app/release
 google-services.json
+*.jks
+*.keystore
+keystore.properties

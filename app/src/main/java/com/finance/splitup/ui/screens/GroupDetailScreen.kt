@@ -223,21 +223,21 @@ fun GroupDetailContent(
                                 color = when {
                                     userBal > 0.01 -> EmeraldSuccess.copy(alpha = 0.2f)
                                     userBal < -0.01 -> MaterialTheme.colorScheme.surfaceVariant
-                                    else -> MaterialTheme.colorScheme.surfaceVariant
+                                    else -> EmeraldSuccess.copy(alpha = 0.2f)
                                 }
                             ) {
                                 Text(
                                     text = when {
                                         userBal > 0.01 -> "Overall: You are owed $currencySymbol${String.format(Locale.US, "%.2f", userBal)}"
                                         userBal < -0.01 -> "Overall: You owe $currencySymbol${String.format(Locale.US, "%.2f", -userBal)}"
-                                        else -> "Overall: You are settled up"
+                                        else -> "✨ All Square — You are fully settled up!"
                                     },
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                     fontWeight = FontWeight.Bold,
                                     color = when {
                                         userBal > 0.01 -> EmeraldSuccess
                                         userBal < -0.01 -> CrimsonDanger
-                                        else -> MaterialTheme.colorScheme.onPrimaryContainer
+                                        else -> EmeraldSuccess
                                     }
                                 )
                             }
@@ -285,14 +285,14 @@ fun GroupDetailContent(
                                     color = when {
                                         bal > 0.01 -> EmeraldSuccess.copy(alpha = 0.15f)
                                         bal < -0.01 -> CrimsonDanger.copy(alpha = 0.15f)
-                                        else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                                        else -> EmeraldSuccess.copy(alpha = 0.15f)
                                     }
                                 ) {
                                     Text(
                                         text = when {
                                             bal > 0.01 -> "+$currencySymbol${String.format(Locale.US, "%.2f", bal)} (is owed)"
                                             bal < -0.01 -> "-$currencySymbol${String.format(Locale.US, "%.2f", -bal)} (owes)"
-                                            else -> "${currencySymbol}0.00 (settled)"
+                                            else -> "${currencySymbol}0.00 (Fully Settled ✓)"
                                         },
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                         fontWeight = FontWeight.Bold,
@@ -300,7 +300,7 @@ fun GroupDetailContent(
                                         color = when {
                                             bal > 0.01 -> EmeraldSuccess
                                             bal < -0.01 -> CrimsonDanger
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                            else -> EmeraldSuccess
                                         }
                                     )
                                 }
@@ -508,10 +508,10 @@ fun GroupDetailContent(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            colors = CardDefaults.cardColors(containerColor = EmeraldSuccess.copy(alpha = 0.15f))
                         ) {
                             Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("All members are settled up! 🎉", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.secondary)
+                                Text("✨ All Members Are Fully Settled Up! 🎉", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = EmeraldSuccess)
                             }
                         }
                     }

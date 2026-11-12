@@ -37,7 +37,15 @@ android {
         create("release") {
             val rawPath = keystoreProperties.getProperty("storeFile") ?: System.getenv("KEYSTORE_FILE")
             val storeFilePath = rawPath?.replace('\\', '/')
-            val propFile = if (!storeFilePath.isNullOrEmpty()) file(storeFilePath) else null
+            val propFile = if (!storeFilePath.isNullOrEmpty()) {
+                val f1 = rootProject.file(storeFilePath)
+                val f2 = file(storeFilePath)
+                when {
+                    f1.exists() -> f1
+                    f2.exists() -> f2
+                    else -> file(storeFilePath.removePrefix("app/"))
+                }
+            } else null
             if (propFile != null && propFile.exists()) {
                 storeFile = propFile
                 storePassword = keystoreProperties.getProperty("storePassword") ?: System.getenv("STORE_PASSWORD")

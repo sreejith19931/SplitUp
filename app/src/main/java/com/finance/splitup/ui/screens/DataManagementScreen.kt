@@ -94,9 +94,10 @@ fun DataManagementScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Data Exports & Backup Card
-            ElevatedCard(
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
                     modifier = Modifier
@@ -242,10 +243,10 @@ fun DataManagementScreen(
             }
 
             // Danger Zone Card
-            ElevatedCard(
+            Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f))
             ) {
                 Column(
                     modifier = Modifier

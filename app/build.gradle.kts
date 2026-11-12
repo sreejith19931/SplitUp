@@ -35,13 +35,16 @@ android {
 
     signingConfigs {
         create("release") {
-            val storeFilePath = keystoreProperties.getProperty("storeFile") ?: System.getenv("KEYSTORE_FILE")
+            val rawPath = keystoreProperties.getProperty("storeFile") ?: System.getenv("KEYSTORE_FILE")
+            val storeFilePath = rawPath?.replace('\\', '/')
             val propFile = if (!storeFilePath.isNullOrEmpty()) file(storeFilePath) else null
             if (propFile != null && propFile.exists()) {
                 storeFile = propFile
                 storePassword = keystoreProperties.getProperty("storePassword") ?: System.getenv("STORE_PASSWORD")
                 keyAlias = keystoreProperties.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS")
                 keyPassword = keystoreProperties.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD")
+            } else {
+                throw GradleException("Release keystore file not found! Please ensure keystore.properties or KEYSTORE_FILE environment variable is set with your signed key.")
             }
         }
     }
@@ -50,10 +53,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            val releaseConfig = signingConfigs.findByName("release")
-            if (releaseConfig?.storeFile != null && releaseConfig.storeFile!!.exists()) {
-                signingConfig = releaseConfig
-            }
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("src/main/keepRules/rules.keep")

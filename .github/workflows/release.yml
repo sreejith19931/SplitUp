@@ -25,29 +25,29 @@ jobs:
 
       - name: Restore google-services.json
         run: |
-          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
-            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > app/google-services.json
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" ]; then
+            echo "Restoring google-services.json from Base64 secret..."
+            echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 --decode > app/google-services.json
+          elif [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "Restoring google-services.json from raw secret..."
+            echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
           elif [ -f "app/google-services.json.template" ]; then
+            echo "Restoring google-services.json from template..."
             cp app/google-services.json.template app/google-services.json
           fi
 
-      - name: Setup Keystore for Release
+      - name: Decode Production Release Keystore from Secrets
         run: |
-          if [ -n "${{ secrets.SIGNING_KEY_BASE64 }}" ]; then
-            echo "Decoding private production keystore from GitHub Secrets..."
-            echo "${{ secrets.SIGNING_KEY_BASE64 }}" | base64 --decode > app/release.keystore
-            echo "KEYSTORE_FILE=app/release.keystore" >> $GITHUB_ENV
-            echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
-            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-          else
-            echo "Generating fallback keystore on runner..."
-            keytool -genkey -v -keystore app/release.keystore -alias splitup -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=SplitUp, OU=Android, O=SplitUp, L=City, S=State, C=US"
-            echo "KEYSTORE_FILE=app/release.keystore" >> $GITHUB_ENV
-            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
-            echo "KEY_ALIAS=splitup" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+          if [ -z "${{ secrets.SIGNING_KEY_BASE64 }}" ]; then
+            echo "ERROR: SIGNING_KEY_BASE64 secret is missing in GitHub Repository Secrets!"
+            exit 1
           fi
+          echo "Decoding signed production keystore from GitHub Secrets..."
+          echo "${{ secrets.SIGNING_KEY_BASE64 }}" | base64 --decode > app/release.keystore
+          echo "KEYSTORE_FILE=app/release.keystore" >> $GITHUB_ENV
+          echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
       - name: Build Signed Release APK
         run: ./gradlew assembleRelease --stacktrace

@@ -160,6 +160,16 @@ fun GroupDetailContent(
                     IconButton(onClick = { showEditGroupDialog = true }) {
                         Icon(Icons.Rounded.Edit, contentDescription = "Edit Group", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    val hasUnsettledBalances = netBalances.any { kotlin.math.abs(it.value) > 0.01 } || group.expenses.isNotEmpty()
+                    if (!hasUnsettledBalances) {
+                        IconButton(onClick = {
+                            viewModel.archiveGroup(group.id)
+                            android.widget.Toast.makeText(context, "Group '${group.name}' archived", android.widget.Toast.LENGTH_SHORT).show()
+                            onBack?.invoke()
+                        }) {
+                            Icon(Icons.Rounded.Archive, contentDescription = "Archive Group", tint = MaterialTheme.colorScheme.secondary)
+                        }
+                    }
                     IconButton(onClick = { showDeleteGroupConfirmDialog = true }) {
                         Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete Group", tint = MaterialTheme.colorScheme.error)
                     }
@@ -1198,9 +1208,6 @@ fun GroupDetailContent(
     }
 
     if (showDeleteGroupConfirmDialog) {
-        val netBalances = viewModel.calculateNetBalances(group)
-        val hasUnsettledBalances = netBalances.any { kotlin.math.abs(it.value) > 0.01 } || group.expenses.isNotEmpty()
-
         AlertDialog(
             onDismissRequest = { showDeleteGroupConfirmDialog = false },
             icon = {
@@ -1211,7 +1218,7 @@ fun GroupDetailContent(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = if (hasUnsettledBalances) Icons.Rounded.Warning else Icons.Rounded.DeleteForever,
+                            imageVector = Icons.Rounded.DeleteForever,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(26.dp)
@@ -1220,37 +1227,10 @@ fun GroupDetailContent(
                 }
             },
             title = {
-                Text(if (hasUnsettledBalances) "Unsettled Group Warning!" else "Delete Group '${group.name}'?", fontWeight = FontWeight.Bold)
+                Text("Delete Group '${group.name}'?", fontWeight = FontWeight.Bold)
             },
             text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (hasUnsettledBalances) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(22.dp))
-                                Text(
-                                    "Warning: This group still has unsettled expenses or active balances! Deleting it will permanently remove all shared transaction history.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-                    Text("Are you sure you want to delete '${group.name}'? All shared expenses, member balances, and logs in this group will be permanently removed.")
-                }
+                Text("Are you sure you want to delete '${group.name}'? All shared expenses and member balances will be removed.")
             },
             confirmButton = {
                 Button(
@@ -1261,7 +1241,7 @@ fun GroupDetailContent(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) {
-                    Text(if (hasUnsettledBalances) "Delete Anyway" else "Delete Group")
+                    Text("Delete Group")
                 }
             },
             dismissButton = {

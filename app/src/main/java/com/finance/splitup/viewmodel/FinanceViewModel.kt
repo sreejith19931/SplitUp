@@ -957,6 +957,18 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
     }
 
+    fun archiveGroup(groupId: String) {
+        val group = groups.value.find { it.id == groupId }
+        val groupName = group?.name ?: "Group"
+        postSystemNotification(
+            "📦 Group Archived",
+            "You archived the settled group '$groupName'.",
+            CHANNEL_GROUP_ACTIVITY,
+            groupId = groupId
+        )
+        deleteGroup(groupId)
+    }
+
     private suspend fun verifyGroupActiveOrPurge(groupId: String): Boolean {
         val context = getApplication<Application>()
         if (com.finance.splitup.data.CloudSyncManager.isGroupLocallyTombstoned(context, groupId)) {

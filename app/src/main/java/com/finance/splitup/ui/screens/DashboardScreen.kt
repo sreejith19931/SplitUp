@@ -262,69 +262,72 @@ fun DashboardScreen(
             )
         }
     ) { innerPadding ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = {
-                coroutineScope.launch {
-                    isRefreshing = true
-                    viewModel.refreshData()
-                    kotlinx.coroutines.delay(600)
-                    isRefreshing = false
-                }
-            },
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            val syncStatus by com.finance.splitup.data.CloudSyncManager.syncStatus.collectAsState()
-            val displayedExpenses = remember(expenses, selectedDashboardCategory) {
-                val filtered = if (selectedDashboardCategory == "All") expenses else expenses.filter { it.category.equals(selectedDashboardCategory, ignoreCase = true) }
-                filtered.take(3)
-            }
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                contentPadding = PaddingValues(bottom = 88.dp)
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    coroutineScope.launch {
+                        isRefreshing = true
+                        viewModel.refreshData()
+                        kotlinx.coroutines.delay(600)
+                        isRefreshing = false
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
             ) {
-                if (syncStatus == com.finance.splitup.data.SyncStatus.ERROR || currentUser == null) {
-                    item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.tertiaryContainer
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                val syncStatus by com.finance.splitup.data.CloudSyncManager.syncStatus.collectAsState()
+                val displayedExpenses = remember(expenses, selectedDashboardCategory) {
+                    val filtered = if (selectedDashboardCategory == "All") expenses else expenses.filter { it.category.equals(selectedDashboardCategory, ignoreCase = true) }
+                    filtered.take(3)
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(bottom = 88.dp)
+                ) {
+                    if (syncStatus == com.finance.splitup.data.SyncStatus.ERROR || currentUser == null) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.tertiaryContainer
                             ) {
-                                Icon(
-                                    Icons.Rounded.CloudOff,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                                Text(
-                                    text = "Offline Mode — Local data is saved securely",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.CloudOff,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    Text(
+                                        text = "Offline Mode — Local data is saved securely",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                item {
-                    val pagerState = rememberPagerState(pageCount = { 3 })
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                ) {
+                    item {
+                        val pagerState = rememberPagerState(pageCount = { 3 })
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                        ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -708,6 +711,26 @@ fun DashboardScreen(
                 }
             }
         }
+      }
+
+      AnimatedVisibility(
+          visible = isFabExpanded,
+          enter = fadeIn(animationSpec = tween(200)),
+          exit = fadeOut(animationSpec = tween(200)),
+          modifier = Modifier.fillMaxSize()
+      ) {
+          Box(
+              modifier = Modifier
+                  .fillMaxSize()
+                  .background(Color.Black.copy(alpha = 0.4f))
+                  .clickable(
+                      indication = null,
+                      interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                  ) {
+                      isFabExpanded = false
+                  }
+          )
+      }
     }
 }
 
@@ -789,21 +812,6 @@ fun SpeedDialFabMenu(
     )
 
     Box(contentAlignment = Alignment.BottomEnd) {
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = fadeIn(animationSpec = tween(200)),
-            exit = fadeOut(animationSpec = tween(200))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.35f))
-                    .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {
-                        onToggle()
-                    }
-            )
-        }
-
         Column(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(12.dp),

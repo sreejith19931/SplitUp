@@ -125,6 +125,7 @@ fun SplitUpApp(
     currentIntent: android.content.Intent? = null
 ) {
     var isAppUnlocked by rememberSaveable { mutableStateOf(false) }
+    var updateDialogInfo by remember { mutableStateOf<Pair<String, String>?>(null) }
     val backStack = rememberNavBackStack(DashboardRoute)
     val currentRoute = backStack.lastOrNull()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -156,6 +157,51 @@ fun SplitUpApp(
         )
 
         com.finance.splitup.data.CloudSyncManager.startListeningForIncomingNotifications(context)
+
+        // Automatic GitHub Release Update Check on App Launch
+        com.finance.splitup.data.UpdateChecker.checkLatestRelease(
+            onUpdateAvailable = { version, url ->
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                val dismissedVersion = prefs.getString("dismissed_update_version", null)
+                if (dismissedVersion != version) {
+                    updateDialogInfo = Pair(version, url)
+                }
+            },
+            onUpToDate = {}
+        )
+    }
+
+    if (updateDialogInfo != null) {
+        val (newVersion, updateUrl) = updateDialogInfo!!
+        AlertDialog(
+            onDismissRequest = { updateDialogInfo = null },
+            icon = { Icon(Icons.Rounded.SystemUpdate, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("New Version v$newVersion Available!", fontWeight = FontWeight.Bold) },
+            text = { Text("A new version of SplitUp (v$newVersion) is available on GitHub with bug fixes and improvements. Would you like to update now?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        updateDialogInfo = null
+                        com.finance.splitup.data.UpdateChecker.openReleaseUrl(context, updateUrl)
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Update Now")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                        prefs.edit().putString("dismissed_update_version", newVersion).apply()
+                        updateDialogInfo = null
+                    }
+                ) {
+                    Text("Remind Me Later")
+                }
+            },
+            shape = RoundedCornerShape(20.dp)
+        )
     }
 
     LaunchedEffect(currentIntent) {

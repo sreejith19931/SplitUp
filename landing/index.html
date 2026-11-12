@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SplitUp — Simple Group Expense Splitting for Android</title>
-    <link rel="icon" type="image/svg+xml" href="logo.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -41,14 +40,14 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            background: rgba(11, 15, 23, 0.9);
+            background: rgba(11, 15, 23, 0.95);
             backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--card-border);
             padding: 1rem 1.5rem;
         }
 
         .nav-inner {
-            max-width: 1080px;
+            max-width: 960px;
             margin: 0 auto;
             display: flex;
             align-items: center;
@@ -66,9 +65,17 @@
             letter-spacing: -0.02em;
         }
 
-        .nav-brand img {
-            width: 32px;
-            height: 32px;
+        .app-logo-svg {
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+        }
+
+        .hero-logo-svg {
+            width: 72px;
+            height: 72px;
+            margin-bottom: 1.5rem;
+            filter: drop-shadow(0 10px 20px rgba(56, 189, 248, 0.2));
         }
 
         .nav-actions {
@@ -81,7 +88,7 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.65rem 1.25rem;
+            padding: 0.6rem 1.2rem;
             border-radius: 10px;
             font-weight: 700;
             font-size: 0.9rem;
@@ -113,10 +120,13 @@
 
         /* Hero */
         .hero {
-            max-width: 860px;
-            margin: 5rem auto 3rem;
+            max-width: 800px;
+            margin: 4.5rem auto 3rem;
             padding: 0 1.5rem;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .version-badge {
@@ -130,11 +140,11 @@
             color: #34D399;
             font-size: 0.85rem;
             font-weight: 600;
-            margin-bottom: 1.75rem;
+            margin-bottom: 1.5rem;
         }
 
         .hero h1 {
-            font-size: 3.25rem;
+            font-size: 3rem;
             font-weight: 800;
             line-height: 1.15;
             letter-spacing: -0.03em;
@@ -146,10 +156,11 @@
         }
 
         .hero p {
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             color: var(--text-body);
-            margin-bottom: 2.25rem;
+            margin-bottom: 2rem;
             font-weight: 400;
+            max-width: 680px;
         }
 
         .hero-actions {
@@ -159,7 +170,7 @@
             flex-wrap: wrap;
         }
 
-        /* Main Content Container */
+        /* Main Container */
         .container {
             max-width: 960px;
             margin: 0 auto;
@@ -172,7 +183,7 @@
             border: 1px solid var(--card-border);
             border-radius: 18px;
             padding: 2rem;
-            margin-bottom: 4rem;
+            margin-bottom: 3rem;
         }
 
         .release-header {
@@ -185,13 +196,13 @@
         }
 
         .release-title {
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             font-weight: 700;
             color: var(--text-heading);
         }
 
         .release-tag {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 700;
             background-color: var(--brand-blue);
             color: #FFFFFF;
@@ -210,7 +221,7 @@
             align-items: flex-start;
             gap: 0.75rem;
             color: var(--text-bright);
-            font-size: 0.98rem;
+            font-size: 0.95rem;
         }
 
         .release-list li strong {
@@ -220,9 +231,8 @@
         /* Feature Cards */
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 1.5rem;
-            margin-bottom: 4rem;
         }
 
         .feature-card {
@@ -233,14 +243,14 @@
         }
 
         .feature-card h3 {
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
             color: var(--text-heading);
         }
 
         .feature-card p {
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             color: var(--text-body);
         }
 
@@ -262,7 +272,8 @@
         @media (max-width: 640px) {
             .hero h1 { font-size: 2.25rem; }
             .hero p { font-size: 1.05rem; }
-            .hero-actions { flex-direction: column; }
+            .hero-actions { flex-direction: column; width: 100%; }
+            .btn { width: 100%; justify-content: center; }
         }
     </style>
 </head>
@@ -271,7 +282,26 @@
     <nav>
         <div class="nav-inner">
             <a href="#" class="nav-brand">
-                <img src="logo.svg" alt="SplitUp Logo">
+                <!-- Inline SVG App Logo -->
+                <svg class="app-logo-svg" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="54" cy="54" r="33" fill="none" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.4" />
+                    <path fill="#1D4ED8" d="M26,38 H54 V70 H26 C23.8,70 22,68.2 22,66 V42 C22,39.8 23.8,38 26,38 Z" />
+                    <path fill="#047857" d="M54,38 H82 C84.2,38 86,39.8 86,42 V66 C86,68.2 84.2,70 82,70 H54 Z" />
+                    <rect x="28" y="47" width="9" height="10" fill="#FBBF24" rx="1" />
+                    <rect x="30.5" y="49" width="4" height="6" fill="#78350F" rx="0.5" />
+                    <rect x="41" y="47" width="6" height="10" fill="#93C5FD" opacity="0.85" rx="1" />
+                    <path stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" fill="none" d="M 72,48 A 5,5 0 0,1 72,56 M 75,45 A 8,8 0 0,1 75,59" />
+                    <g fill="#38BDF8">
+                        <rect x="53.5" y="40" width="1" height="2" />
+                        <rect x="53.5" y="44" width="1" height="2" />
+                        <rect x="53.5" y="48" width="1" height="2" />
+                        <rect x="53.5" y="52" width="1" height="2" />
+                        <rect x="53.5" y="56" width="1" height="2" />
+                        <rect x="53.5" y="60" width="1" height="2" />
+                        <rect x="53.5" y="64" width="1" height="2" />
+                        <rect x="53.5" y="68" width="1" height="2" />
+                    </g>
+                </svg>
                 <span>SplitUp</span>
             </a>
             <div class="nav-actions">
@@ -282,6 +312,27 @@
     </nav>
 
     <section class="hero">
+        <!-- Inline SVG Hero Logo -->
+        <svg class="hero-logo-svg" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="54" cy="54" r="33" fill="none" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.4" />
+            <path fill="#1D4ED8" d="M26,38 H54 V70 H26 C23.8,70 22,68.2 22,66 V42 C22,39.8 23.8,38 26,38 Z" />
+            <path fill="#047857" d="M54,38 H82 C84.2,38 86,39.8 86,42 V66 C86,68.2 84.2,70 82,70 H54 Z" />
+            <rect x="28" y="47" width="9" height="10" fill="#FBBF24" rx="1" />
+            <rect x="30.5" y="49" width="4" height="6" fill="#78350F" rx="0.5" />
+            <rect x="41" y="47" width="6" height="10" fill="#93C5FD" opacity="0.85" rx="1" />
+            <path stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" fill="none" d="M 72,48 A 5,5 0 0,1 72,56 M 75,45 A 8,8 0 0,1 75,59" />
+            <g fill="#38BDF8">
+                <rect x="53.5" y="40" width="1" height="2" />
+                <rect x="53.5" y="44" width="1" height="2" />
+                <rect x="53.5" y="48" width="1" height="2" />
+                <rect x="53.5" y="52" width="1" height="2" />
+                <rect x="53.5" y="56" width="1" height="2" />
+                <rect x="53.5" y="60" width="1" height="2" />
+                <rect x="53.5" y="64" width="1" height="2" />
+                <rect x="53.5" y="68" width="1" height="2" />
+            </g>
+        </svg>
+
         <div class="version-badge">
             SplitUp v1.2.0 is out
         </div>
@@ -303,7 +354,7 @@
             </div>
             <ul class="release-list">
                 <li>
-                    • <strong>Settled Group Archiving:</strong> You can now archive fully settled groups to keep your active groups list clean. Find and manage them anytime under the new "Archived" tab.
+                    • <strong>Settled Group Archiving:</strong> You can now archive fully settled groups to keep your active groups list clean. Find and manage them anytime under the new "Archived" tab in Groups.
                 </li>
                 <li>
                     • <strong>Full-Screen Quick Actions Dimming:</strong> Tapping the (+) action button on the dashboard now dims the whole screen for better focus.

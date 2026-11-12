@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SplitUp — Smart Expense Splitting & Finance Tracker for Android</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3B82F6;
+            --primary-glow: rgba(59, 130, 246, 0.4);
+            --emerald: #10B981;
+            --emerald-glow: rgba(16, 185, 129, 0.3);
+            --cyan: #06B6D4;
+            --dark-bg: #0F172A;
+            --card-bg: #1E293B;
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --font-head: 'Outfit', sans-serif;
+            --font-body: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Header / Navbar */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1.25rem 2rem;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-main);
+            font-family: var(--font-head);
+            font-weight: 800;
+            font-size: 1.5rem;
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--emerald));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #2563EB);
+            color: #FFFFFF;
+            box-shadow: 0 4px 20px var(--primary-glow);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(59, 130, 246, 0.6);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Hero Section */
+        .hero {
+            max-width: 1200px;
+            margin: 4rem auto 2rem;
+            padding: 0 2rem;
+            text-align: center;
+        }
+
+        .badge-version {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1rem;
+            border-radius: 999px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--emerald);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 {
+            font-family: var(--font-head);
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(to right, #FFFFFF, #94A3B8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--primary), var(--emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto 2.5rem;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 4rem;
+        }
+
+        /* What's New / Release Notes Section */
+        .whats-new-section {
+            max-width: 1200px;
+            margin: 2rem auto 5rem;
+            padding: 0 2rem;
+        }
+
+        .section-title {
+            font-family: var(--font-head);
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .whats-new-card {
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .whats-new-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary), var(--emerald));
+        }
+
+        .release-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .release-tag {
+            font-family: var(--font-head);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .release-date {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .changelog-list {
+            list-style: none;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .changelog-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            font-size: 1.05rem;
+            color: #E2E8F0;
+        }
+
+        /* Features Section */
+        .features-grid {
+            max-width: 1200px;
+            margin: 0 auto 5rem;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .feature-card h3 {
+            font-family: var(--font-head);
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--card-border);
+            padding: 3rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .hero-buttons { flex-direction: column; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-container">
+            <a href="#" class="brand">
+                <div class="brand-logo">💸</div>
+                <span>SplitUp</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#whats-new">What's New</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#tech-stack">Tech Stack</a></li>
+            </ul>
+            <a href="https://github.com/sreejith19931/SplitUp" target="_blank" class="btn btn-outline">GitHub Repo</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="badge-version">
+            ⚡ Version 1.2.0 Released
+        </div>
+        <h1>Smart Expense Splitting & <span>Finance Tracker</span></h1>
+        <p>Effortlessly split group bills, scan receipts with OCR, track live multi-currency rates, and manage personal budgets on Android.</p>
+
+        <div class="hero-buttons">
+            <a href="https://github.com/sreejith19931/SplitUp/releases" target="_blank" class="btn btn-primary">Download APK (v1.2.0)</a>
+            <a href="https://github.com/sreejith19931/SplitUp" target="_blank" class="btn btn-outline">View Source Code</a>
+        </div>
+    </section>
+
+    <section id="whats-new" class="whats-new-section">
+        <h2 class="section-title">What's New in v1.2.0</h2>
+        <div class="whats-new-card">
+            <div class="release-header">
+                <div class="release-tag">v1.2.0 — Feature & UI Refresh</div>
+                <div class="release-date">Latest Release</div>
+            </div>
+            <ul class="changelog-list">
+                <li class="changelog-item">
+                    <span>📦</span>
+                    <div><strong>Settled Group Archiving:</strong> Fully settled groups can now be archived using the new explicit Archive option and managed under the new "Archived" tab in Groups.</div>
+                </li>
+                <li class="changelog-item">
+                    <span>🌑</span>
+                    <div><strong>Full-Screen Dashboard Dimming:</strong> Opening the quick action menu (+) now dims the entire screen smoothly for enhanced focus.</div>
+                </li>
+                <li class="changelog-item">
+                    <span>✨</span>
+                    <div><strong>UI Hygiene & Neutrality:</strong> Removed check mark symbols across non-checkbox pages and neutralized settings sub-page backgrounds to prevent any unwanted color tints.</div>
+                </li>
+                <li class="changelog-item">
+                    <span>🛡️</span>
+                    <div><strong>Refined Danger Zone:</strong> Cleaned up Danger Zone button borders and enhanced confirmation safety dialogs.</div>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="features" class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">👥</div>
+            <h3>Group Bill Splitting</h3>
+            <p>Split group bills equally, by exact amounts, or by percentage with automatic balance simplification.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📷</div>
+            <h3>Receipt Processing (OCR)</h3>
+            <p>Scan receipt images using Google ML Kit to extract items, totals, and allocate line items instantly.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">💱</div>
+            <h3>Live Exchange Rates</h3>
+            <p>Real-time exchange rates for global currencies with automatic conversion across groups and personal expenses.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">☁️</div>
+            <h3>Offline-First & Cloud Sync</h3>
+            <p>Local Room persistence with seamless background synchronization via Firebase Firestore and WorkManager.</p>
+        </div>
+    </section>
+
+    <footer>
+        <p>Built with Jetpack Compose & Material 3 for Android. Open Source under MIT License.</p>
+        <p style="margin-top: 0.5rem;"><a href="https://github.com/sreejith19931/SplitUp" target="_blank">SplitUp on GitHub</a></p>
+    </footer>
+
+</body>
+</html>

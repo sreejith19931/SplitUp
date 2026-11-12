@@ -206,67 +206,47 @@ fun DashboardScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        horizontalAlignment = Alignment.Start,
-                        modifier = Modifier.padding(bottom = 6.dp)
-                    ) {
-                        SplitUpLogo(size = 24.dp, style = LogoStyle.REFINED_CARD_SPLITUP)
-                        Text(
-                            text = displayedGreeting,
-                            fontSize = 15.sp,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                },
-                actions = {
-                    BadgedBox(
-                        badge = {
-                            if (notificationCount > 0) {
-                                Badge {
-                                    Text("$notificationCount")
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalAlignment = Alignment.Start,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        ) {
+                            SplitUpLogo(size = 24.dp, style = LogoStyle.REFINED_CARD_SPLITUP)
+                            Text(
+                                text = displayedGreeting,
+                                fontSize = 15.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    },
+                    actions = {
+                        BadgedBox(
+                            badge = {
+                                if (notificationCount > 0) {
+                                    Badge {
+                                        Text("$notificationCount")
+                                    }
                                 }
                             }
+                        ) {
+                            IconButton(onClick = { showNotificationsSheet = true }) {
+                                Icon(Icons.Rounded.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.onSurface)
+                            }
                         }
-                    ) {
-                        IconButton(onClick = { showNotificationsSheet = true }) {
-                            Icon(Icons.Rounded.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.onSurface)
+                        IconButton(onClick = onNavigateToGlobalSearch) {
+                            Icon(Icons.Rounded.Search, contentDescription = "Global Search", tint = MaterialTheme.colorScheme.onSurface)
                         }
-                    }
-                    IconButton(onClick = onNavigateToGlobalSearch) {
-                        Icon(Icons.Rounded.Search, contentDescription = "Global Search", tint = MaterialTheme.colorScheme.onSurface)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        },
-        floatingActionButton = {
-            SpeedDialFabMenu(
-                isExpanded = isFabExpanded,
-                onToggle = { isFabExpanded = !isFabExpanded },
-                onNavigateToAddExpense = onNavigateToAddExpense,
-                onNavigateToGroupExpense = {
-                    if (groups.isEmpty()) {
-                        onNavigateToCreateGroup()
-                    } else {
-                        showGroupPickerForExpense = true
-                    }
-                },
-                onNavigateToScanner = onNavigateToScanner,
-                onNavigateToCreateGroup = onNavigateToCreateGroup
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                )
+            }
+        ) { innerPadding ->
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = {
@@ -277,7 +257,9 @@ fun DashboardScreen(
                         isRefreshing = false
                     }
                 },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
             ) {
                 val syncStatus by com.finance.splitup.data.CloudSyncManager.syncStatus.collectAsState()
                 val displayedExpenses = remember(expenses, selectedDashboardCategory) {
@@ -713,6 +695,7 @@ fun DashboardScreen(
         }
       }
 
+      // Full-screen dimming scrim when FAB menu is expanded
       AnimatedVisibility(
           visible = isFabExpanded,
           enter = fadeIn(animationSpec = tween(200)),
@@ -722,13 +705,36 @@ fun DashboardScreen(
           Box(
               modifier = Modifier
                   .fillMaxSize()
-                  .background(Color.Black.copy(alpha = 0.4f))
+                  .background(Color.Black.copy(alpha = 0.5f))
                   .clickable(
                       indication = null,
                       interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                   ) {
                       isFabExpanded = false
                   }
+          )
+      }
+
+      // Speed Dial Fab Menu rendered on top of dimming scrim at bottom end
+      Box(
+          modifier = Modifier
+              .fillMaxSize()
+              .padding(16.dp),
+          contentAlignment = Alignment.BottomEnd
+      ) {
+          SpeedDialFabMenu(
+              isExpanded = isFabExpanded,
+              onToggle = { isFabExpanded = !isFabExpanded },
+              onNavigateToAddExpense = onNavigateToAddExpense,
+              onNavigateToGroupExpense = {
+                  if (groups.isEmpty()) {
+                      onNavigateToCreateGroup()
+                  } else {
+                      showGroupPickerForExpense = true
+                  }
+              },
+              onNavigateToScanner = onNavigateToScanner,
+              onNavigateToCreateGroup = onNavigateToCreateGroup
           )
       }
     }

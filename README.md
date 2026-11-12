@@ -50,7 +50,7 @@
 
 | Groups | Personal Expenses | Settings | Dashboard |
 | :---: | :---: | :---: | :---: |
-| ![Groups](screenshots/Groups.png) | ![Personal Expenses](screenshots/Personal%20Expenses.png) | ![Settings](screenshots/Settings.png) | ![Dashboard](screenshots/Dashboard.png) |
+| ![Groups](screenshots/Groups.png) | ![Personal Expenses](screenshots/PersonalExpenses.png) | ![Settings](screenshots/Settings.png) | ![Dashboard](screenshots/Dashboard.png) |
 
 ---
 

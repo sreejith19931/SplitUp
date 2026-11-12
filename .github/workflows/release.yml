@@ -31,14 +31,22 @@ jobs:
             cp app/google-services.json.template app/google-services.json
           fi
 
-      - name: Decode Keystore (if secret present)
+      - name: Setup Keystore for Release
         run: |
           if [ -n "${{ secrets.SIGNING_KEY_BASE64 }}" ]; then
+            echo "Decoding private production keystore from GitHub Secrets..."
             echo "${{ secrets.SIGNING_KEY_BASE64 }}" | base64 --decode > app/release.keystore
             echo "KEYSTORE_FILE=app/release.keystore" >> $GITHUB_ENV
             echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
             echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          else
+            echo "Generating fallback keystore on runner..."
+            keytool -genkey -v -keystore app/release.keystore -alias splitup -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=SplitUp, OU=Android, O=SplitUp, L=City, S=State, C=US"
+            echo "KEYSTORE_FILE=app/release.keystore" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_ALIAS=splitup" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
           fi
 
       - name: Build Signed Release APK

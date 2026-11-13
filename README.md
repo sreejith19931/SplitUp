@@ -13,10 +13,9 @@
 
 ## ⚡ What's New in v1.3
 
-- 📊 **Spending Insights & Trends**: Dedicated `InsightsScreen` featuring Monthly Overview (Total Spending vs Income) and Category Breakdown progress bars.
-- ✨ **App-Wide UI Polish & Animations**: Custom pulsing loading animation component, celebratory settlement success dialog, and smooth Navigation 3 screen entrance transition animations.
-- 🔗 **Universal App Links & Vercel Domain**: Upgraded QR codes and share links to use **`splitupfin.vercel.app`** with Android App Links intent filters and web fallback landing pages.
-
+- **Spending Insights & Trends:**
+- **App-Wide UI Polish & Micro-Animations:**
+- **Universal App Links & Vercel Domain:**
 ---
 
 ## ✨ Key Features

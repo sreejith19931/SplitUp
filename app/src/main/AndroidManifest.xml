@@ -46,6 +46,18 @@
 
                 <data
                     android:scheme="https"
+                    android:host="splitupfin.vercel.app"
+                    android:pathPrefix="/invite" />
+                <data
+                    android:scheme="https"
+                    android:host="splitupfin.vercel.app"
+                    android:pathPrefix="/group" />
+                <data
+                    android:scheme="https"
+                    android:host="splitupfin.vercel.app"
+                    android:pathPrefix="/user" />
+                <data
+                    android:scheme="https"
                     android:host="splitup.app"
                     android:pathPrefix="/invite" />
                 <data

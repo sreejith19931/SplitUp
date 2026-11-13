@@ -18,6 +18,7 @@ import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaf
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -115,6 +116,14 @@ fun GroupsScreen(
                             }
                         )
                     }
+                    val selfName = viewModel.currentUserName
+                    val selfEmail = viewModel.currentUserEmail
+                    val pendingInvitationGroups = remember(groups, selfName, selfEmail) {
+                        groups.filter { g ->
+                            g.pendingMembers.any { it.equals(selfName, ignoreCase = true) || it.equals("You", ignoreCase = true) || (selfEmail.isNotBlank() && it.equals(selfEmail, ignoreCase = true)) }
+                        }
+                    }
+
                     PullToRefreshBox(
                         isRefreshing = isRefreshing,
                         onRefresh = {
@@ -172,6 +181,55 @@ fun GroupsScreen(
                                                 color = if (totalNetOwed >= 0.01) EmeraldSuccess else if (totalNetOwed < -0.01) CrimsonDanger else MaterialTheme.colorScheme.onPrimaryContainer
                                             )
                                             Text("Across all active shared groups", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (pendingInvitationGroups.isNotEmpty()) {
+                                item {
+                                    Text("Pending Group Invitations 📩", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+                                }
+                                items(pendingInvitationGroups, key = { "pending_${it.id}" }) { group ->
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(group.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                                    Text("Invited by ${group.createdBy}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f))
+                                                }
+                                                Text("${group.members.size} active members", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                            }
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Button(
+                                                    onClick = { viewModel.acceptGroupInvitation(group.id) },
+                                                    modifier = Modifier.weight(1f),
+                                                    shape = RoundedCornerShape(10.dp)
+                                                ) {
+                                                    Text("Accept", fontWeight = FontWeight.Bold)
+                                                }
+                                                OutlinedButton(
+                                                    onClick = { viewModel.declineGroupInvitation(group.id) },
+                                                    modifier = Modifier.weight(1f),
+                                                    shape = RoundedCornerShape(10.dp)
+                                                ) {
+                                                    Text("Decline", fontWeight = FontWeight.Bold)
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -353,6 +411,22 @@ fun GroupCard(
                             },
                             fontWeight = FontWeight.Bold
                         )
+                    }
+                    if (userBalance < -0.01) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = CrimsonDanger,
+                            modifier = Modifier.clickable(onClick = onClick)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Rounded.Payments, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color.White)
+                                Text("Settle Up", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
             }

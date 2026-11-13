@@ -122,12 +122,13 @@ data class GroupEntity(
     val updatedAt: Long = System.currentTimeMillis(),
     val emoji: String = "✈️",
     val colorHex: String = "#3B82F6",
+    val isArchived: Boolean = false,
     val isDirty: Boolean = true
 ) {
-    fun toDomain() = Group(id, name, type, members, pendingMembers, memberUids, memberEmails, expenses, createdBy, updatedAt, emoji, colorHex)
+    fun toDomain() = Group(id, name, type, members, pendingMembers, memberUids, memberEmails, expenses, createdBy, updatedAt, emoji, colorHex, isArchived)
     companion object {
         fun fromDomain(group: Group, isDirty: Boolean = true) = GroupEntity(
-            group.id, group.name, group.type, group.members, group.pendingMembers, group.memberUids, group.memberEmails, group.expenses, group.createdBy, group.updatedAt, group.emoji, group.colorHex, isDirty
+            group.id, group.name, group.type, group.members, group.pendingMembers, group.memberUids, group.memberEmails, group.expenses, group.createdBy, group.updatedAt, group.emoji, group.colorHex, group.isArchived, isDirty
         )
     }
 }

@@ -91,6 +91,7 @@ class MainActivity : FragmentActivity() {
                     }
                     is com.finance.splitup.viewmodel.AuthState.EmailVerificationPending -> {
                         EmailVerificationScreen(
+                            authViewModel = authViewModel,
                             userEmail = state.user.email ?: "",
                             onResend = { authViewModel.resendEmailVerification() },
                             onCheckStatus = { authViewModel.checkEmailVerificationStatus() },
@@ -209,9 +210,12 @@ fun SplitUpApp(
         val intent = currentIntent ?: activity?.intent ?: return@LaunchedEffect
         val data = intent.data
 
-        if (data != null && ((data.scheme == "splitup" && data.host == "group") || (data.scheme == "https" && (data.host == "splitup.finance" || data.host == "splitup.app")))) {
-            val groupId = data.getQueryParameter("id") ?: data.getQueryParameter("groupId") ?: data.lastPathSegment
-            if (!groupId.isNullOrBlank() && groupId != "invite" && groupId != "group") {
+        if (data != null && ((data.scheme == "splitup") || (data.scheme == "https" && (data.host == "splitupfin.vercel.app" || data.host == "splitup.finance" || data.host == "splitup.app")))) {
+            val groupId = data.getQueryParameter("id") ?: data.getQueryParameter("groupId") ?: if (data.path?.startsWith("/group") == true || data.path?.startsWith("/invite") == true) data.lastPathSegment else null
+            val userEmail = data.getQueryParameter("email")
+            val userName = data.getQueryParameter("name") ?: userEmail?.substringBefore("@") ?: ""
+
+            if (!groupId.isNullOrBlank() && groupId != "invite" && groupId != "group" && groupId != "user") {
                 viewModel.joinGroupViaInvite(
                     groupId = groupId,
                     onJoined = {
@@ -221,6 +225,11 @@ fun SplitUpApp(
                         backStack.add(GroupDetailRoute(groupId))
                     }
                 )
+                return@LaunchedEffect
+            } else if (!userEmail.isNullOrBlank()) {
+                viewModel.addRecentFriend(userName, userEmail)
+                backStack.add(FindFriendsRoute)
+                android.widget.Toast.makeText(context, "Added $userName to friends!", android.widget.Toast.LENGTH_SHORT).show()
                 return@LaunchedEffect
             }
         }

@@ -213,6 +213,20 @@ fun EditProfileScreen(
                 onValueChange = { upiVpa = it },
                 label = { Text("UPI ID / VPA (e.g. name@oksbi)") },
                 leadingIcon = { Icon(Icons.Rounded.Payment, contentDescription = null) },
+                trailingIcon = if (upiVpa.isNotBlank()) {
+                    {
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("UPI VPA", upiVpa)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, "UPI VPA copied to clipboard", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy UPI VPA", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                } else null,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
@@ -223,6 +237,20 @@ fun EditProfileScreen(
                 onValueChange = { paypalHandle = it },
                 label = { Text("PayPal Username / Email") },
                 leadingIcon = { Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null) },
+                trailingIcon = if (paypalHandle.isNotBlank()) {
+                    {
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("PayPal Handle", paypalHandle)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, "PayPal handle copied to clipboard", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy PayPal Handle", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                } else null,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)

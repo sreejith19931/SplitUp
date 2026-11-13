@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -21,12 +22,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -49,11 +52,15 @@ fun OnboardingSetupScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val prefs = remember { com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs") }
+    val currentUserId = remember {
+        try { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "guest" } catch (_: Exception) { "guest" }
+    }
 
     var currentStep by remember { mutableIntStateOf(1) } // 1 = Financial Profile, 2 = Permissions Setup
 
     // Step 1 State: Financial Profile & Budgets
     var selectedCurrency by remember { mutableStateOf(Currencies.EUR) }
+    val currencySymbol = remember(selectedCurrency) { Currencies.getSymbol(selectedCurrency) }
     var currencySearchQuery by remember { mutableStateOf("") }
     var foodBudget by remember { mutableStateOf("400") }
     var transportBudget by remember { mutableStateOf("200") }
@@ -89,6 +96,24 @@ fun OnboardingSetupScreen(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
+    }
+
+    fun completeOnboarding() {
+        viewModel.updateDefaultCurrency(selectedCurrency)
+        viewModel.updateBudget(ExpenseCategories.FOOD, foodBudget.toDoubleOrNull() ?: 400.0)
+        viewModel.updateBudget(ExpenseCategories.TRANSPORT, transportBudget.toDoubleOrNull() ?: 200.0)
+        viewModel.updateBudget(ExpenseCategories.SHOPPING, shoppingBudget.toDoubleOrNull() ?: 300.0)
+        viewModel.updateBudget(ExpenseCategories.BILLS, billsBudget.toDoubleOrNull() ?: 250.0)
+        viewModel.updateBudget(ExpenseCategories.ENTERTAINMENT, entertainmentBudget.toDoubleOrNull() ?: 150.0)
+        viewModel.updateUserProfile(upiVpa, paypalHandle, "", "")
+        viewModel.toggleBiometricLock(enableBiometrics)
+
+        prefs.edit()
+            .putBoolean("has_completed_onboarding_$currentUserId", true)
+            .putBoolean("has_completed_onboarding", true)
+            .apply()
+        Toast.makeText(context, "Setup complete! Welcome to SplitUp.", Toast.LENGTH_SHORT).show()
+        onSetupComplete()
     }
 
     Surface(
@@ -292,15 +317,23 @@ fun OnboardingSetupScreen(
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         OutlinedTextField(
                                             value = foodBudget,
-                                            onValueChange = { foodBudget = it },
+                                            onValueChange = { foodBudget = it.filter { c -> c.isDigit() } },
                                             label = { Text("Food & Dining") },
+                                            leadingIcon = { Text("🍔", fontSize = 16.sp) },
+                                            prefix = { Text(currencySymbol) },
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                             modifier = Modifier.weight(1f),
                                             shape = RoundedCornerShape(10.dp)
                                         )
                                         OutlinedTextField(
                                             value = transportBudget,
-                                            onValueChange = { transportBudget = it },
+                                            onValueChange = { transportBudget = it.filter { c -> c.isDigit() } },
                                             label = { Text("Transport") },
+                                            leadingIcon = { Text("🚗", fontSize = 16.sp) },
+                                            prefix = { Text(currencySymbol) },
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                             modifier = Modifier.weight(1f),
                                             shape = RoundedCornerShape(10.dp)
                                         )
@@ -308,23 +341,35 @@ fun OnboardingSetupScreen(
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         OutlinedTextField(
                                             value = shoppingBudget,
-                                            onValueChange = { shoppingBudget = it },
+                                            onValueChange = { shoppingBudget = it.filter { c -> c.isDigit() } },
                                             label = { Text("Shopping") },
+                                            leadingIcon = { Text("🛒", fontSize = 16.sp) },
+                                            prefix = { Text(currencySymbol) },
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                             modifier = Modifier.weight(1f),
                                             shape = RoundedCornerShape(10.dp)
                                         )
                                         OutlinedTextField(
                                             value = billsBudget,
-                                            onValueChange = { billsBudget = it },
+                                            onValueChange = { billsBudget = it.filter { c -> c.isDigit() } },
                                             label = { Text("Bills") },
+                                            leadingIcon = { Text("⚡", fontSize = 16.sp) },
+                                            prefix = { Text(currencySymbol) },
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                                             modifier = Modifier.weight(1f),
                                             shape = RoundedCornerShape(10.dp)
                                         )
                                     }
                                     OutlinedTextField(
                                         value = entertainmentBudget,
-                                        onValueChange = { entertainmentBudget = it },
+                                        onValueChange = { entertainmentBudget = it.filter { c -> c.isDigit() } },
                                         label = { Text("Entertainment") },
+                                        leadingIcon = { Text("🎬", fontSize = 16.sp) },
+                                        prefix = { Text(currencySymbol) },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(10.dp)
                                     )
@@ -399,6 +444,16 @@ fun OnboardingSetupScreen(
                                 }
                             }
 
+                            TextButton(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    completeOnboarding()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Skip & Use Default Settings", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                            }
+
                             Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
@@ -439,9 +494,13 @@ fun OnboardingSetupScreen(
                             )
 
                             // 1. Contacts Access
+                            val isContactsGranted = contactsPermissionState.status.isGranted
                             Card(
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isContactsGranted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (isContactsGranted) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+                                )
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -461,25 +520,29 @@ fun OnboardingSetupScreen(
                                             Text(
                                                 "Find friends already on SplitUp and easily add group members.",
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = if (isContactsGranted) MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Button(
                                         onClick = { contactsPermissionState.launchPermissionRequest() },
-                                        enabled = !contactsPermissionState.status.isGranted,
+                                        enabled = !isContactsGranted,
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
-                                        Text(if (contactsPermissionState.status.isGranted) "Granted" else "Grant")
+                                        Text(if (isContactsGranted) "Granted ✓" else "Grant")
                                     }
                                 }
                             }
 
                             // 2. Push Notifications Permission
+                            val isNotifGranted = notificationsPermissionState?.status?.isGranted == true || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
                             Card(
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isNotifGranted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (isNotifGranted) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+                                )
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -499,25 +562,29 @@ fun OnboardingSetupScreen(
                                             Text(
                                                 "Receive real-time budget threshold warnings and settlement updates.",
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = if (isNotifGranted) MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Button(
                                         onClick = { notificationsPermissionState?.launchPermissionRequest() },
-                                        enabled = notificationsPermissionState?.status?.isGranted != true,
+                                        enabled = !isNotifGranted,
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
-                                        Text(if (notificationsPermissionState?.status?.isGranted == true || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) "Granted ✓" else "Grant")
+                                        Text(if (isNotifGranted) "Granted ✓" else "Grant")
                                     }
                                 }
                             }
 
                             // 3. Camera Access
+                            val isCameraGranted = cameraPermissionState.status.isGranted
                             Card(
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isCameraGranted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (isCameraGranted) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+                                )
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -537,17 +604,17 @@ fun OnboardingSetupScreen(
                                             Text(
                                                 "Scan physical receipts with OCR and scan group QR invite codes.",
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = if (isCameraGranted) MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Button(
                                         onClick = { cameraPermissionState.launchPermissionRequest() },
-                                        enabled = !cameraPermissionState.status.isGranted,
+                                        enabled = !isCameraGranted,
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
-                                        Text(if (cameraPermissionState.status.isGranted) "Granted" else "Grant")
+                                        Text(if (isCameraGranted) "Granted ✓" else "Grant")
                                     }
                                 }
                             }
@@ -555,7 +622,10 @@ fun OnboardingSetupScreen(
                             // 4. Payment Notification Auto-Detector
                             Card(
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isNotificationListenerActive) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (isNotificationListenerActive) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface
+                                )
                             ) {
                                 Column(
                                     modifier = Modifier.padding(16.dp),
@@ -577,7 +647,7 @@ fun OnboardingSetupScreen(
                                                 Text(
                                                     "Detect bank & payment app notifications (Google Wallet, GPay, Paytm) for 1-tap review.",
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    color = if (isNotificationListenerActive) MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         }
@@ -606,7 +676,7 @@ fun OnboardingSetupScreen(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            if (isNotificationListenerActive) "Access Granted" else "Enable Access in Settings",
+                                            if (isNotificationListenerActive) "Access Granted ✓" else "Enable Access in Settings",
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -633,20 +703,7 @@ fun OnboardingSetupScreen(
                                 }
 
                                 Button(
-                                    onClick = {
-                                        viewModel.updateDefaultCurrency(selectedCurrency)
-                                        viewModel.updateBudget(ExpenseCategories.FOOD, foodBudget.toDoubleOrNull() ?: 400.0)
-                                        viewModel.updateBudget(ExpenseCategories.TRANSPORT, transportBudget.toDoubleOrNull() ?: 200.0)
-                                        viewModel.updateBudget(ExpenseCategories.SHOPPING, shoppingBudget.toDoubleOrNull() ?: 300.0)
-                                        viewModel.updateBudget(ExpenseCategories.BILLS, billsBudget.toDoubleOrNull() ?: 250.0)
-                                        viewModel.updateBudget(ExpenseCategories.ENTERTAINMENT, entertainmentBudget.toDoubleOrNull() ?: 150.0)
-                                        viewModel.updateUserProfile(upiVpa, paypalHandle, "", "")
-                                        viewModel.toggleBiometricLock(enableBiometrics)
-
-                                        prefs.edit().putBoolean("has_completed_onboarding", true).apply()
-                                        Toast.makeText(context, "Setup complete! Welcome to SplitUp.", Toast.LENGTH_SHORT).show()
-                                        onSetupComplete()
-                                    },
+                                    onClick = { completeOnboarding() },
                                     modifier = Modifier
                                         .weight(0.65f)
                                         .height(50.dp),

@@ -57,14 +57,20 @@ fun CreateGroupScreen(
         }
     }
 
-    val allContacts = remember(contactPermissionState.status.isGranted, registeredCloudUsers, registeredUserEmails) {
+    val allContacts = remember(contactPermissionState.status.isGranted, registeredCloudUsers, registeredUserEmails, memberSearchQuery) {
         val deviceList = if (contactPermissionState.status.isGranted) {
             SampleContacts.loadDeviceContacts(context)
         } else {
             emptyList()
         }
+        val deviceEmails = deviceList.map { it.email.lowercase() }.toSet()
         val registeredSet = registeredUserEmails + registeredCloudUsers.map { it.email.lowercase() }
-        val combined = (registeredCloudUsers + deviceList).distinctBy { it.email.lowercase() }
+        val visibleCloudUsers = if (memberSearchQuery.isNotBlank()) {
+            registeredCloudUsers
+        } else {
+            registeredCloudUsers.filter { it.email.lowercase() in deviceEmails }
+        }
+        val combined = (deviceList + visibleCloudUsers).distinctBy { it.email.lowercase() }
         combined.map { contact ->
             val isRegistered = contact.isSplitUpMember ||
                     registeredSet.contains(contact.email.lowercase()) ||
@@ -429,7 +435,8 @@ fun CreateGroupScreen(
                         val newGroupId = viewModel.addGroup(
                             name = groupName,
                             type = groupType,
-                            members = selectedMembers,
+                            members = listOf("You"),
+                            pendingMembers = selectedMembers,
                             memberEmails = selectedMemberEmails,
                             emoji = selectedEmoji,
                             colorHex = selectedColorHex

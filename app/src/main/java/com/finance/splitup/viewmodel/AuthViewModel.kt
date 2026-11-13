@@ -69,12 +69,45 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     var isResendingEmail by mutableStateOf(false)
         private set
 
+    private var emailPollingJob: kotlinx.coroutines.Job? = null
+
     fun clearError() {
         errorMessage = null
     }
 
     fun setCustomError(msg: String) {
         errorMessage = msg
+    }
+
+    fun enterGuestMode() {
+        errorMessage = null
+        _authState.value = AuthState.LocalDemo
+    }
+
+    fun isValidEmail(email: String): Boolean {
+        return android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()
+    }
+
+    fun startEmailVerificationPolling() {
+        emailPollingJob?.cancel()
+        emailPollingJob = viewModelScope.launch {
+            while (_authState.value is AuthState.EmailVerificationPending) {
+                kotlinx.coroutines.delay(4000L)
+                try {
+                    val user = currentUser
+                    user?.reload()?.await()
+                    if (user != null && user.isEmailVerified) {
+                        _authState.value = AuthState.Authenticated(user)
+                        break
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    fun stopEmailVerificationPolling() {
+        emailPollingJob?.cancel()
+        emailPollingJob = null
     }
 
     fun signInWithGoogleToken(idToken: String) {
@@ -116,6 +149,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             errorMessage = "Please fill in all fields"
             return
         }
+        if (!isValidEmail(email)) {
+            errorMessage = "Please enter a valid email address"
+            return
+        }
         val firebaseAuth = auth
         if (firebaseAuth == null) {
             errorMessage = "Firebase is not configured."
@@ -124,7 +161,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val result = firebaseAuth.signInWithEmailAndPassword(email, pass).await()
+                val result = firebaseAuth.signInWithEmailAndPassword(email.trim(), pass).await()
                 val user = result.user
                 if (user != null) {
                     val app = getApplication<Application>()
@@ -159,6 +196,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             errorMessage = "Please fill in all fields"
             return
         }
+        if (!isValidEmail(email)) {
+            errorMessage = "Please enter a valid email address"
+            return
+        }
         val firebaseAuth = auth
         if (firebaseAuth == null) {
             errorMessage = "Firebase is not configured."
@@ -167,7 +208,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val result = firebaseAuth.createUserWithEmailAndPassword(email, pass).await()
+                val result = firebaseAuth.createUserWithEmailAndPassword(email.trim(), pass).await()
                 val user = result.user
                 if (user != null) {
                     val nameToSave = if (displayName.isNotBlank()) displayName else email.substringBefore("@")
@@ -179,7 +220,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     try {
                         val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                        val userMap = mutableMapOf<String, Any>("lastActive" to java.util.Date())
+                        val userMap = mutableMapOf<String, Any>(
+                            "lastActive" to java.util.Date(),
+                            "createdAt" to java.util.Date(),
+                            "defaultCurrency" to "EUR"
+                        )
                         user.email?.let { userMap["email"] = it }
                         userMap["name"] = nameToSave
                         db.collection("users").document(user.uid).set(userMap, com.google.firebase.firestore.SetOptions.merge()).await()
@@ -381,6 +426,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 android.util.Log.e("AuthViewModel", "Failed final sync on sign out", e)
             } finally {
                 try {
+                    stopEmailVerificationPolling()
                     com.finance.splitup.data.CloudSyncManager.stopListeningForIncomingNotifications()
                 } catch (_: Exception) {}
                 try {

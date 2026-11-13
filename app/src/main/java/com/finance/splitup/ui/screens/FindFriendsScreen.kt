@@ -43,13 +43,19 @@ fun FindFriendsScreen(
         }
     }
 
-    val allContacts = remember(contactPermissionState.status.isGranted, registeredCloudUsers) {
+    val allContacts = remember(contactPermissionState.status.isGranted, registeredCloudUsers, searchQuery) {
         val deviceList = if (contactPermissionState.status.isGranted) {
             SampleContacts.loadDeviceContacts(context)
         } else {
             emptyList()
         }
-        (deviceList + registeredCloudUsers).distinctBy { it.email.lowercase() }
+        val deviceEmails = deviceList.map { it.email.lowercase() }.toSet()
+        val visibleCloudUsers = if (searchQuery.isNotBlank()) {
+            registeredCloudUsers
+        } else {
+            registeredCloudUsers.filter { it.email.lowercase() in deviceEmails }
+        }
+        (deviceList + visibleCloudUsers).distinctBy { it.email.lowercase() }
     }
 
     val contactsWithStatus = remember(allContacts, registeredEmails) {

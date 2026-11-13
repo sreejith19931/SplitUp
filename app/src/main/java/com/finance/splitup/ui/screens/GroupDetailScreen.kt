@@ -103,6 +103,10 @@ fun GroupDetailContent(
     onBack: (() -> Unit)? = null
 ) {
     val selfName = viewModel.currentUserName
+    val selfEmail = viewModel.currentUserEmail
+    val isPendingUser = remember(group, selfName, selfEmail) {
+        group.pendingMembers.any { it.equals(selfName, ignoreCase = true) || it.equals("You", ignoreCase = true) || (selfEmail.isNotBlank() && it.equals(selfEmail, ignoreCase = true)) }
+    }
     var showAddMemberDialog by remember { mutableStateOf(false) }
     var showEditGroupDialog by remember { mutableStateOf(false) }
     var showDeleteGroupConfirmDialog by remember { mutableStateOf(false) }
@@ -218,6 +222,40 @@ fun GroupDetailContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = 88.dp)
         ) {
+            if (isPendingUser) {
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.tertiaryContainer
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("Group Invitation Request 📩", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                            Text("You were invited to join '${group.name}' by ${group.createdBy}. Accept to participate in group expenses and settlements.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = { viewModel.acceptGroupInvitation(group.id) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Accept Invitation", fontWeight = FontWeight.Bold)
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        viewModel.declineGroupInvitation(group.id)
+                                        if (onBack != null) onBack()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Decline", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -415,7 +453,7 @@ fun GroupDetailContent(
 
                     OutlinedButton(
                         onClick = {
-                            val inviteText = "Join my SplitUp group '${group.name}'! Invite link: splitup://group/${group.id}"
+                            val inviteText = "Join my SplitUp group '${group.name}'! Invite link: https://splitupfin.vercel.app/invite?groupId=${group.id}"
                             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             val clip = android.content.ClipData.newPlainText("Group Invite", inviteText)
                             clipboard.setPrimaryClip(clip)
@@ -1672,14 +1710,20 @@ fun MemberSearchAndAddDialog(
         }
     }
 
-    val allContacts = remember(contactPermissionState.status.isGranted, registeredCloudUsers, registeredUserEmails) {
+    val allContacts = remember(contactPermissionState.status.isGranted, registeredCloudUsers, registeredUserEmails, searchQuery) {
         val deviceList = if (contactPermissionState.status.isGranted) {
             SampleContacts.loadDeviceContacts(context)
         } else {
             emptyList()
         }
+        val deviceEmails = deviceList.map { it.email.lowercase() }.toSet()
         val registeredSet = registeredUserEmails + registeredCloudUsers.map { it.email.lowercase() }
-        val combined = (registeredCloudUsers + deviceList).distinctBy { it.email.lowercase() }
+        val visibleCloudUsers = if (searchQuery.isNotBlank()) {
+            registeredCloudUsers
+        } else {
+            registeredCloudUsers.filter { it.email.lowercase() in deviceEmails }
+        }
+        val combined = (deviceList + visibleCloudUsers).distinctBy { it.email.lowercase() }
         combined.map { contact ->
             val isRegistered = contact.isSplitUpMember ||
                     registeredSet.contains(contact.email.lowercase()) ||
@@ -2005,7 +2049,7 @@ fun GroupQrCodeDialog(
     group: Group,
     onDismiss: () -> Unit
 ) {
-    val inviteUrl = "splitup://invite?groupId=${group.id}"
+    val inviteUrl = "https://splitupfin.vercel.app/invite?groupId=${group.id}"
     val qrBitmap = remember(inviteUrl) {
         try {
             val writer = QRCodeWriter()

@@ -149,7 +149,7 @@ interface FinanceDao {
     }
 }
 
-@Database(entities = [ExpenseEntity::class, GroupEntity::class, GroupExpenseEntity::class, BudgetEntity::class, UserProfileEntity::class, ActivityLogEntity::class, RecurringExpenseEntity::class, IncomeEntity::class], version = 16, exportSchema = false)
+@Database(entities = [ExpenseEntity::class, GroupEntity::class, GroupExpenseEntity::class, BudgetEntity::class, UserProfileEntity::class, ActivityLogEntity::class, RecurringExpenseEntity::class, IncomeEntity::class], version = 17, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
@@ -171,6 +171,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_16_17 = object : androidx.room.migration.Migration(16, 17) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user_groups ADD COLUMN isArchived INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -178,7 +184,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "splitup_database"
                 )
-                .addMigrations(MIGRATION_14_15, MIGRATION_15_16)
+                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
                 .build()
                 INSTANCE = instance
                 instance

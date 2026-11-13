@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -242,7 +243,7 @@ fun AddGroupExpenseScreen(
                 OutlinedTextField(
                     value = amount,
                     onValueChange = {
-                        amount = it
+                        amount = it.filter { c -> c.isDigit() || c == '.' }
                         errorMessage = null
                     },
                     label = { Text("Amount ($currencySymbol)") },
@@ -489,7 +490,7 @@ fun AddGroupExpenseScreen(
                                 OutlinedTextField(
                                     value = customAmounts[member] ?: "",
                                     onValueChange = { newVal ->
-                                        customAmounts[member] = newVal
+                                        customAmounts[member] = newVal.filter { c -> c.isDigit() || c == '.' }
                                         errorMessage = null
                                     },
                                     label = { Text("Amount ($currencySymbol)") },
@@ -509,36 +510,46 @@ fun AddGroupExpenseScreen(
                 val customSum = group?.allMembers?.filter { splitAmong[it] == true }?.sumOf { customAmounts[it]?.parseAmount() ?: 0.0 } ?: 0.0
                 val diff = totalAmt - customSum
                 val isFullyAllocated = abs(diff) < 0.01 && totalAmt > 0.0
+                val allocProgress = if (totalAmt > 0) (customSum / totalAmt).coerceIn(0.0, 1.0).toFloat() else 0f
 
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = if (isFullyAllocated) EmeraldSuccess.copy(alpha = 0.15f) else CrimsonDanger.copy(alpha = 0.15f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(
-                            imageVector = if (isFullyAllocated) Icons.Rounded.Info else Icons.Rounded.Warning,
-                            contentDescription = null,
-                            tint = if (isFullyAllocated) EmeraldSuccess else CrimsonDanger,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = if (isFullyAllocated) "$currencySymbol${String.format(Locale.US, "%.2f", customSum)} fully allocated!"
-                                       else if (diff > 0) "⚠️ $currencySymbol${String.format(Locale.US, "%.2f", diff)} remaining to allocate"
-                                       else "⚠️ Overallocated by $currencySymbol${String.format(Locale.US, "%.2f", abs(diff))}",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = if (isFullyAllocated) "Custom Split Matched ✓" else "Custom Split Incomplete",
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isFullyAllocated) EmeraldSuccess else CrimsonDanger
                             )
                             Text(
-                                text = "Split Sum: $currencySymbol${String.format(Locale.US, "%.2f", customSum)} / Total: $currencySymbol${String.format(Locale.US, "%.2f", totalAmt)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (isFullyAllocated) EmeraldSuccess else CrimsonDanger
+                                text = "Allocated: $currencySymbol${String.format(Locale.US, "%.2f", customSum)} / $currencySymbol${String.format(Locale.US, "%.2f", totalAmt)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        LinearProgressIndicator(
+                            progress = { allocProgress },
+                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                            color = if (isFullyAllocated) EmeraldSuccess else CrimsonDanger,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        if (!isFullyAllocated) {
+                            Text(
+                                text = if (diff > 0) "Remaining: $currencySymbol${String.format(Locale.US, "%.2f", diff)}" else "Overallocated by $currencySymbol${String.format(Locale.US, "%.2f", abs(diff))}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CrimsonDanger
                             )
                         }
                     }

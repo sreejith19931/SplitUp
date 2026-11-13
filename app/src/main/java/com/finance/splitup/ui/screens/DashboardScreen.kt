@@ -139,6 +139,10 @@ fun DashboardScreen(
     var isFabExpanded by remember { mutableStateOf(false) }
     var showGroupPickerForExpense by remember { mutableStateOf(false) }
     var showNotificationsSheet by remember { mutableStateOf(false) }
+    var showLogIncomeDialog by remember { mutableStateOf(false) }
+    var incomeTitle by remember { mutableStateOf("") }
+    var incomeAmount by remember { mutableStateOf("") }
+    var incomeSource by remember { mutableStateOf("Salary") }
 
     val dismissedNotifications by viewModel.dismissedNotifications.collectAsState()
 
@@ -734,11 +738,67 @@ fun DashboardScreen(
                   }
               },
               onNavigateToScanner = onNavigateToScanner,
-              onNavigateToCreateGroup = onNavigateToCreateGroup
+              onNavigateToCreateGroup = onNavigateToCreateGroup,
+              onNavigateToLogIncome = { showLogIncomeDialog = true }
           )
       }
     }
 }
+
+    if (showLogIncomeDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogIncomeDialog = false },
+            title = { Text("Log Monthly Income", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = incomeTitle,
+                        onValueChange = { incomeTitle = it },
+                        label = { Text("Income Title") },
+                        placeholder = { Text("e.g. Monthly Salary") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = incomeAmount,
+                        onValueChange = { incomeAmount = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("Amount (${Currencies.getSymbol(viewModel.defaultCurrency)})") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amt = incomeAmount.toDoubleOrNull() ?: 0.0
+                        if (amt > 0) {
+                            viewModel.addIncome(
+                                title = incomeTitle.ifBlank { "Income" },
+                                amount = amt,
+                                source = incomeSource,
+                                currency = viewModel.defaultCurrency
+                            )
+                            android.widget.Toast.makeText(context, "Income logged!", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                        showLogIncomeDialog = false
+                        incomeTitle = ""
+                        incomeAmount = ""
+                    }
+                ) {
+                    Text("Save Income", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogIncomeDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     if (showGroupPickerForExpense) {
         AlertDialog(
@@ -808,7 +868,8 @@ fun SpeedDialFabMenu(
     onNavigateToAddExpense: () -> Unit,
     onNavigateToGroupExpense: () -> Unit,
     onNavigateToScanner: () -> Unit,
-    onNavigateToCreateGroup: () -> Unit
+    onNavigateToCreateGroup: () -> Unit,
+    onNavigateToLogIncome: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val rotation by animateFloatAsState(
@@ -833,6 +894,15 @@ fun SpeedDialFabMenu(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.padding(bottom = 4.dp)
                 ) {
+                    SpeedDialActionItem(
+                        icon = Icons.Rounded.AccountBalance,
+                        label = "Log Income",
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onToggle()
+                            onNavigateToLogIncome()
+                        }
+                    )
                     SpeedDialActionItem(
                         icon = Icons.Rounded.GroupAdd,
                         label = "Create New Group",

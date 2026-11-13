@@ -205,9 +205,19 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
 
     fun updateDefaultCurrencyAndConvert(newCurrency: String) {
         val oldCurrency = defaultCurrency
-        if (oldCurrency == newCurrency) return
         defaultCurrency = newCurrency
         prefs?.edit()?.putString("default_currency", newCurrency)?.apply()
+        val currentUser = try { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser } catch (_: Exception) { null }
+        if (currentUser != null) {
+            viewModelScope.launch {
+                try {
+                    val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    db.collection("users").document(currentUser.uid)
+                        .set(mapOf("defaultCurrency" to newCurrency), com.google.firebase.firestore.SetOptions.merge())
+                        .await()
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     suspend fun hasUnsyncedChanges(): Boolean {
@@ -884,6 +894,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
 
     fun refreshData() {
         budgetWarningMessage = null
+        triggerCloudSync()
     }
 
     fun updateBudget(category: String, newLimit: Double) {
@@ -917,7 +928,15 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
 
     // Group Management
-    fun addGroup(name: String, type: String, members: List<String>, memberEmails: List<String> = emptyList(), emoji: String = "✈️", colorHex: String = "#3B82F6"): String {
+    fun addGroup(
+        name: String,
+        type: String,
+        members: List<String>,
+        memberEmails: List<String> = emptyList(),
+        emoji: String = "✈️",
+        colorHex: String = "#3B82F6",
+        pendingMembers: List<String> = emptyList()
+    ): String {
         val selfName = currentUserName
         val cleanMembers = if (members.isEmpty()) listOf(selfName) else members
         val mappedMembers = cleanMembers.map { if (it == "You") selfName else it }
@@ -929,6 +948,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             emoji = emoji,
             colorHex = colorHex,
             members = finalMembers.distinct(),
+            pendingMembers = pendingMembers.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }.distinct(),
             memberEmails = memberEmails,
             expenses = emptyList(),
             createdBy = selfName
@@ -943,6 +963,50 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             _groupsFallback.update { current -> listOf(newGroup) + current }
         }
         return newGroup.id
+    }
+
+    fun acceptGroupInvitation(groupId: String) {
+        viewModelScope.launch {
+            val group = groups.value.find { it.id == groupId } ?: repository?.getGroupById(groupId) ?: return@launch
+            val selfName = currentUserName
+            val userAuth = try { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser } catch (_: Exception) { null }
+            val currentUid = userAuth?.uid ?: ""
+
+            val updatedMembers = if (!group.members.contains(selfName)) group.members + selfName else group.members
+            val updatedPending = group.pendingMembers.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }
+            val updatedUids = if (currentUid.isNotBlank() && !group.memberUids.contains(currentUid)) group.memberUids + currentUid else group.memberUids
+
+            val updatedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberUids = updatedUids)
+            logActivity(groupId, selfName, "MEMBER_JOINED", "Accepted group invitation")
+            postSystemNotification("Invitation Accepted! 🎉", "You joined the group '${group.name}'.", CHANNEL_GROUP_ACTIVITY)
+
+            if (repository != null) {
+                repository.insertGroup(updatedGroup)
+                com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+            } else {
+                _groupsFallback.update { current ->
+                    current.map { if (it.id == groupId) updatedGroup else it }
+                }
+            }
+        }
+    }
+
+    fun declineGroupInvitation(groupId: String) {
+        viewModelScope.launch {
+            val group = groups.value.find { it.id == groupId } ?: repository?.getGroupById(groupId) ?: return@launch
+            val selfName = currentUserName
+            val updatedPending = group.pendingMembers.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }
+            val updatedGroup = group.copy(pendingMembers = updatedPending)
+
+            if (repository != null) {
+                repository.insertGroup(updatedGroup)
+                com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+            } else {
+                _groupsFallback.update { current ->
+                    current.map { if (it.id == groupId) updatedGroup else it }
+                }
+            }
+        }
     }
 
     fun deleteGroup(groupId: String) {

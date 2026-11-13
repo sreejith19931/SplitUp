@@ -43,7 +43,7 @@ fun SettingsScreen(
     }
     val userEmail = currentUser?.email ?: "user@splitup.app"
     val userName = currentUser?.displayName ?: userEmail.substringBefore("@")
-    val userInitials = userName.take(2).uppercase()
+    val userInitials = remember(userName) { getInitials(userName) }
 
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showProfileQrDialog by remember { mutableStateOf(false) }
@@ -204,6 +204,53 @@ fun SettingsScreen(
                                 }
                             }
 
+                            // Live Exchange Rates Sync Info & Refresh Button
+                            val lastUpdated by com.finance.splitup.data.CurrencyApiService.lastUpdatedTime.collectAsState()
+                            val formattedTime = remember(lastUpdated) {
+                                val sdf = java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+                                sdf.format(java.util.Date(lastUpdated))
+                            }
+                            var isRefreshingRates by remember { mutableStateOf(false) }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Live Exchange Rates", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("Last synced: $formattedTime", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        isRefreshingRates = true
+                                        scope.launch {
+                                            try {
+                                                com.finance.splitup.data.CurrencyApiService.updateLiveRates()
+                                                Toast.makeText(context, "Live exchange rates updated successfully!", Toast.LENGTH_SHORT).show()
+                                            } catch (_: Exception) {
+                                                Toast.makeText(context, "Failed to update rates. Check internet connection.", Toast.LENGTH_SHORT).show()
+                                            } finally {
+                                                isRefreshingRates = false
+                                            }
+                                        }
+                                    },
+                                    enabled = !isRefreshingRates,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    if (isRefreshingRates) {
+                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Updating...")
+                                    } else {
+                                        Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Refresh")
+                                    }
+                                }
+                            }
+
                             // Theme Selector
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -219,6 +266,7 @@ fun SettingsScreen(
                                         selected = viewModel.themeMode == ThemeMode.SYSTEM,
                                         onClick = { viewModel.updateThemeMode(ThemeMode.SYSTEM) },
                                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                                        icon = {},
                                         colors = SegmentedButtonDefaults.colors(
                                             activeContainerColor = MaterialTheme.colorScheme.primary,
                                             activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -230,6 +278,7 @@ fun SettingsScreen(
                                         selected = viewModel.themeMode == ThemeMode.LIGHT,
                                         onClick = { viewModel.updateThemeMode(ThemeMode.LIGHT) },
                                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                                        icon = {},
                                         colors = SegmentedButtonDefaults.colors(
                                             activeContainerColor = MaterialTheme.colorScheme.primary,
                                             activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -241,6 +290,7 @@ fun SettingsScreen(
                                         selected = viewModel.themeMode == ThemeMode.DARK,
                                         onClick = { viewModel.updateThemeMode(ThemeMode.DARK) },
                                         shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                                        icon = {},
                                         colors = SegmentedButtonDefaults.colors(
                                             activeContainerColor = MaterialTheme.colorScheme.primary,
                                             activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -370,6 +420,29 @@ fun SettingsScreen(
                         Icon(Icons.AutoMirrored.Rounded.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Sign Out", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                item {
+                    val versionName = com.finance.splitup.BuildConfig.VERSION_NAME
+                    val versionCode = com.finance.splitup.BuildConfig.VERSION_CODE
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ) {
+                            Text(
+                                text = "SplitUp v$versionName • Build $versionCode",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
                     }
                 }
             }

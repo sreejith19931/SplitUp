@@ -414,8 +414,8 @@ fun WhatsAppInviteDialog(
 ) {
     val context = LocalContext.current
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
-    val inviteUrl = "splitup://invite?groupId=$groupId"
-    val inviteMessage = "Hey $memberName! I added you to our SplitUp group '$groupName'. Download SplitUp and join here: $inviteUrl"
+    val inviteUrl = "https://splitupfin.vercel.app/invite?groupId=$groupId"
+    val inviteMessage = "Hey $memberName! I added you to our SplitUp group '$groupName'. Join here: $inviteUrl"
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -489,7 +489,7 @@ fun ProfileQRCodeDialog(
     email: String,
     onDismiss: () -> Unit
 ) {
-    val qrText = "splitup://profile?email=$email&name=$name"
+    val qrText = "https://splitupfin.vercel.app/user?email=$email&name=$name"
     val qrBitmap = remember(qrText) {
         try {
             val writer = com.google.zxing.qrcode.QRCodeWriter()

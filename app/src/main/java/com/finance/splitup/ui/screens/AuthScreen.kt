@@ -1,13 +1,18 @@
 package com.finance.splitup.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.*
@@ -17,11 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -71,9 +77,40 @@ fun AuthScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
+    val isLoading = authState is AuthState.Loading
     val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
     val webClientId = androidx.compose.ui.res.stringResource(com.finance.splitup.R.string.default_web_client_id)
+
+    fun submitForm() {
+        keyboardController?.hide()
+        if (isSignUp) {
+            if (firstName.isBlank() || lastName.isBlank()) {
+                authViewModel.setCustomError("Please enter your First Name and Last Name")
+                return
+            }
+            if (!authViewModel.isValidEmail(email)) {
+                authViewModel.setCustomError("Please enter a valid email address")
+                return
+            }
+            if (password.isBlank() || confirmPassword.isBlank()) {
+                authViewModel.setCustomError("Please enter and confirm your password")
+                return
+            }
+            if (password != confirmPassword) {
+                authViewModel.setCustomError("Passwords do not match")
+                return
+            }
+            authViewModel.signUpWithEmail(email, password, "$firstName $lastName".trim())
+        } else {
+            if (!authViewModel.isValidEmail(email)) {
+                authViewModel.setCustomError("Please enter a valid email address")
+                return
+            }
+            authViewModel.signInWithEmail(email, password)
+        }
+    }
 
     when (val state = authState) {
         is AuthState.Authenticated -> {
@@ -83,6 +120,7 @@ fun AuthScreen(
         }
         is AuthState.EmailVerificationPending -> {
             EmailVerificationScreen(
+                authViewModel = authViewModel,
                 userEmail = state.user.email ?: email,
                 onResend = { authViewModel.resendEmailVerification() },
                 onCheckStatus = { authViewModel.checkEmailVerificationStatus() },
@@ -125,7 +163,11 @@ fun AuthScreen(
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     selected = !isSignUp,
-                    onClick = { isSignUp = false },
+                    onClick = {
+                        isSignUp = false
+                        authViewModel.clearError()
+                    },
+                    enabled = !isLoading,
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                     icon = {
                         Icon(
@@ -139,7 +181,11 @@ fun AuthScreen(
                 }
                 SegmentedButton(
                     selected = isSignUp,
-                    onClick = { isSignUp = true },
+                    onClick = {
+                        isSignUp = true
+                        authViewModel.clearError()
+                    },
+                    enabled = !isLoading,
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                     icon = {
                         Icon(
@@ -155,173 +201,189 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (isSignUp) {
-                Row(
+            AnimatedContent(
+                targetState = isSignUp,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "AuthFormAnimation"
+            ) { targetIsSignUp ->
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    OutlinedTextField(
-                        value = firstName,
-                        onValueChange = { firstName = it },
-                        label = { Text("First Name") },
-                        leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    )
+                    if (targetIsSignUp) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = firstName,
+                                onValueChange = { firstName = it },
+                                enabled = !isLoading,
+                                label = { Text("First Name") },
+                                leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            OutlinedTextField(
+                                value = lastName,
+                                onValueChange = { lastName = it },
+                                enabled = !isLoading,
+                                label = { Text("Last Name") },
+                                leadingIcon = { Icon(Icons.Rounded.PersonOutline, contentDescription = null) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
 
                     OutlinedTextField(
-                        value = lastName,
-                        onValueChange = { lastName = it },
-                        label = { Text("Last Name") },
-                        leadingIcon = { Icon(Icons.Rounded.PersonOutline, contentDescription = null) },
+                        value = email,
+                        onValueChange = { email = it },
+                        enabled = !isLoading,
+                        label = { Text("Email Address") },
+                        leadingIcon = { Icon(Icons.Rounded.Email, contentDescription = null) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+                    Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email Address") },
-                leadingIcon = { Icon(Icons.Rounded.Email, contentDescription = null) },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        enabled = !isLoading,
+                        label = { Text("Password") },
+                        leadingIcon = { Icon(Icons.Rounded.Lock, contentDescription = null) },
+                        visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
+                                    contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = if (targetIsSignUp) ImeAction.Next else ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(onDone = { submitForm() }),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-            Spacer(modifier = Modifier.height(12.dp))
+                    if (!targetIsSignUp) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                            TextButton(
+                                enabled = !isLoading,
+                                onClick = {
+                                    authViewModel.sendPasswordResetEmail(
+                                        email = email,
+                                        onSuccess = { msg ->
+                                            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                                        },
+                                        onError = { err ->
+                                            android.widget.Toast.makeText(context, err, android.widget.Toast.LENGTH_LONG).show()
+                                        }
+                                    )
+                                }
+                            ) {
+                                Text("Forgot Password?", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
 
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                leadingIcon = { Icon(Icons.Rounded.Lock, contentDescription = null) },
-                visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            imageVector = if (passwordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                    if (targetIsSignUp && password.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val lengthOk = password.length >= 8
+                        val hasUpper = password.any { it.isUpperCase() }
+                        val hasDigit = password.any { it.isDigit() }
+                        val hasSpecial = password.any { !it.isLetterOrDigit() }
+
+                        val requirements = listOf(
+                            "8+ characters" to lengthOk,
+                            "Uppercase letter" to hasUpper,
+                            "Number" to hasDigit,
+                            "Special character" to hasSpecial
+                        )
+
+                        OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            requirements.forEach { (label, isMet) ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isMet) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (isMet) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = if (isMet) FontWeight.SemiBold else FontWeight.Normal,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (targetIsSignUp) {
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = confirmPassword,
+                            onValueChange = { confirmPassword = it },
+                            enabled = !isLoading,
+                            label = { Text("Confirm Password") },
+                            leadingIcon = { Icon(Icons.Rounded.LockReset, contentDescription = null) },
+                            visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
+                                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                    )
+                                }
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { submitForm() }),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            if (!isSignUp) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                    TextButton(
-                        onClick = {
-                            authViewModel.sendPasswordResetEmail(
-                                email = email,
-                                onSuccess = { msg ->
-                                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
-                                },
-                                onError = { err ->
-                                    android.widget.Toast.makeText(context, err, android.widget.Toast.LENGTH_LONG).show()
-                                }
-                            )
-                        }
-                    ) {
-                        Text("Forgot Password?", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                    }
                 }
-            }
-
-            if (isSignUp && password.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                val lengthOk = password.length >= 6
-                val hasDigit = password.any { it.isDigit() }
-                val hasUpper = password.any { it.isUpperCase() }
-                val strengthCount = listOf(lengthOk, hasDigit, hasUpper).count { it }
-                val strengthText = when (strengthCount) {
-                    3 -> "Strong Password"
-                    2 -> "Medium Strength"
-                    else -> "Weak Password (min 6 chars, 1 uppercase, 1 digit)"
-                }
-                val strengthColor = when (strengthCount) {
-                    3 -> Color(0xFF2E7D32)
-                    2 -> Color(0xFFF57C00)
-                    else -> MaterialTheme.colorScheme.error
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = strengthText, style = MaterialTheme.typography.bodySmall, color = strengthColor)
-                    LinearProgressIndicator(
-                        progress = { strengthCount / 3f },
-                        modifier = Modifier.width(100.dp).height(6.dp).clip(CircleShape),
-                        color = strengthColor,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    )
-                }
-            }
-
-            if (isSignUp) {
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = { confirmPassword = it },
-                    label = { Text("Confirm Password") },
-                    leadingIcon = { Icon(Icons.Rounded.LockReset, contentDescription = null) },
-                    visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
-                                contentDescription = if (passwordVisible) "Hide password" else "Show password"
-                            )
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
 
             authViewModel.errorMessage?.let { err ->
                 Spacer(modifier = Modifier.height(10.dp))
-                Text(text = err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(text = err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
-                onClick = {
-                    if (isSignUp) {
-                        if (firstName.isBlank() || lastName.isBlank()) {
-                            authViewModel.setCustomError("Please enter your First Name and Last Name")
-                            return@Button
-                        }
-                        if (password.isBlank() || confirmPassword.isBlank()) {
-                            authViewModel.setCustomError("Please enter and confirm your password")
-                            return@Button
-                        }
-                        if (password != confirmPassword) {
-                            authViewModel.setCustomError("Passwords do not match")
-                            return@Button
-                        }
-                        authViewModel.signUpWithEmail(email, password, "$firstName $lastName".trim())
-                    } else {
-                        authViewModel.signInWithEmail(email, password)
-                    }
-                },
+                onClick = { submitForm() },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                if (authState is AuthState.Loading) {
+                if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                 } else {
                     Text(if (isSignUp) "Sign Up & Verify Email" else "Sign In", fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -330,7 +392,7 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Google Sign-In Button
+            // Google Sign-In Button (Material 3 Styled)
             OutlinedButton(
                 onClick = {
                     coroutineScope.launch {
@@ -365,24 +427,46 @@ fun AuthScreen(
                         }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 )
             ) {
                 GoogleLogo(modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(10.dp))
-                Text("Sign in with Google", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimary)
+                Text("Sign in with Google", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Guest Mode Button
+            OutlinedButton(
+                onClick = { authViewModel.enterGuestMode() },
+                enabled = !isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Rounded.Explore, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Try SplitUp as Guest", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             TextButton(
-                onClick = { isSignUp = !isSignUp },
+                onClick = {
+                    isSignUp = !isSignUp
+                    authViewModel.clearError()
+                },
+                enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
@@ -398,6 +482,7 @@ fun AuthScreen(
 
 @Composable
 fun EmailVerificationScreen(
+    authViewModel: AuthViewModel,
     userEmail: String,
     onResend: () -> Unit,
     onCheckStatus: () -> Unit,
@@ -406,6 +491,16 @@ fun EmailVerificationScreen(
     isResending: Boolean = false
 ) {
     var showSignOutDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        authViewModel.startEmailVerificationPolling()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            authViewModel.stopEmailVerificationPolling()
+        }
+    }
 
     if (showSignOutDialog) {
         AlertDialog(

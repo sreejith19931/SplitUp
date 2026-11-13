@@ -299,6 +299,61 @@ fun PersonalExpensesScreen(
             } else if (selectedPersonalTab == 2) {
                 // INCOME & SUBSCRIPTIONS SECTION
                 item {
+                    val totalIncomeAmt = remember(incomes, viewModel.defaultCurrency) {
+                        incomes.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+                    }
+                    val totalSubsAmt = remember(recurringExpenses, viewModel.defaultCurrency) {
+                        recurringExpenses.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+                    }
+                    val netFlowAmt = totalIncomeAmt - totalSubsAmt
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text("Monthly Cash Flow Summary", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text("Incomes Total", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        "+$currencySymbol${String.format(Locale.US, "%.2f", totalIncomeAmt)}",
+                                        fontWeight = FontWeight.Bold,
+                                        color = EmeraldSuccess,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                                Column {
+                                    Text("Subscriptions", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        "-$currencySymbol${String.format(Locale.US, "%.2f", totalSubsAmt)}",
+                                        fontWeight = FontWeight.Bold,
+                                        color = CrimsonDanger,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("Net Surplus", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        "${if (netFlowAmt >= 0) "+" else ""}$currencySymbol${String.format(Locale.US, "%.2f", netFlowAmt)}",
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (netFlowAmt >= 0) EmeraldSuccess else CrimsonDanger,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -505,25 +560,60 @@ fun PersonalExpensesScreen(
                         }
                     }
                 } else {
-                    items(filteredExpenses, key = { it.id }) { expense ->
-                        ExpenseItemCard(
-                            expense = expense,
-                            viewModel = viewModel,
-                            onDelete = {
-                                viewModel.deleteExpense(expense.id)
-                                scope.launch {
-                                    val result = snackbarHostState.showSnackbar(
-                                        message = "Deleted '${expense.title}'",
-                                        actionLabel = "Undo",
-                                        duration = SnackbarDuration.Short
+                    val groupedPersonalExpenses = filteredExpenses.groupBy {
+                        com.finance.splitup.data.DateUtils.formatDisplayDate(it.date, it.updatedAt)
+                    }.entries.toList()
+
+                    groupedPersonalExpenses.forEach { (date, dateExpenses) ->
+                        stickyHeader(key = date) {
+                            val dayTotal = dateExpenses.filter { it.category != ExpenseCategories.INCOME }
+                                .sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 4.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = date,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
-                                    if (result == SnackbarResult.ActionPerformed) {
-                                        viewModel.updateExpense(expense)
-                                    }
+                                    Text(
+                                        text = "Total: $currencySymbol${String.format(Locale.US, "%.2f", dayTotal)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
-                            },
-                            onEdit = { onNavigateToEditExpense(expense.id) }
-                        )
+                            }
+                        }
+                        items(dateExpenses, key = { it.id }) { expense ->
+                            ExpenseItemCard(
+                                expense = expense,
+                                viewModel = viewModel,
+                                onDelete = {
+                                    viewModel.deleteExpense(expense.id)
+                                    scope.launch {
+                                        val result = snackbarHostState.showSnackbar(
+                                            message = "Deleted '${expense.title}'",
+                                            actionLabel = "Undo",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            viewModel.updateExpense(expense)
+                                        }
+                                    }
+                                },
+                                onEdit = { onNavigateToEditExpense(expense.id) }
+                            )
+                        }
                     }
                 }
             }
@@ -553,7 +643,7 @@ fun PersonalExpensesScreen(
                     )
                     OutlinedTextField(
                         value = incAmount,
-                        onValueChange = { incAmount = it },
+                        onValueChange = { incAmount = it.filter { c -> c.isDigit() || c == '.' } },
                         label = { Text("Amount ($currencySymbol)") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

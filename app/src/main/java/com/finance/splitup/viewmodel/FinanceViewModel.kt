@@ -1009,20 +1009,31 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             val group = groups.value.find { it.id == groupId } ?: repository?.getGroupById(groupId) ?: return@launch
             val selfName = currentUserName
             val selfEmail = currentUserEmail.lowercase()
+            val userAuth = try { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser } catch (_: Exception) { null }
+            val currentUid = userAuth?.uid ?: ""
+
             val updatedMembers = group.members.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }
             val updatedPending = group.pendingMembers.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }
             val updatedEmails = group.memberEmails.filter { it.lowercase() != selfEmail }
-            val updatedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberEmails = updatedEmails)
+            val updatedUids = group.memberUids.filter { it != currentUid }
+            val updatedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberEmails = updatedEmails, memberUids = updatedUids)
 
             logActivity(groupId, selfName, "MEMBER_DECLINED", "$selfName declined the invitation to join ${group.name}")
-            postSystemNotification("Invitation Declined", "$selfName declined the invitation to join ${group.name}.", CHANNEL_GROUP_ACTIVITY)
+            postSystemNotification("Invitation Declined", "You declined the invitation to join '${group.name}'.", CHANNEL_GROUP_ACTIVITY)
 
             if (repository != null) {
-                repository.insertGroup(updatedGroup)
                 com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+                if (currentUid.isNotBlank()) {
+                    try {
+                        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        db.collection("users").document(currentUid).collection("groups").document(groupId).delete().await()
+                    } catch (_: Exception) {}
+                }
+                repository.deleteGroup(groupId)
+                triggerImmediateSync()
             } else {
                 _groupsFallback.update { current ->
-                    current.map { if (it.id == groupId) updatedGroup else it }
+                    current.filter { it.id != groupId }
                 }
             }
         }
@@ -1185,15 +1196,31 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             if (memberName == "You" || memberName.equals(selfName, ignoreCase = true)) return@launch
             val group = groups.value.find { it.id == groupId } ?: return@launch
             
-            val targetNameLower = memberName.lowercase()
-            val targetEmailLower = memberEmail.lowercase()
+            val targetNameLower = memberName.lowercase().trim()
+            val targetClean = targetNameLower.replace(" ", "").replace(".", "")
+            
+            val resolvedEmail = if (memberEmail.isNotBlank()) {
+                memberEmail.lowercase().trim()
+            } else {
+                _registeredUsers.value.find { it.name.equals(memberName, ignoreCase = true) }?.email?.lowercase()?.trim() ?: ""
+            }
 
-            val updatedMembers = group.members.filter { !it.equals(memberName, ignoreCase = true) && it.lowercase() != targetEmailLower }
-            val updatedPending = group.pendingMembers.filter { !it.equals(memberName, ignoreCase = true) && it.lowercase() != targetEmailLower }
+            val updatedMembers = group.members.filter { !it.equals(memberName, ignoreCase = true) && (resolvedEmail.isBlank() || it.lowercase() != resolvedEmail) }
+            val updatedPending = group.pendingMembers.filter { !it.equals(memberName, ignoreCase = true) && (resolvedEmail.isBlank() || it.lowercase() != resolvedEmail) }
             val updatedEmails = group.memberEmails.filter { email ->
-                val emailLower = email.lowercase()
-                val emailPrefix = emailLower.substringBefore("@")
-                emailLower != targetEmailLower && emailLower != targetNameLower && emailPrefix != targetNameLower
+                val emailLower = email.lowercase().trim()
+                val emailPrefix = emailLower.substringBefore("@").replace(".", "")
+                
+                val matchesName = targetClean.isNotBlank() && (
+                    emailLower == targetNameLower ||
+                    emailPrefix == targetClean ||
+                    (targetClean.length >= 3 && emailPrefix.contains(targetClean)) ||
+                    (emailPrefix.length >= 3 && targetClean.contains(emailPrefix)) ||
+                    targetNameLower.split(" ").any { part -> part.length >= 3 && emailPrefix.contains(part) }
+                )
+                val matchesEmail = resolvedEmail.isNotBlank() && emailLower == resolvedEmail
+
+                !matchesName && !matchesEmail
             }
             val updatedGroup = group.copy(
                 members = updatedMembers,

@@ -111,7 +111,7 @@ fun GroupDetailContent(
     var showEditGroupDialog by remember { mutableStateOf(false) }
     var showDeleteGroupConfirmDialog by remember { mutableStateOf(false) }
     var editingGroupExpense by remember { mutableStateOf<com.finance.splitup.data.GroupExpense?>(null) }
-    var memberToRemove by remember { mutableStateOf<String?>(null) }
+    var memberToRemove by remember { mutableStateOf<Pair<String, String>?>(null) }
     var selectedSettlementForPayment by remember { mutableStateOf<Settlement?>(null) }
     var customMemberForWhatsAppInvite by remember { mutableStateOf<String?>(null) }
     var showExportPreview by remember { mutableStateOf(false) }
@@ -476,7 +476,7 @@ fun GroupDetailContent(
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    group.members.forEach { member ->
+                    group.members.forEachIndexed { index, member ->
                         val isSelf = member == "You" || member.equals(selfName, ignoreCase = true)
                         val isCreator = group.createdBy.isNotBlank() && (member.equals(group.createdBy, ignoreCase = true) || (isSelf && group.createdBy == "You"))
                         val chipLabel = when {
@@ -485,10 +485,16 @@ fun GroupDetailContent(
                             isCreator -> "$member (Creator)"
                             else -> member
                         }
+                        val memberEmail = group.memberEmails.find { email ->
+                            val prefix = email.substringBefore("@").replace(".", "").lowercase()
+                            val nameClean = member.lowercase().replace(" ", "").replace(".", "")
+                            prefix == nameClean || nameClean.contains(prefix)
+                        } ?: group.memberEmails.getOrNull(index) ?: ""
+
                         AssistChip(
                             onClick = {
                                 if (!isSelf) {
-                                    memberToRemove = member
+                                    memberToRemove = Pair(member, memberEmail)
                                 }
                             },
                             label = { Text(chipLabel, fontWeight = FontWeight.Medium) },
@@ -503,7 +509,7 @@ fun GroupDetailContent(
                                         modifier = Modifier
                                             .size(16.dp)
                                             .clickable {
-                                                memberToRemove = member
+                                                memberToRemove = Pair(member, memberEmail)
                                             },
                                         tint = MaterialTheme.colorScheme.error
                                     )
@@ -512,10 +518,16 @@ fun GroupDetailContent(
                             shape = RoundedCornerShape(14.dp)
                         )
                     }
-                    group.pendingMembers.forEach { member ->
+                    group.pendingMembers.forEachIndexed { index, member ->
+                        val pendingEmail = group.memberEmails.find { email ->
+                            val prefix = email.substringBefore("@").replace(".", "").lowercase()
+                            val nameClean = member.lowercase().replace(" ", "").replace(".", "")
+                            prefix == nameClean || nameClean.contains(prefix)
+                        } ?: group.memberEmails.getOrNull(group.members.size + index) ?: ""
+
                         AssistChip(
                             onClick = {
-                                memberToRemove = member
+                                memberToRemove = Pair(member, pendingEmail)
                             },
                             label = { Text("$member (Pending)", fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)) },
                             leadingIcon = {
@@ -528,7 +540,7 @@ fun GroupDetailContent(
                                     modifier = Modifier
                                         .size(16.dp)
                                         .clickable {
-                                            memberToRemove = member
+                                            memberToRemove = Pair(member, pendingEmail)
                                         },
                                     tint = MaterialTheme.colorScheme.error
                                 )
@@ -1650,11 +1662,11 @@ fun GroupDetailContent(
         AlertDialog(
             onDismissRequest = { memberToRemove = null },
             title = { Text("Remove Member", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to remove '${memberToRemove}' from ${group.name}?") },
+            text = { Text("Are you sure you want to remove '${memberToRemove!!.first}' from ${group.name}?") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.removeGroupMember(group.id, memberToRemove!!)
+                        viewModel.removeGroupMember(group.id, memberToRemove!!.first, memberToRemove!!.second)
                         memberToRemove = null
                     }
                 ) {

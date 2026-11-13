@@ -2077,6 +2077,7 @@ fun GroupQrCodeDialog(
     group: Group,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     val inviteUrl = "https://splitupfin.vercel.app/invite?groupId=${group.id}"
     val qrBitmap = remember(inviteUrl) {
         try {
@@ -2138,14 +2139,30 @@ fun GroupQrCodeDialog(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            val clip = android.content.ClipData.newPlainText("Group Invite", inviteUrl)
+                            clipboard.setPrimaryClip(clip)
+                            Toast.makeText(context, "Invite link copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        }
                 ) {
-                    Text(
-                        text = inviteUrl,
-                        style = MaterialTheme.typography.labelSmall,
+                    Column(
                         modifier = Modifier.padding(8.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = inviteUrl,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "🔗 Tap to copy invite link",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         },

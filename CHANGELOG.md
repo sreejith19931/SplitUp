@@ -5,6 +5,21 @@ All notable changes to the SplitUp app will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.0.0.html).
 
+## [1.3] - 2026-11-13
+
+### Added
+- **Spending Insights & Trends:**
+  - Added dedicated `InsightsScreen` featuring Monthly Overview (Total Spending vs Income) and Category Breakdown progress bars.
+  - Integrated into Settings & Navigation 3.
+- **App-Wide UI Polish & Micro-Animations:**
+  - Added custom pulsing loading animation component (`SplitUpLoadingAnimation`) for OCR processing and database restores.
+  - Added celebratory success dialog (`🎉 Settlement Recorded!`) on group debt settlements.
+  - Configured smooth Navigation 3 screen entrance transition animations (`slideInHorizontally` + `fadeIn`).
+- **Universal App Links & Vercel Domain:**
+  - Upgraded all QR codes and WhatsApp share links to use **`splitupfin.vercel.app`**.
+  - Configured Android App Links intent filters (`autoVerify="true"`) and `.well-known/assetlinks.json`.
+  - Created `index.html` web fallback landing page for users without the app installed.
+
 ## [1.2] - 2026-11-13
 
 ### Added
@@ -31,14 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.0.0
   - Added dynamic app version footer badge (`v1.2 • Build 5`).
   - Added one-tap payment handle copy action buttons for UPI VPA and PayPal handles.
   - Added Cloud Sync Status card with manual sync triggers on `DataManagementScreen`.
-- **UI Polish & Animations:**
-  - Added custom pulsing loading animation component (`SplitUpLoadingAnimation`).
-  - Added celebratory success dialog (`🎉 Settlement Recorded!`) on debt settlements.
-  - Configured smooth Navigation 3 screen entrance transition animations (`slideInHorizontally` + `fadeIn`).
-- **Universal App Links & Vercel Domain:**
-  - Upgraded all QR codes and WhatsApp share links to use **`splitupfin.vercel.app`**.
-  - Configured Android App Links intent filters (`autoVerify="true"`) for `/invite`, `/group`, and `/user` routes.
-  - Created `index.html` web fallback landing page for users without the app installed.
 
 ### Fixed
 - **Archived Groups Persistence:** Fixed bug where archived groups were not persisting locally or in cloud sync by adding `isArchived` to `GroupEntity` and Room Database migration `16 -> 17`.

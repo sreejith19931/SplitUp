@@ -678,6 +678,7 @@ fun SplitUpApp(
                             authViewModel = authViewModel,
                             onNavigateToEditProfile = { backStack.add(EditProfileRoute) },
                             onNavigateToSubscriptions = { backStack.add(SubscriptionsRoute) },
+                            onNavigateToInsights = { backStack.add(InsightsRoute) },
                             onNavigateToAbout = { backStack.add(AboutRoute) },
                             onNavigateToSecurity = { backStack.add(SecuritySettingsRoute) },
                             onNavigateToDataManagement = { backStack.add(DataManagementRoute) }
@@ -727,6 +728,20 @@ fun SplitUpApp(
                     }
                     is SubscriptionsRoute -> NavEntry(key) {
                         SubscriptionsScreen(
+                            viewModel = viewModel,
+                            onBack = {
+                                if (backStack.size > 1) {
+                                    backStack.remove(key)
+                                } else {
+                                    backStack.clear()
+                                    backStack.add(DashboardRoute)
+                                    backStack.add(SettingsRoute)
+                                }
+                            }
+                        )
+                    }
+                    is InsightsRoute -> NavEntry(key) {
+                        InsightsScreen(
                             viewModel = viewModel,
                             onBack = {
                                 if (backStack.size > 1) {

@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.finance.splitup.BuildConfig
 import com.finance.splitup.data.Currencies
 import com.finance.splitup.ui.theme.ThemeMode
 import com.finance.splitup.viewmodel.AuthViewModel
@@ -31,6 +32,7 @@ fun SettingsScreen(
     authViewModel: AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onNavigateToEditProfile: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
+    onNavigateToInsights: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToSecurity: () -> Unit = {},
     onNavigateToDataManagement: () -> Unit = {}
@@ -252,21 +254,23 @@ fun SettingsScreen(
                             }
 
                             // Theme Selector
-                            Row(
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Icon(Icons.Rounded.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                     Text("App Theme", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                 }
-                                SingleChoiceSegmentedButtonRow {
+                                SingleChoiceSegmentedButtonRow(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
                                     SegmentedButton(
                                         selected = viewModel.themeMode == ThemeMode.SYSTEM,
                                         onClick = { viewModel.updateThemeMode(ThemeMode.SYSTEM) },
                                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
                                         icon = {},
+                                        modifier = Modifier.weight(1f),
                                         colors = SegmentedButtonDefaults.colors(
                                             activeContainerColor = MaterialTheme.colorScheme.primary,
                                             activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -279,6 +283,7 @@ fun SettingsScreen(
                                         onClick = { viewModel.updateThemeMode(ThemeMode.LIGHT) },
                                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
                                         icon = {},
+                                        modifier = Modifier.weight(1f),
                                         colors = SegmentedButtonDefaults.colors(
                                             activeContainerColor = MaterialTheme.colorScheme.primary,
                                             activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -291,6 +296,7 @@ fun SettingsScreen(
                                         onClick = { viewModel.updateThemeMode(ThemeMode.DARK) },
                                         shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
                                         icon = {},
+                                        modifier = Modifier.weight(1f),
                                         colors = SegmentedButtonDefaults.colors(
                                             activeContainerColor = MaterialTheme.colorScheme.primary,
                                             activeContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -317,6 +323,25 @@ fun SettingsScreen(
                                     Column {
                                         Text("Subscriptions & Recurring Bills", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                         Text("Manage automated bills & reminders", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
+                            }
+
+                            // Insights Row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onNavigateToInsights)
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Icon(Icons.Rounded.Insights, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Column {
+                                        Text("Spending Insights & Trends", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                        Text("Monthly overview & category breakdown", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                                 Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)

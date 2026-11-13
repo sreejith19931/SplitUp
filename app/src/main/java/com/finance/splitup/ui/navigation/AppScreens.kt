@@ -63,3 +63,7 @@ data object GlobalSearchRoute : NavKey
 @Serializable
 data object SubscriptionsRoute : NavKey
 
+@Serializable
+data object InsightsRoute : NavKey
+
+

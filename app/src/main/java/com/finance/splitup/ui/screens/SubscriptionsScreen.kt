@@ -35,6 +35,7 @@ fun SubscriptionsScreen(
     val context = LocalContext.current
     val subscriptions by viewModel.recurringExpenses.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    var editingSubscription by remember { mutableStateOf<RecurringExpenseEntity?>(null) }
 
     val totalMonthlyCommitment = remember(subscriptions) {
         subscriptions.sumOf { item ->
@@ -180,6 +181,7 @@ fun SubscriptionsScreen(
                     SubscriptionCard(
                         item = item,
                         defaultCurrency = viewModel.defaultCurrency,
+                        onClick = { editingSubscription = item },
                         onLogExpense = {
                             viewModel.addExpense(
                                 title = item.title,
@@ -203,20 +205,34 @@ fun SubscriptionsScreen(
         }
     }
 
-    if (showAddDialog) {
+    if (showAddDialog || editingSubscription != null) {
         AddSubscriptionDialog(
+            existingItem = editingSubscription,
             defaultCurrency = viewModel.defaultCurrency,
-            onDismiss = { showAddDialog = false },
-            onConfirm = { title, amount, category, frequency, nextDueDate, autoAdd ->
-                viewModel.addRecurringExpense(
-                    title = title,
-                    amount = amount,
-                    category = category,
-                    frequency = frequency,
-                    nextDueDate = nextDueDate
-                )
-                Toast.makeText(context, "Added '$title' to subscriptions!", Toast.LENGTH_SHORT).show()
+            onDismiss = { showAddDialog = false; editingSubscription = null },
+            onConfirm = { title, amount, category, frequency, nextDueDate, _ ->
+                if (editingSubscription != null) {
+                    viewModel.upsertRecurringExpense(
+                        id = editingSubscription!!.id,
+                        title = title,
+                        amount = amount,
+                        category = category,
+                        frequency = frequency,
+                        nextDueDate = nextDueDate
+                    )
+                    Toast.makeText(context, "Updated '$title'!", Toast.LENGTH_SHORT).show()
+                } else {
+                    viewModel.addRecurringExpense(
+                        title = title,
+                        amount = amount,
+                        category = category,
+                        frequency = frequency,
+                        nextDueDate = nextDueDate
+                    )
+                    Toast.makeText(context, "Added '$title' to subscriptions!", Toast.LENGTH_SHORT).show()
+                }
                 showAddDialog = false
+                editingSubscription = null
             }
         )
     }
@@ -226,12 +242,15 @@ fun SubscriptionsScreen(
 fun SubscriptionCard(
     item: RecurringExpenseEntity,
     defaultCurrency: String,
+    onClick: () -> Unit,
     onLogExpense: () -> Unit,
     onDelete: () -> Unit
 ) {
     val symbol = Currencies.getSymbol(item.currency.ifBlank { defaultCurrency })
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -309,14 +328,16 @@ fun SubscriptionCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddSubscriptionDialog(
+    existingItem: RecurringExpenseEntity? = null,
     defaultCurrency: String,
     onDismiss: () -> Unit,
     onConfirm: (title: String, amount: Double, category: String, frequency: String, nextDueDate: String, autoAdd: Boolean) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var amountText by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf(ExpenseCategories.BILLS) }
-    var frequency by remember { mutableStateOf("Monthly") }
+    var title by remember { mutableStateOf(existingItem?.title ?: "") }
+    var amountText by remember { mutableStateOf(existingItem?.amount?.let { formatInputNumber(it) } ?: "") }
+    var category by remember { mutableStateOf(existingItem?.category?.ifBlank { ExpenseCategories.BILLS } ?: ExpenseCategories.BILLS) }
+    var frequency by remember { mutableStateOf(existingItem?.frequency ?: "Monthly") }
+    var expandedCategoryDropdown by remember { mutableStateOf(false) }
 
     val todayMillis = remember {
         java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.of("UTC")).toInstant().toEpochMilli()
@@ -329,7 +350,7 @@ fun AddSubscriptionDialog(
             java.time.Instant.ofEpochMilli(millis)
                 .atZone(java.time.ZoneId.of("UTC"))
                 .format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US))
-        } ?: "Select Due Date"
+        } ?: existingItem?.nextDueDate ?: "Select Due Date"
     }
 
     if (showDatePicker) {
@@ -360,7 +381,7 @@ fun AddSubscriptionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Subscription", fontWeight = FontWeight.Bold) },
+        title = { Text(if (existingItem != null) "Edit Subscription" else "Add Subscription", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -384,6 +405,38 @@ fun AddSubscriptionDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
+
+                // Category Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = expandedCategoryDropdown,
+                    onExpandedChange = { expandedCategoryDropdown = it }
+                ) {
+                    OutlinedTextField(
+                        value = category,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoryDropdown) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedCategoryDropdown,
+                        onDismissRequest = { expandedCategoryDropdown = false }
+                    ) {
+                        ExpenseCategories.all.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat) },
+                                onClick = {
+                                    category = cat
+                                    expandedCategoryDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 Text("Frequency", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
 
@@ -427,15 +480,15 @@ fun AddSubscriptionDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val amt = amountText.toDoubleOrNull() ?: 0.0
+                    val amt = amountText.parseAmount()
                     if (title.isNotBlank() && amt > 0.0) {
                         onConfirm(title, amt, category, frequency, formattedDueDate, true)
                     }
                 },
-                enabled = title.isNotBlank() && amountText.toDoubleOrNull() != null && amountText.toDoubleOrNull()!! > 0.0,
+                enabled = title.isNotBlank() && amountText.parseAmount() > 0.0,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Save")
+                Text(if (existingItem != null) "Save Changes" else "Save")
             }
         },
         dismissButton = {

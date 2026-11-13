@@ -144,6 +144,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("androidx.security:security-crypto:1.1.0")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0")
     implementation("com.google.zxing:core:3.5.3")
     testImplementation(libs.androidx.core)
     testImplementation(libs.androidx.junit)

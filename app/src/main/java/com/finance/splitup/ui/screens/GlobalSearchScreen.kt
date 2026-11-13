@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,6 +38,22 @@ fun GlobalSearchScreen(
     val groups by viewModel.groups.collectAsState()
 
     var query by remember { mutableStateOf("") }
+    var resultFilter by remember { mutableStateOf("All") } // "All", "Personal", "Groups", "Shared"
+    val context = LocalContext.current
+    val prefs = remember { com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs") }
+    var recentSearches by remember {
+        mutableStateOf(prefs.getStringSet("recent_searched_queries", emptySet())?.toList() ?: emptyList())
+    }
+
+    fun saveSearchQuery(q: String) {
+        val trimmed = q.trim()
+        if (trimmed.length < 2) return
+        val updated = listOf(trimmed) + (recentSearches.filter { !it.equals(trimmed, ignoreCase = true) })
+        val limited = updated.take(5)
+        recentSearches = limited
+        prefs.edit().putStringSet("recent_searched_queries", limited.toSet()).apply()
+    }
+
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
@@ -89,7 +107,12 @@ fun GlobalSearchScreen(
                 title = {
                     OutlinedTextField(
                         value = query,
-                        onValueChange = { query = it },
+                        onValueChange = {
+                            query = it
+                            if (it.isNotBlank()) {
+                                saveSearchQuery(it)
+                            }
+                        },
                         placeholder = { Text("Search personal & group expenses...") },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -127,12 +150,75 @@ fun GlobalSearchScreen(
         ) {
             if (query.isBlank()) {
                 item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                        Text("Type something to search across all personal expenses, groups, and shared bills.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (recentSearches.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Recent Searches", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                                TextButton(
+                                    onClick = {
+                                        recentSearches = emptyList()
+                                        prefs.edit().remove("recent_searched_queries").apply()
+                                    }
+                                ) {
+                                    Text("Clear", fontSize = 12.sp)
+                                }
+                            }
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(recentSearches) { recent ->
+                                    FilterChip(
+                                        selected = false,
+                                        onClick = { query = recent },
+                                        label = { Text(recent) },
+                                        leadingIcon = { Icon(Icons.Rounded.History, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                            Text("Type something to search across all personal expenses, groups, and shared bills.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        }
                     }
                 }
             } else {
-                if (matchedPersonalExpenses.isEmpty() && matchedGroups.isEmpty() && matchedGroupExpenses.isEmpty()) {
+                item {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val filters = listOf("All", "Personal", "Groups", "Shared")
+                        items(filters) { filter ->
+                            FilterChip(
+                                selected = resultFilter == filter,
+                                onClick = { resultFilter = filter },
+                                label = { Text(filter) },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    }
+                }
+
+                val showPersonal = resultFilter == "All" || resultFilter == "Personal"
+                val showGroups = resultFilter == "All" || resultFilter == "Groups"
+                val showShared = resultFilter == "All" || resultFilter == "Shared"
+
+                val totalResults = (if (showPersonal) matchedPersonalExpenses.size else 0) +
+                                   (if (showGroups) matchedGroups.size else 0) +
+                                   (if (showShared) matchedGroupExpenses.size else 0)
+
+                if (totalResults == 0) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
                             Text("No results found for '$query'.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -140,7 +226,7 @@ fun GlobalSearchScreen(
                     }
                 }
 
-                if (matchedPersonalExpenses.isNotEmpty()) {
+                if (showPersonal && matchedPersonalExpenses.isNotEmpty()) {
                     item {
                         Text("Personal Expenses (${matchedPersonalExpenses.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                     }
@@ -187,7 +273,7 @@ fun GlobalSearchScreen(
                     }
                 }
 
-                if (matchedGroups.isNotEmpty()) {
+                if (showGroups && matchedGroups.isNotEmpty()) {
                     item {
                         Text("Groups (${matchedGroups.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                     }
@@ -228,7 +314,7 @@ fun GlobalSearchScreen(
                     }
                 }
 
-                if (matchedGroupExpenses.isNotEmpty()) {
+                if (showShared && matchedGroupExpenses.isNotEmpty()) {
                     item {
                         Text("Group Expenses (${matchedGroupExpenses.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                     }

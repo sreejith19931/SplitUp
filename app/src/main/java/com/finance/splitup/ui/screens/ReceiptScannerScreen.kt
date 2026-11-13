@@ -314,6 +314,23 @@ fun ReceiptScannerScreen(
                             }
 
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            viewModel.currentExtractedReceipt = SampleReceipts.sampleWholeFoods
+                                            onReceiptExtracted()
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f), CircleShape)
+                                ) {
+                                    Icon(Icons.Rounded.AutoAwesome, contentDescription = "Sample Receipt", tint = MaterialTheme.colorScheme.onPrimary)
+                                }
+                                Text("Sample", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
+                            }
+
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Button(
                                     onClick = {
                                         isProcessing = true
@@ -443,21 +460,18 @@ fun ReceiptScannerScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)),
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.85f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Card(
+                    Surface(
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 8.dp,
+                        modifier = Modifier.size(240.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(28.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
-                            Text("Running ML Kit OCR & Parsing...", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        }
+                        com.finance.splitup.ui.components.SplitUpLoadingAnimation(
+                            message = "Running OCR & Parsing..."
+                        )
                     }
                 }
             }

@@ -116,6 +116,7 @@ fun GroupDetailContent(
     var customMemberForWhatsAppInvite by remember { mutableStateOf<String?>(null) }
     var showExportPreview by remember { mutableStateOf(false) }
     var expandedExpenseId by remember { mutableStateOf<String?>(null) }
+    var showSettlementCelebration by remember { mutableStateOf(false) }
     val context = LocalContext.current
     var showQrDialog by remember { mutableStateOf(false) }
     var selectedGroupTab by remember { mutableStateOf(0) }
@@ -1438,6 +1439,7 @@ fun GroupDetailContent(
                                     )
                                     Toast.makeText(context, "Payment of $currencySymbol${String.format(Locale.US, "%.2f", paidAmt)} from $customPayer to $customPayee recorded!", Toast.LENGTH_SHORT).show()
                                     selectedSettlementForPayment = null
+                                    showSettlementCelebration = true
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -1493,6 +1495,7 @@ fun GroupDetailContent(
                                         category = ExpenseCategories.SETTLEMENT
                                     )
                                     selectedSettlementForPayment = null
+                                    showSettlementCelebration = true
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -1528,6 +1531,7 @@ fun GroupDetailContent(
                                         category = ExpenseCategories.SETTLEMENT
                                     )
                                     selectedSettlementForPayment = null
+                                    showSettlementCelebration = true
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -1561,6 +1565,7 @@ fun GroupDetailContent(
                                         category = ExpenseCategories.SETTLEMENT
                                     )
                                     selectedSettlementForPayment = null
+                                    showSettlementCelebration = true
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -1596,6 +1601,7 @@ fun GroupDetailContent(
                                         category = ExpenseCategories.SETTLEMENT
                                     )
                                     selectedSettlementForPayment = null
+                                    showSettlementCelebration = true
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -1615,6 +1621,28 @@ fun GroupDetailContent(
                     Text("Close")
                 }
             }
+        )
+    }
+
+    if (showSettlementCelebration) {
+        AlertDialog(
+            onDismissRequest = { showSettlementCelebration = false },
+            title = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text("🎉", fontSize = 48.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Settlement Recorded!", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                }
+            },
+            text = {
+                Text("Debt successfully settled and recorded to group expenses. Outstanding balances have been updated.", textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            },
+            confirmButton = {
+                Button(onClick = { showSettlementCelebration = false }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                    Text("Awesome!", fontWeight = FontWeight.Bold)
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
         )
     }
 

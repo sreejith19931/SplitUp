@@ -406,8 +406,17 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
     }
 
-    fun addRecurringExpense(title: String, amount: Double, category: String, frequency: String, nextDueDate: String, currency: String = defaultCurrency) {
+    fun upsertRecurringExpense(
+        id: String? = null,
+        title: String,
+        amount: Double,
+        category: String,
+        frequency: String,
+        nextDueDate: String,
+        currency: String = defaultCurrency
+    ) {
         val recurring = com.finance.splitup.data.db.RecurringExpenseEntity(
+            id = id ?: java.util.UUID.randomUUID().toString(),
             title = title.ifBlank { "Subscription" },
             amount = amount,
             category = category,
@@ -422,8 +431,12 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 triggerImmediateSync()
             }
         } else {
-            _recurringExpensesFallback.update { current -> listOf(recurring) + current }
+            _recurringExpensesFallback.update { current -> listOf(recurring) + current.filter { it.id != recurring.id } }
         }
+    }
+
+    fun addRecurringExpense(title: String, amount: Double, category: String, frequency: String, nextDueDate: String, currency: String = defaultCurrency) {
+        upsertRecurringExpense(null, title, amount, category, frequency, nextDueDate, currency)
     }
 
     fun deleteRecurringExpense(id: String) {

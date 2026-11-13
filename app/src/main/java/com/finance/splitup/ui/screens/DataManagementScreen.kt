@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,20 +55,33 @@ fun DataManagementScreen(
 
     var hasUnsyncedChanges by remember { mutableStateOf(false) }
     var isCheckingUnsynced by remember { mutableStateOf(false) }
+    var isSyncingNow by remember { mutableStateOf(false) }
+    var isRestoringJson by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isCheckingUnsynced = true
+        hasUnsyncedChanges = viewModel.hasUnsyncedChanges()
+        isCheckingUnsynced = false
+    }
 
     val restoreJsonLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let {
-            try {
-                val inputStream = context.contentResolver.openInputStream(uri)
-                val jsonStr = inputStream?.bufferedReader()?.readText()
-                if (!jsonStr.isNullOrBlank()) {
-                    viewModel.importBackupJson(jsonStr)
-                    Toast.makeText(context, "Backup restored successfully!", Toast.LENGTH_SHORT).show()
+            isRestoringJson = true
+            scope.launch {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    val jsonStr = inputStream?.bufferedReader()?.readText()
+                    if (!jsonStr.isNullOrBlank()) {
+                        viewModel.importBackupJson(jsonStr)
+                        Toast.makeText(context, "Backup restored successfully!", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Restore failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                } finally {
+                    isRestoringJson = false
                 }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Restore failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -94,6 +108,59 @@ fun DataManagementScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Cloud Sync Status Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(Icons.Rounded.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Cloud Sync Status", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(
+                                text = if (hasUnsyncedChanges) "⚠️ Unsynced changes pending" else "✨ All changes synced to cloud",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (hasUnsyncedChanges) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                isSyncingNow = true
+                                scope.launch {
+                                    try {
+                                        val database = com.finance.splitup.data.db.AppDatabase.getDatabase(context)
+                                        val repository = com.finance.splitup.data.repository.OfflineFirstFinanceRepository(database.financeDao())
+                                        CloudSyncManager.performCloudSync(repository, context)
+                                        hasUnsyncedChanges = viewModel.hasUnsyncedChanges()
+                                        Toast.makeText(context, "Cloud sync completed successfully!", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Sync failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                    } finally {
+                                        isSyncingNow = false
+                                    }
+                                }
+                            },
+                            enabled = !isSyncingNow,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            if (isSyncingNow) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Syncing")
+                            } else {
+                                Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Sync Now")
+                            }
+                        }
+                    }
+                }
+            }
             // Data Exports & Backup Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -393,5 +460,25 @@ fun DataManagementScreen(
                 }
             }
         )
+    }
+
+    if (isRestoringJson) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.85f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                modifier = Modifier.size(240.dp)
+            ) {
+                com.finance.splitup.ui.components.SplitUpLoadingAnimation(
+                    message = "Restoring Database..."
+                )
+            }
+        }
     }
 }

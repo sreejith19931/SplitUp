@@ -208,7 +208,68 @@ fun AboutScreen(
                 }
             }
 
+            var showLicensesDialog by remember { mutableStateOf(false) }
+
+            OutlinedButton(
+                onClick = { showLicensesDialog = true },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Rounded.Code, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Open-Source Licenses")
+            }
+
+            if (showLicensesDialog) {
+                LicensesDialog(onDismiss = { showLicensesDialog = false })
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+@Composable
+fun LicensesDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Open-Source Licenses", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(max = 300.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                LicenseItem("Jetpack Compose", "Apache 2.0", "Modern declarative UI toolkit for Android.")
+                LicenseItem("Material 3", "Apache 2.0", "Material Design 3 components and theming.")
+                LicenseItem("Jetpack Room", "Apache 2.0", "Robust SQLite database persistence library.")
+                LicenseItem("CameraX", "Apache 2.0", "Consistent camera capture and live analysis.")
+                LicenseItem("ZXing (Zebra Crossing)", "Apache 2.0", "QR code generation and barcode scanning.")
+                LicenseItem("Coil", "Apache 2.0", "Image loading for Jetpack Compose.")
+                LicenseItem("Retrofit & OkHttp", "Apache 2.0", "Type-safe HTTP client for network requests.")
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss, shape = RoundedCornerShape(12.dp)) {
+                Text("Close")
+            }
+        },
+        shape = RoundedCornerShape(20.dp)
+    )
+}
+
+@Composable
+fun LicenseItem(name: String, license: String, desc: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(license, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+        }
+        Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

@@ -46,6 +46,7 @@ fun AddExpenseScreen(
     var amount by remember { mutableStateOf(existingExpense?.amount?.let { formatInputNumber(it) } ?: initialAmount?.let { formatInputNumber(it) } ?: viewModel.currentExtractedReceipt?.totalAmount?.let { formatInputNumber(it) } ?: "") }
     var selectedCategory by remember { mutableStateOf(existingExpense?.category ?: initialCategory ?: ExpenseCategories.FOOD) }
     var selectedCurrency by remember { mutableStateOf(existingExpense?.currency ?: viewModel.currentExtractedReceipt?.currency ?: Currencies.EUR) }
+    val currencySymbol = remember(selectedCurrency) { Currencies.getSymbol(selectedCurrency) }
     var description by remember { mutableStateOf(existingExpense?.description ?: "") }
     var paidBy by remember { mutableStateOf(existingExpense?.paidBy ?: "You") }
     var expenseDate by remember { mutableStateOf(existingExpense?.date ?: "Today") }
@@ -290,6 +291,7 @@ fun AddExpenseScreen(
             }
 
             // Category dropdown menu
+            val budgets by viewModel.budgets.collectAsState()
             if (!isIncome) {
                 ExposedDropdownMenuBox(
                     expanded = expandedCategoryDropdown,
@@ -322,6 +324,50 @@ fun AddExpenseScreen(
                                     }
                                 }
                             )
+                        }
+                    }
+                }
+
+                val currentCategorySpent = remember(expenses, selectedCategory, viewModel.defaultCurrency) {
+                    expenses.filter { it.category == selectedCategory }
+                        .sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+                }
+                val categoryLimit = budgets[selectedCategory] ?: 0.0
+                val enteredAmt = amount.parseAmount()
+                val projectedSpent = currentCategorySpent + enteredAmt
+                val isBudgetExceeded = categoryLimit > 0.0 && projectedSpent >= categoryLimit
+                val isBudgetWarning = categoryLimit > 0.0 && projectedSpent >= categoryLimit * 0.8 && !isBudgetExceeded
+
+                if (categoryLimit > 0.0 && (isBudgetExceeded || isBudgetWarning)) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isBudgetExceeded) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Warning,
+                                contentDescription = null,
+                                tint = if (isBudgetExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = if (isBudgetExceeded) "⚠️ Budget Exceeded for $selectedCategory!" else "⚠️ Budget Warning: Approaching limit",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isBudgetExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Projected: $currencySymbol${String.format(java.util.Locale.US, "%.2f", projectedSpent)} / Limit: $currencySymbol${String.format(java.util.Locale.US, "%.2f", categoryLimit)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }

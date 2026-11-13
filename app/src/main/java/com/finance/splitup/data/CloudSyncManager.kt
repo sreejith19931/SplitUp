@@ -402,10 +402,18 @@ object CloudSyncManager {
                                     if (membersList.contains("You") && membersList.contains(userName)) {
                                         membersList = membersList.filter { it != "You" }
                                     }
-                                    val updatedMembers = if (membersList.contains(userName)) membersList else membersList + userName
-                                    val updatedPending = grpWithSubcoll.pendingMembers.filter { !it.equals(userName, ignoreCase = true) }
+                                    val isPending = grpWithSubcoll.pendingMembers.any { 
+                                        it.equals(userName, ignoreCase = true) || 
+                                        it.equals(email, ignoreCase = true) || 
+                                        (email.isNotBlank() && it.equals(email.substringBefore("@"), ignoreCase = true)) 
+                                    }
+                                    val updatedMembers = if (isPending) {
+                                        membersList.filter { !it.equals(userName, ignoreCase = true) }
+                                    } else membersList
 
-                                    if (updatedUids != grpWithSubcoll.memberUids || updatedMembers != grpWithSubcoll.members || updatedPending != grpWithSubcoll.pendingMembers) {
+                                    val updatedPending = grpWithSubcoll.pendingMembers
+
+                                    if (updatedUids != grpWithSubcoll.memberUids || updatedMembers != grpWithSubcoll.members) {
                                         val updatedGroup = grpWithSubcoll.copy(memberUids = updatedUids, members = updatedMembers, pendingMembers = updatedPending)
                                         db.collection("groups").document(updatedGroup.id).set(updatedGroup).await()
                                         repository.insertGroupClean(updatedGroup)

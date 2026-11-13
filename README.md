@@ -5,17 +5,17 @@
 [![Android](https://img.shields.io/badge/Platform-Android-3DDC84?style=flat&logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7f52ff?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-UI-4285F4?style=flat&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Version](https://img.shields.io/badge/Version-1.2.1-blue.svg)](https://github.com/sreejith19931/SplitUp/releases)
+[![Version](https://img.shields.io/badge/Version-1.3-blue.svg)](https://github.com/sreejith19931/SplitUp/releases)
 [![Website](https://img.shields.io/badge/Website-splitupfin.vercel.app-000000?style=flat&logo=vercel)](https://splitupfin.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## ⚡ What's New in v1.2.1
+## ⚡ What's New in v1.3
 
-- 🔄 **In-App Update Checker**: Automated GitHub release checking on app launch with pop-up notification and an explicit "Check for Updates" button in the About screen.
-- 📱 **Uniform Screenshot Gallery**: Refined website and repository screenshot cards to have consistent uniform heights (`380px`) featuring all 5 core screens (`Groups`, `Analysis`, `Personal Expenses`, `Settings`, `Dashboard`).
-- ⚡ **Optimized Stability & Build**: Upgraded to release `1.2.1` with verified signed production builds and zero build warnings.
+- 📊 **Spending Insights & Trends**: Dedicated `InsightsScreen` featuring Monthly Overview (Total Spending vs Income) and Category Breakdown progress bars.
+- ✨ **App-Wide UI Polish & Animations**: Custom pulsing loading animation component, celebratory settlement success dialog, and smooth Navigation 3 screen entrance transition animations.
+- 🔗 **Universal App Links & Vercel Domain**: Upgraded QR codes and share links to use **`splitupfin.vercel.app`** with Android App Links intent filters and web fallback landing pages.
 
 ---
 

@@ -1008,8 +1008,14 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         viewModelScope.launch {
             val group = groups.value.find { it.id == groupId } ?: repository?.getGroupById(groupId) ?: return@launch
             val selfName = currentUserName
+            val selfEmail = currentUserEmail.lowercase()
+            val updatedMembers = group.members.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }
             val updatedPending = group.pendingMembers.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }
-            val updatedGroup = group.copy(pendingMembers = updatedPending)
+            val updatedEmails = group.memberEmails.filter { it.lowercase() != selfEmail }
+            val updatedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberEmails = updatedEmails)
+
+            logActivity(groupId, selfName, "MEMBER_DECLINED", "$selfName declined the invitation to join ${group.name}")
+            postSystemNotification("Invitation Declined", "$selfName declined the invitation to join ${group.name}.", CHANNEL_GROUP_ACTIVITY)
 
             if (repository != null) {
                 repository.insertGroup(updatedGroup)
@@ -1172,15 +1178,23 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
     }
 
-    fun removeGroupMember(groupId: String, memberName: String) {
+    fun removeGroupMember(groupId: String, memberName: String, memberEmail: String = "") {
         viewModelScope.launch {
             if (!verifyGroupActiveOrPurge(groupId)) return@launch
             val selfName = currentUserName
             if (memberName == "You" || memberName.equals(selfName, ignoreCase = true)) return@launch
             val group = groups.value.find { it.id == groupId } ?: return@launch
-            val updatedMembers = group.members.filter { !it.equals(memberName, ignoreCase = true) }
-            val updatedPending = group.pendingMembers.filter { !it.equals(memberName, ignoreCase = true) }
-            val updatedEmails = group.memberEmails.filter { !it.equals(memberName, ignoreCase = true) }
+            
+            val targetNameLower = memberName.lowercase()
+            val targetEmailLower = memberEmail.lowercase()
+
+            val updatedMembers = group.members.filter { !it.equals(memberName, ignoreCase = true) && it.lowercase() != targetEmailLower }
+            val updatedPending = group.pendingMembers.filter { !it.equals(memberName, ignoreCase = true) && it.lowercase() != targetEmailLower }
+            val updatedEmails = group.memberEmails.filter { email ->
+                val emailLower = email.lowercase()
+                val emailPrefix = emailLower.substringBefore("@")
+                emailLower != targetEmailLower && emailLower != targetNameLower && emailPrefix != targetNameLower
+            }
             val updatedGroup = group.copy(
                 members = updatedMembers,
                 pendingMembers = updatedPending,

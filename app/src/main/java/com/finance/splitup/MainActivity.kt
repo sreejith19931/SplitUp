@@ -503,6 +503,12 @@ fun SplitUpApp(
                             onNavigateToScanner = {
                                 viewModel.targetGroupIdForReceipt = null
                                 backStack.add(ReceiptScannerRoute)
+                            },
+                            onNavigateToInsights = {
+                                backStack.add(InsightsRoute)
+                            },
+                            onNavigateToSubscriptions = {
+                                backStack.add(SubscriptionsRoute)
                             }
                         )
                     }

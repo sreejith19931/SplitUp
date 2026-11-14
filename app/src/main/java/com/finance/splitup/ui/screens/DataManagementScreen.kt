@@ -136,7 +136,7 @@ fun DataManagementScreen(
                                         val database = com.finance.splitup.data.db.AppDatabase.getDatabase(context)
                                         val repository = com.finance.splitup.data.repository.OfflineFirstFinanceRepository(database.financeDao())
                                         CloudSyncManager.performCloudSync(repository, context)
-                                        hasUnsyncedChanges = viewModel.hasUnsyncedChanges()
+                                        hasUnsyncedChanges = false
                                         Toast.makeText(context, "Cloud sync completed successfully!", Toast.LENGTH_SHORT).show()
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "Sync failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
@@ -237,33 +237,6 @@ fun DataManagementScreen(
                         Icon(Icons.Rounded.TableChart, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Export CSV Transactions")
-                    }
-
-                    // QA Testing Checklist PDF
-                    OutlinedButton(
-                        onClick = {
-                            try {
-                                val pdfFile = PdfGenerator.generateTestChecklistPdf(context)
-                                if (pdfFile != null) {
-                                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", pdfFile)
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        setDataAndType(uri, "application/pdf")
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(intent)
-                                } else {
-                                    Toast.makeText(context, "Failed to generate testing checklist PDF", Toast.LENGTH_SHORT).show()
-                                }
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Testing checklist export failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Rounded.Checklist, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Export QA Testing Checklist PDF")
                     }
 
                     Row(

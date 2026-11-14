@@ -374,21 +374,6 @@ fun ReceiptScannerScreen(
                                     Icon(Icons.Rounded.CameraAlt, contentDescription = "Capture", modifier = Modifier.size(34.dp))
                                 }
                             }
-
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                IconButton(
-                                    onClick = {
-                                        viewModel.currentExtractedReceipt = SampleReceipts.sampleWholeFoods
-                                        onReceiptExtracted()
-                                    },
-                                    modifier = Modifier
-                                        .size(52.dp)
-                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), CircleShape)
-                                ) {
-                                    Icon(Icons.Rounded.Receipt, contentDescription = "Sample Receipt", tint = MaterialTheme.colorScheme.secondary)
-                                }
-                                Text("Sample Receipt", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
-                            }
                         }
                     }
                 }
@@ -489,6 +474,7 @@ fun ReceiptInteractiveCropView(
     onCropConfirmed: (Bitmap) -> Unit,
     onRetake: () -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
     var rotatedBitmap by remember { mutableStateOf(bitmap) }
     var cropLeft by remember(rotatedBitmap) { mutableStateOf(0.05f) }
     var cropTop by remember(rotatedBitmap) { mutableStateOf(0.05f) }
@@ -496,63 +482,25 @@ fun ReceiptInteractiveCropView(
     var cropBottom by remember(rotatedBitmap) { mutableStateOf(0.95f) }
     var activeMode by remember { mutableStateOf(CropMode.None) }
 
-    fun autoCrop() {
-        try {
-            val w = rotatedBitmap.width
-            val h = rotatedBitmap.height
-            var minX = w
-            var maxX = 0
-            var minY = h
-            var maxY = 0
-            val step = maxOf(1, (w * h) / 8000)
-            val pixels = IntArray(w * h)
-            rotatedBitmap.getPixels(pixels, 0, w, 0, 0, w, h)
-
-            for (i in pixels.indices step step) {
-                val color = pixels[i]
-                val r = (color shr 16) and 0xFF
-                val g = (color shr 8) and 0xFF
-                val b = color and 0xFF
-                val luma = (r * 299 + g * 587 + b * 114) / 1000
-                if (luma > 70) {
-                    val x = i % w
-                    val y = i / w
-                    if (x < minX) minX = x
-                    if (x > maxX) maxX = x
-                    if (y < minY) minY = y
-                    if (y > maxY) maxY = y
-                }
-            }
-
-            if (maxX > minX && maxY > minY) {
-                cropLeft = (minX.toFloat() / w).coerceIn(0.02f, 0.4f)
-                cropTop = (minY.toFloat() / h).coerceIn(0.02f, 0.4f)
-                cropRight = (maxX.toFloat() / w).coerceIn(0.6f, 0.98f)
-                cropBottom = (maxY.toFloat() / h).coerceIn(0.6f, 0.98f)
+    fun performAutoCrop() {
+        coroutineScope.launch {
+            val detected = ReceiptProcessor.detectReceiptBoundsInBitmap(rotatedBitmap)
+            if (detected != null) {
+                cropLeft = detected.left
+                cropTop = detected.top
+                cropRight = detected.right
+                cropBottom = detected.bottom
             } else {
-                cropLeft = 0.05f
-                cropTop = 0.05f
-                cropRight = 0.95f
-                cropBottom = 0.95f
+                cropLeft = 0.08f
+                cropTop = 0.06f
+                cropRight = 0.92f
+                cropBottom = 0.92f
             }
-        } catch (_: Exception) {
-            cropLeft = 0.05f
-            cropTop = 0.05f
-            cropRight = 0.95f
-            cropBottom = 0.95f
         }
     }
 
     LaunchedEffect(rotatedBitmap) {
-        val detected = ReceiptProcessor.detectReceiptBoundsInBitmap(rotatedBitmap)
-        if (detected != null) {
-            cropLeft = detected.left
-            cropTop = detected.top
-            cropRight = detected.right
-            cropBottom = detected.bottom
-        } else {
-            autoCrop()
-        }
+        performAutoCrop()
     }
 
     fun autoStraighten() {
@@ -582,7 +530,7 @@ fun ReceiptInteractiveCropView(
                     TextButton(onClick = { autoStraighten() }) {
                         Text("Rotate 90°", fontSize = 12.sp)
                     }
-                    TextButton(onClick = { autoCrop() }) {
+                    TextButton(onClick = { performAutoCrop() }) {
                         Text("Auto-Crop", fontSize = 12.sp)
                     }
                 }
@@ -611,40 +559,56 @@ fun ReceiptInteractiveCropView(
                         .pointerInput(rotatedBitmap) {
                             detectDragGestures(
                                 onDragStart = { offset ->
-                                    val leftPx = cropLeft * size.width
-                                    val topPx = cropTop * size.height
-                                    val rightPx = cropRight * size.width
-                                    val bottomPx = cropBottom * size.height
+                                    val wImg = rotatedBitmap.width.toFloat()
+                                    val hImg = rotatedBitmap.height.toFloat()
+                                    val scale = minOf(size.width / wImg, size.height / hImg)
+                                    val wDisp = wImg * scale
+                                    val hDisp = hImg * scale
+                                    val xOff = (size.width - wDisp) / 2f
+                                    val yOff = (size.height - hDisp) / 2f
 
+                                    val leftPx = xOff + cropLeft * wDisp
+                                    val topPx = yOff + cropTop * hDisp
+                                    val rightPx = xOff + cropRight * wDisp
+                                    val bottomPx = yOff + cropBottom * hDisp
+
+                                    val hitRadius = 90f
                                     activeMode = when {
-                                        (offset - Offset(leftPx, topPx)).getDistance() < 60f -> CropMode.TopLeft
-                                        (offset - Offset(rightPx, topPx)).getDistance() < 60f -> CropMode.TopRight
-                                        (offset - Offset(leftPx, bottomPx)).getDistance() < 60f -> CropMode.BottomLeft
-                                        (offset - Offset(rightPx, bottomPx)).getDistance() < 60f -> CropMode.BottomRight
+                                        (offset - Offset(leftPx, topPx)).getDistance() < hitRadius -> CropMode.TopLeft
+                                        (offset - Offset(rightPx, topPx)).getDistance() < hitRadius -> CropMode.TopRight
+                                        (offset - Offset(leftPx, bottomPx)).getDistance() < hitRadius -> CropMode.BottomLeft
+                                        (offset - Offset(rightPx, bottomPx)).getDistance() < hitRadius -> CropMode.BottomRight
                                         offset.x in leftPx..rightPx && offset.y in topPx..bottomPx -> CropMode.Inside
                                         else -> CropMode.Inside
                                     }
                                 },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
-                                    val deltaX = dragAmount.x / size.width
-                                    val deltaY = dragAmount.y / size.height
+                                    val wImg = rotatedBitmap.width.toFloat()
+                                    val hImg = rotatedBitmap.height.toFloat()
+                                    val scale = minOf(size.width / wImg, size.height / hImg)
+                                    val wDisp = (wImg * scale).coerceAtLeast(1f)
+                                    val hDisp = (hImg * scale).coerceAtLeast(1f)
+
+                                    val deltaX = dragAmount.x / wDisp
+                                    val deltaY = dragAmount.y / hDisp
+
                                     when (activeMode) {
                                         CropMode.TopLeft -> {
-                                            cropLeft = (cropLeft + deltaX).coerceIn(0f, cropRight - 0.15f)
-                                            cropTop = (cropTop + deltaY).coerceIn(0f, cropBottom - 0.15f)
+                                            cropLeft = (cropLeft + deltaX).coerceIn(0f, cropRight - 0.1f)
+                                            cropTop = (cropTop + deltaY).coerceIn(0f, cropBottom - 0.1f)
                                         }
                                         CropMode.TopRight -> {
-                                            cropRight = (cropRight + deltaX).coerceIn(cropLeft + 0.15f, 1f)
-                                            cropTop = (cropTop + deltaY).coerceIn(0f, cropBottom - 0.15f)
+                                            cropRight = (cropRight + deltaX).coerceIn(cropLeft + 0.1f, 1f)
+                                            cropTop = (cropTop + deltaY).coerceIn(0f, cropBottom - 0.1f)
                                         }
                                         CropMode.BottomLeft -> {
-                                            cropLeft = (cropLeft + deltaX).coerceIn(0f, cropRight - 0.15f)
-                                            cropBottom = (cropBottom + deltaY).coerceIn(cropTop + 0.15f, 1f)
+                                            cropLeft = (cropLeft + deltaX).coerceIn(0f, cropRight - 0.1f)
+                                            cropBottom = (cropBottom + deltaY).coerceIn(cropTop + 0.1f, 1f)
                                         }
                                         CropMode.BottomRight -> {
-                                            cropRight = (cropRight + deltaX).coerceIn(cropLeft + 0.15f, 1f)
-                                            cropBottom = (cropBottom + deltaY).coerceIn(cropTop + 0.15f, 1f)
+                                            cropRight = (cropRight + deltaX).coerceIn(cropLeft + 0.1f, 1f)
+                                            cropBottom = (cropBottom + deltaY).coerceIn(cropTop + 0.1f, 1f)
                                         }
                                         CropMode.Inside -> {
                                             val width = cropRight - cropLeft
@@ -660,12 +624,20 @@ fun ReceiptInteractiveCropView(
                             )
                         }
                 ) {
-                    val leftPx = cropLeft * size.width
-                    val topPx = cropTop * size.height
-                    val rightPx = cropRight * size.width
-                    val bottomPx = cropBottom * size.height
+                    val wImg = rotatedBitmap.width.toFloat()
+                    val hImg = rotatedBitmap.height.toFloat()
+                    val scale = minOf(size.width / wImg, size.height / hImg)
+                    val wDisp = wImg * scale
+                    val hDisp = hImg * scale
+                    val xOff = (size.width - wDisp) / 2f
+                    val yOff = (size.height - hDisp) / 2f
 
-                    val overlayColor = Color.Black.copy(alpha = 0.55f)
+                    val leftPx = xOff + cropLeft * wDisp
+                    val topPx = yOff + cropTop * hDisp
+                    val rightPx = xOff + cropRight * wDisp
+                    val bottomPx = yOff + cropBottom * hDisp
+
+                    val overlayColor = Color.Black.copy(alpha = 0.6f)
                     // Top overlay
                     drawRect(color = overlayColor, topLeft = Offset.Zero, size = Size(size.width, topPx))
                     // Bottom overlay
@@ -680,14 +652,29 @@ fun ReceiptInteractiveCropView(
                         color = Color.Green,
                         topLeft = Offset(leftPx, topPx),
                         size = Size(rightPx - leftPx, bottomPx - topPx),
-                        style = Stroke(width = 4f)
+                        style = Stroke(width = 3.dp.toPx())
                     )
 
-                    val handleRadius = 14f
-                    drawCircle(Color.White, handleRadius, Offset(leftPx, topPx))
-                    drawCircle(Color.White, handleRadius, Offset(rightPx, topPx))
-                    drawCircle(Color.White, handleRadius, Offset(leftPx, bottomPx))
-                    drawCircle(Color.White, handleRadius, Offset(rightPx, bottomPx))
+                    // Right-angled L-bracket corner handles
+                    val cornerArm = 26.dp.toPx()
+                    val cornerStroke = 5.dp.toPx()
+                    val handleColor = Color.White
+
+                    // Top-Left corner ┌
+                    drawLine(handleColor, Offset(leftPx - cornerStroke / 2, topPx), Offset(leftPx + cornerArm, topPx), cornerStroke)
+                    drawLine(handleColor, Offset(leftPx, topPx - cornerStroke / 2), Offset(leftPx, topPx + cornerArm), cornerStroke)
+
+                    // Top-Right corner ┐
+                    drawLine(handleColor, Offset(rightPx + cornerStroke / 2, topPx), Offset(rightPx - cornerArm, topPx), cornerStroke)
+                    drawLine(handleColor, Offset(rightPx, topPx - cornerStroke / 2), Offset(rightPx, topPx + cornerArm), cornerStroke)
+
+                    // Bottom-Left corner └
+                    drawLine(handleColor, Offset(leftPx - cornerStroke / 2, bottomPx), Offset(leftPx + cornerArm, bottomPx), cornerStroke)
+                    drawLine(handleColor, Offset(leftPx, bottomPx + cornerStroke / 2), Offset(leftPx, bottomPx - cornerArm), cornerStroke)
+
+                    // Bottom-Right corner ┘
+                    drawLine(handleColor, Offset(rightPx + cornerStroke / 2, bottomPx), Offset(rightPx - cornerArm, bottomPx), cornerStroke)
+                    drawLine(handleColor, Offset(rightPx, bottomPx + cornerStroke / 2), Offset(rightPx, bottomPx - cornerArm), cornerStroke)
                 }
             }
 

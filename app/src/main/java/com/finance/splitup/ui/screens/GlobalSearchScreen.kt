@@ -250,7 +250,7 @@ fun GlobalSearchScreen(
                                     val catColor = getCategoryColor(expense.category)
                                     Surface(
                                         shape = CircleShape,
-                                        color = catColor.copy(alpha = 0.12f),
+                                        color = catColor.copy(alpha = 0.22f),
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
@@ -338,7 +338,7 @@ fun GlobalSearchScreen(
                                     val catColor = getCategoryColor(ge.category)
                                     Surface(
                                         shape = CircleShape,
-                                        color = catColor.copy(alpha = 0.12f),
+                                        color = catColor.copy(alpha = 0.22f),
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {

@@ -139,6 +139,27 @@ class FinanceViewModelTest {
     }
 
     @Test
+    fun testDeclineAndReAddGroupMember() {
+        val viewModel = FinanceViewModel()
+        viewModel.addGroup("Trip Group", "Trip", listOf("Alice"))
+        val group = viewModel.groups.value.first { it.name == "Trip Group" }
+
+        // Add Geetika as pending member
+        viewModel.addGroupMember(group.id, "Geetika", "geetika@example.com", isPending = true)
+        var updatedGroup = viewModel.groups.value.first { it.id == group.id }
+        assertTrue(updatedGroup.pendingMembers.contains("Geetika"))
+
+        // Re-adding Geetika should keep her as pending invitation rather than adding directly to members
+        viewModel.addGroupMember(group.id, "Geetika", "geetika@example.com", isPending = true)
+        updatedGroup = viewModel.groups.value.first { it.id == group.id }
+        assertFalse(updatedGroup.members.contains("Geetika"))
+
+        // Test matching helper functions
+        assertTrue(viewModel.isUserMatch("Geetika", "Geetika Sharma", "geetika@example.com"))
+        assertTrue(viewModel.isMemberMatch("Geetika", "Geetika", "geetika@example.com"))
+    }
+
+    @Test
     fun testBudgetThresholdWarning() {
         val viewModel = FinanceViewModel()
         val category = ExpenseCategories.FOOD

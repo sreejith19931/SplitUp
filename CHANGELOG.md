@@ -5,6 +5,22 @@ All notable changes to the SplitUp app will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v1.0.0.html).
 
+## [1.4] - 2026-11-13
+
+### Added
+- **Receipt Scanner & Crop Enhancements:**
+  - Replaced white dot crop handles with thick, easily draggable right-angled L-bracket corner handles (`┌ ┐ └ ┘`) with enlarged touch hit-targets (~36dp).
+  - Fixed left-edge text clipping in `ReceiptInteractiveCropView` by correcting letterboxing aspect ratio offsets and adding auto-crop horizontal safety padding (`padX = 0.06f`).
+  - Removed duplicate sample receipt button on `ReceiptScannerScreen`.
+- **Receipt Line Item Breakdown & Persistence:**
+  - Added itemized `lineItems` persistence (`List<ReceiptLineItem>`) to `Expense` and `GroupExpense` data models with Room migration `17 -> 18` and Moshi TypeConverters.
+  - Added expandable receipt itemized breakdown views across Dashboard, Personal Expenses, and Group Details.
+- **Group Archiving Improvements:**
+  - Removed restrictive unsettled balance check, allowing any group to be archived or unarchived at any time regardless of balance state.
+  - Fixed archive state persistence with explicit Map-based Firestore serialization for `isArchived` and automatic filter reset back to "All" upon unarchiving.
+- **Light Mode Clarity & Contrast:**
+  - Upgraded `LightColorScheme` surface variants (`#E2E8F0` Slate 200), text variants (`#334155` Slate 700), and outlines (`#94A3B8` Slate 400) for high-contrast clarity across selection chips, category filters, quick date buttons, and payment options.
+
 ## [1.3] - 2026-11-13
 
 ### Added

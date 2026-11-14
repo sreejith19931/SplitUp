@@ -19,8 +19,8 @@ class CalculateGroupSettlementsUseCase {
         targetCurrency: String = group.expenses.firstOrNull()?.currency ?: Currencies.EUR,
         currentUserName: String = "You"
     ): Map<String, Double> {
-        val canonicalSelf = group.members.firstOrNull { it == "You" || it.equals("You", ignoreCase = true) }
-            ?: group.members.firstOrNull { currentUserName.isNotBlank() && it.equals(currentUserName, ignoreCase = true) }
+        val canonicalSelf = group.allMembers.firstOrNull { it == "You" || it.equals("You", ignoreCase = true) }
+            ?: group.allMembers.firstOrNull { currentUserName.isNotBlank() && it.equals(currentUserName, ignoreCase = true) }
             ?: "You"
 
         fun matchMember(name: String): String {
@@ -28,10 +28,10 @@ class CalculateGroupSettlementsUseCase {
             if (trimmed == "You" || trimmed.equals("You", ignoreCase = true) || (currentUserName.isNotBlank() && trimmed.equals(currentUserName, ignoreCase = true))) {
                 return canonicalSelf
             }
-            return group.members.firstOrNull { it.equals(trimmed, ignoreCase = true) } ?: trimmed
+            return group.allMembers.firstOrNull { it.equals(trimmed, ignoreCase = true) } ?: trimmed
         }
 
-        val distinctMembers = group.members.map { matchMember(it) }.distinct()
+        val distinctMembers = group.allMembers.map { matchMember(it) }.distinct()
         val balances = distinctMembers.associateWith { 0.0 }.toMutableMap()
 
         for (expense in group.expenses) {
@@ -61,7 +61,7 @@ class CalculateGroupSettlementsUseCase {
                         balances[matchedMember] = (balances[matchedMember] ?: 0.0) + convertedShare
                     }
                 } else {
-                    val cleanSplitAmong = expense.splitAmong.map { matchMember(it) }.distinct()
+                    val cleanSplitAmong = expense.splitAmong.map { matchMember(it) }.distinct().ifEmpty { distinctMembers }
                     val splitCount = cleanSplitAmong.size
                     if (splitCount > 0) {
                         val rawShare = convertedAmount / splitCount
@@ -95,7 +95,7 @@ class CalculateGroupSettlementsUseCase {
                         balances[matchedMember] = (balances[matchedMember] ?: 0.0) - convertedShare
                     }
                 } else {
-                    val cleanSplitAmong = expense.splitAmong.map { matchMember(it) }.distinct()
+                    val cleanSplitAmong = expense.splitAmong.map { matchMember(it) }.distinct().ifEmpty { distinctMembers }
                     val splitCount = cleanSplitAmong.size
                     if (splitCount > 0) {
                         val rawShare = convertedAmount / splitCount

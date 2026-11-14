@@ -17,6 +17,7 @@ data class Expense(
     val paymentMethod: String = "Cash",
     val receiptImagePath: String? = null,
     val receiptUrl: String? = null,
+    val lineItems: List<ReceiptLineItem> = emptyList(),
     val updatedAt: Long = System.currentTimeMillis()
 )
 

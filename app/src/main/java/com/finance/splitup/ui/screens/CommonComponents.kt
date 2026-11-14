@@ -68,6 +68,23 @@ fun formatInputNumber(value: Double): String {
     }
 }
 
+fun filterPriceInput(input: String): String {
+    val filtered = input.filter { it.isDigit() || it == '.' || it == ',' }
+    var hasSeparator = false
+    val result = StringBuilder()
+    for (ch in filtered) {
+        if (ch == '.' || ch == ',') {
+            if (!hasSeparator) {
+                hasSeparator = true
+                result.append(ch)
+            }
+        } else {
+            result.append(ch)
+        }
+    }
+    return result.toString()
+}
+
 fun detectCategoryFromTitle(title: String): String {
     return com.finance.splitup.data.CategoryDetector.detectCategoryFromTitle(title)
 }
@@ -288,8 +305,16 @@ fun DatePickerFieldToModal(
     }
 
     if (showDatePickerDialog) {
+        val initialMillis = remember(selectedDateText) {
+            try {
+                val format = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                format.parse(com.finance.splitup.data.DateUtils.normalizeExpenseDate(selectedDateText))?.time ?: System.currentTimeMillis()
+            } catch (_: Exception) {
+                System.currentTimeMillis()
+            }
+        }
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = System.currentTimeMillis(),
+            initialSelectedDateMillis = initialMillis,
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                     return utcTimeMillis <= System.currentTimeMillis()
@@ -547,6 +572,95 @@ fun ProfileQRCodeDialog(
         }
     )
 }
+
+@Composable
+fun ReceiptLineItemsBreakdownView(
+    lineItems: List<com.finance.splitup.data.ReceiptLineItem>,
+    currencySymbol: String,
+    modifier: Modifier = Modifier
+) {
+    if (lineItems.isEmpty()) return
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Receipt Breakdown (${lineItems.size} items)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    text = "$currencySymbol${String.format(Locale.US, "%.2f", lineItems.sumOf { it.price })}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            lineItems.forEach { item ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.name,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                        if (item.assignedTo.isNotEmpty()) {
+                            Text(
+                                text = "Assigned to: ${item.assignedTo.joinToString(", ")}",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    Text(
+                        text = "$currencySymbol${String.format(Locale.US, "%.2f", item.price)}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+    }
+}
+
 
 
 

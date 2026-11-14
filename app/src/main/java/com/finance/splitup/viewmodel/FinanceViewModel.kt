@@ -548,6 +548,9 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                                 if (group != null) {
                                     val existingLocalGroup = repository?.getGroupById(group.id)
                                         ?: _groupsFallback.value.find { it.id == group.id }
+                                    if (existingLocalGroup != null && existingLocalGroup.updatedAt >= group.updatedAt) {
+                                        continue
+                                    }
 
                                     val selfName = currentUserName
                                     val userEmail = user.email?.lowercase() ?: ""
@@ -603,8 +606,12 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                                         }
                                     }
 
-                                    val needsUidUpdate = !group.memberUids.contains(user.uid)
-                                    val needsEmailUpdate = userEmail.isNotBlank() && !group.memberEmails.map { it.lowercase() }.contains(userEmail)
+                                    val isUserMemberOrPending = group.members.any { it.equals("You", ignoreCase = true) || it.equals(selfName, ignoreCase = true) || (userEmail.isNotBlank() && it.equals(userEmail, ignoreCase = true)) } ||
+                                            group.pendingMembers.any { it.equals("You", ignoreCase = true) || it.equals(selfName, ignoreCase = true) || (userEmail.isNotBlank() && it.equals(userEmail, ignoreCase = true)) } ||
+                                            (group.createdBy.isNotBlank() && (group.createdBy.equals(selfName, ignoreCase = true) || group.createdBy.equals("You", ignoreCase = true)))
+
+                                    val needsUidUpdate = isUserMemberOrPending && !group.memberUids.contains(user.uid)
+                                    val needsEmailUpdate = isUserMemberOrPending && userEmail.isNotBlank() && !group.memberEmails.map { it.lowercase() }.contains(userEmail)
                                     val updatedGroup = if (needsUidUpdate || needsEmailUpdate) {
                                         val uids = if (needsUidUpdate) group.memberUids + user.uid else group.memberUids
                                         val emails = if (needsEmailUpdate) group.memberEmails + userEmail else group.memberEmails
@@ -615,12 +622,18 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                                         com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup)
                                     }
 
-                                    if (repository != null) {
+                                    if (!isUserMemberOrPending && repository != null) {
+                                        repository.deleteGroup(group.id)
+                                    } else if (repository != null) {
                                         repository.insertGroup(updatedGroup)
                                     } else {
                                         _groupsFallback.update { current ->
-                                            current.map { if (it.id == updatedGroup.id) updatedGroup else it } +
-                                                    if (current.none { it.id == updatedGroup.id }) listOf(updatedGroup) else emptyList()
+                                            if (isUserMemberOrPending) {
+                                                current.map { if (it.id == updatedGroup.id) updatedGroup else it } +
+                                                        if (current.none { it.id == updatedGroup.id }) listOf(updatedGroup) else emptyList()
+                                            } else {
+                                                current.filter { it.id != group.id }
+                                            }
                                         }
                                     }
                                 }
@@ -824,7 +837,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         paidBy: String,
         currency: String = Currencies.EUR,
         paymentMethod: String = "Cash",
-        receiptImagePath: String? = null
+        receiptImagePath: String? = null,
+        lineItems: List<com.finance.splitup.data.ReceiptLineItem> = emptyList()
     ) {
         val currentSpending = getSpendingForCategory(category)
         val limit = getBudgetForCategory(category)
@@ -858,7 +872,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             paidBy = paidBy.ifBlank { "You" },
             currency = currency,
             paymentMethod = paymentMethod,
-            receiptImagePath = receiptImagePath
+            receiptImagePath = receiptImagePath,
+            lineItems = lineItems
         )
         com.finance.splitup.data.CategoryDetector.learnCategory(title, category, getApplication())
         if (repository != null) {
@@ -951,6 +966,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         pendingMembers: List<String> = emptyList()
     ): String {
         val selfName = currentUserName
+        val selfEmail = currentUserEmail.lowercase()
         val cleanMembers = if (members.isEmpty()) listOf(selfName) else members
         val mappedMembers = cleanMembers.map { if (it == "You") selfName else it }
         val finalMembers = if (mappedMembers.contains(selfName)) mappedMembers else listOf(selfName) + mappedMembers
@@ -961,7 +977,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             emoji = emoji,
             colorHex = colorHex,
             members = finalMembers.distinct(),
-            pendingMembers = pendingMembers.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }.distinct(),
+            pendingMembers = pendingMembers.filter { !isUserMatch(it, selfName, selfEmail) }.distinct(),
             memberEmails = memberEmails,
             expenses = emptyList(),
             createdBy = selfName
@@ -978,18 +994,44 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         return newGroup.id
     }
 
+    fun isUserMatch(memberName: String, selfName: String, selfEmail: String): Boolean {
+        if (memberName.isBlank()) return false
+        val mLower = memberName.lowercase().trim()
+        val sNameLower = selfName.lowercase().trim()
+        val sEmailLower = selfEmail.lowercase().trim()
+
+        if (mLower == "you" || (sNameLower.isNotBlank() && mLower == sNameLower)) return true
+        if (sEmailLower.isNotBlank() && (mLower == sEmailLower || mLower == sEmailLower.substringBefore("@"))) return true
+        return false
+    }
+
+    fun isMemberMatch(memberInGroup: String, targetName: String, targetEmail: String): Boolean {
+        if (memberInGroup.isBlank()) return false
+        val mLower = memberInGroup.lowercase().trim()
+        val tNameLower = targetName.lowercase().trim()
+        val tEmailLower = targetEmail.lowercase().trim()
+
+        if (tNameLower.isNotBlank() && mLower == tNameLower) return true
+        if (tEmailLower.isNotBlank() && (mLower == tEmailLower || mLower == tEmailLower.substringBefore("@"))) return true
+        return false
+    }
+
     fun acceptGroupInvitation(groupId: String) {
         viewModelScope.launch {
             val group = groups.value.find { it.id == groupId } ?: repository?.getGroupById(groupId) ?: return@launch
             val selfName = currentUserName
+            val selfEmail = currentUserEmail.lowercase()
             val userAuth = try { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser } catch (_: Exception) { null }
             val currentUid = userAuth?.uid ?: ""
 
             val updatedMembers = if (!group.members.contains(selfName)) group.members + selfName else group.members
-            val updatedPending = group.pendingMembers.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }
+            val updatedPending = group.pendingMembers.filter { !isUserMatch(it, selfName, selfEmail) }
             val updatedUids = if (currentUid.isNotBlank() && !group.memberUids.contains(currentUid)) group.memberUids + currentUid else group.memberUids
+            val updatedEmails = if (selfEmail.isNotBlank() && !group.memberEmails.map { it.lowercase() }.contains(selfEmail)) {
+                group.memberEmails + selfEmail
+            } else group.memberEmails
 
-            val updatedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberUids = updatedUids)
+            val updatedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberUids = updatedUids, memberEmails = updatedEmails)
             logActivity(groupId, selfName, "MEMBER_JOINED", "Accepted group invitation")
             postSystemNotification("Invitation Accepted! 🎉", "You joined the group '${group.name}'.", CHANNEL_GROUP_ACTIVITY)
 
@@ -1012,9 +1054,12 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             val userAuth = try { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser } catch (_: Exception) { null }
             val currentUid = userAuth?.uid ?: ""
 
-            val updatedMembers = group.members.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }
-            val updatedPending = group.pendingMembers.filter { !it.equals(selfName, ignoreCase = true) && !it.equals("You", ignoreCase = true) }
-            val updatedEmails = group.memberEmails.filter { it.lowercase() != selfEmail }
+            val updatedMembers = group.members.filter { !isUserMatch(it, selfName, selfEmail) }
+            val updatedPending = group.pendingMembers.filter { !isUserMatch(it, selfName, selfEmail) }
+            val updatedEmails = group.memberEmails.filter { e ->
+                val eLower = e.lowercase().trim()
+                eLower != selfEmail && (selfEmail.isBlank() || eLower != selfEmail.substringBefore("@"))
+            }
             val updatedUids = group.memberUids.filter { it != currentUid }
             val updatedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberEmails = updatedEmails, memberUids = updatedUids)
 
@@ -1066,10 +1111,39 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         viewModelScope.launch {
             if (repository != null) {
                 repository.insertGroup(updated)
-                triggerImmediateSync()
             } else {
                 _groupsFallback.update { current -> current.map { if (it.id == groupId) updated else it } }
             }
+            try {
+                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                val groupMap = mapOf(
+                    "id" to updated.id,
+                    "name" to updated.name,
+                    "type" to updated.type,
+                    "members" to updated.members,
+                    "pendingMembers" to updated.pendingMembers,
+                    "memberUids" to updated.memberUids,
+                    "memberEmails" to updated.memberEmails,
+                    "expenses" to updated.expenses,
+                    "createdBy" to updated.createdBy,
+                    "updatedAt" to updated.updatedAt,
+                    "emoji" to updated.emoji,
+                    "colorHex" to updated.colorHex,
+                    "isArchived" to updated.isArchived
+                )
+                val batch = db.batch()
+                val globalRef = db.collection("groups").document(groupId)
+                batch.set(globalRef, groupMap, com.google.firebase.firestore.SetOptions.merge())
+                if (currentUser != null) {
+                    val userGroupRef = db.collection("users").document(currentUser.uid).collection("groups").document(groupId)
+                    batch.set(userGroupRef, groupMap, com.google.firebase.firestore.SetOptions.merge())
+                }
+                batch.commit().await()
+            } catch (e: Exception) {
+                android.util.Log.e("FinanceViewModel", "Failed to sync group archive state to cloud", e)
+            }
+            triggerImmediateSync()
         }
         postSystemNotification(
             "📦 Group Archived",
@@ -1085,10 +1159,39 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         viewModelScope.launch {
             if (repository != null) {
                 repository.insertGroup(updated)
-                triggerImmediateSync()
             } else {
                 _groupsFallback.update { current -> current.map { if (it.id == groupId) updated else it } }
             }
+            try {
+                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                val groupMap = mapOf(
+                    "id" to updated.id,
+                    "name" to updated.name,
+                    "type" to updated.type,
+                    "members" to updated.members,
+                    "pendingMembers" to updated.pendingMembers,
+                    "memberUids" to updated.memberUids,
+                    "memberEmails" to updated.memberEmails,
+                    "expenses" to updated.expenses,
+                    "createdBy" to updated.createdBy,
+                    "updatedAt" to updated.updatedAt,
+                    "emoji" to updated.emoji,
+                    "colorHex" to updated.colorHex,
+                    "isArchived" to updated.isArchived
+                )
+                val batch = db.batch()
+                val globalRef = db.collection("groups").document(groupId)
+                batch.set(globalRef, groupMap, com.google.firebase.firestore.SetOptions.merge())
+                if (currentUser != null) {
+                    val userGroupRef = db.collection("users").document(currentUser.uid).collection("groups").document(groupId)
+                    batch.set(userGroupRef, groupMap, com.google.firebase.firestore.SetOptions.merge())
+                }
+                batch.commit().await()
+            } catch (e: Exception) {
+                android.util.Log.e("FinanceViewModel", "Failed to sync group unarchive state to cloud", e)
+            }
+            triggerImmediateSync()
         }
     }
 
@@ -1135,7 +1238,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
     }
 
-    fun addGroupMember(groupId: String, memberName: String, memberEmail: String = "", isPending: Boolean = false) {
+    fun addGroupMember(groupId: String, memberName: String, memberEmail: String = "", isPending: Boolean = true) {
         viewModelScope.launch {
             if (!verifyGroupActiveOrPurge(groupId)) return@launch
             if (memberName.isBlank()) return@launch
@@ -1145,11 +1248,10 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             val resolvedName = if (memberName == "You") selfName else memberName
 
             // Prevent adding oneself or duplicate existing members
-            val isSelf = resolvedName.equals(selfName, ignoreCase = true) ||
-                    resolvedName.equals("You", ignoreCase = true) ||
-                    (memberEmail.isNotBlank() && memberEmail.lowercase() == selfEmail)
+            val isSelf = isUserMatch(resolvedName, selfName, selfEmail) || (memberEmail.isNotBlank() && memberEmail.lowercase() == selfEmail)
 
-            val isAlreadyMember = group.members.any { it.equals(resolvedName, ignoreCase = true) || (it == "You" && isSelf) } ||
+            val isAlreadyMember = group.members.any { isMemberMatch(it, resolvedName, memberEmail) } ||
+                    group.pendingMembers.any { isMemberMatch(it, resolvedName, memberEmail) } ||
                     (memberEmail.isNotBlank() && group.memberEmails.map { it.lowercase() }.contains(memberEmail.lowercase()))
 
             if (isSelf || isAlreadyMember) {
@@ -1166,17 +1268,21 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 } else group.pendingMembers
             } else {
                 updatedMembers = if (!group.members.contains(resolvedName)) group.members + resolvedName else group.members
-                updatedPending = group.pendingMembers.filter { !it.equals(resolvedName, ignoreCase = true) }
+                updatedPending = group.pendingMembers.filter { !isMemberMatch(it, resolvedName, memberEmail) }
             }
 
-            val updatedEmails = if (memberEmail.isNotBlank() && !group.memberEmails.contains(memberEmail)) group.memberEmails + memberEmail else group.memberEmails
+            val updatedEmails = if (memberEmail.isNotBlank() && !group.memberEmails.map { it.lowercase() }.contains(memberEmail.lowercase())) {
+                group.memberEmails + memberEmail
+            } else group.memberEmails
 
             if (updatedMembers != group.members || updatedPending != group.pendingMembers || updatedEmails != group.memberEmails) {
                 val updatedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberEmails = updatedEmails)
-                logActivity(groupId, selfName, "MEMBER_ADDED", "Added member '$resolvedName'")
-                postSystemNotification("🎉 Group Member Joined", "$resolvedName has joined ${group.name}!", CHANNEL_GROUP_ACTIVITY)
-                // Notify the new member about joining the group
-                postSystemNotification("👋 New Group Member", "Welcome to ${group.name}! Join the group as $resolvedName.", CHANNEL_GROUP_ACTIVITY)
+                logActivity(groupId, selfName, "MEMBER_ADDED", "Invited member '$resolvedName'")
+                if (isPending) {
+                    postSystemNotification("✉️ Group Invitation Sent", "Invitation sent to $resolvedName for ${group.name}.", CHANNEL_GROUP_ACTIVITY)
+                } else {
+                    postSystemNotification("🎉 Group Member Joined", "$resolvedName has joined ${group.name}!", CHANNEL_GROUP_ACTIVITY)
+                }
                 if (repository != null) {
                     repository.insertGroup(updatedGroup)
                     com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
@@ -1205,6 +1311,15 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 _registeredUsers.value.find { it.name.equals(memberName, ignoreCase = true) }?.email?.lowercase()?.trim() ?: ""
             }
 
+            var removedUid = ""
+            if (resolvedEmail.isNotBlank()) {
+                try {
+                    val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    val userSnap = db.collection("users").whereEqualTo("email", resolvedEmail).get().await()
+                    removedUid = userSnap.documents.firstOrNull()?.id ?: ""
+                } catch (_: Exception) {}
+            }
+
             val updatedMembers = group.members.filter { !it.equals(memberName, ignoreCase = true) && (resolvedEmail.isBlank() || it.lowercase() != resolvedEmail) }
             val updatedPending = group.pendingMembers.filter { !it.equals(memberName, ignoreCase = true) && (resolvedEmail.isBlank() || it.lowercase() != resolvedEmail) }
             val updatedEmails = group.memberEmails.filter { email ->
@@ -1222,11 +1337,20 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
 
                 !matchesName && !matchesEmail
             }
+            val updatedUids = if (removedUid.isNotBlank()) group.memberUids.filter { it != removedUid } else group.memberUids
+
             val updatedGroup = group.copy(
                 members = updatedMembers,
                 pendingMembers = updatedPending,
-                memberEmails = updatedEmails
+                memberEmails = updatedEmails,
+                memberUids = updatedUids
             )
+            if (removedUid.isNotBlank()) {
+                try {
+                    val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    db.collection("users").document(removedUid).collection("groups").document(groupId).delete()
+                } catch (_: Exception) {}
+            }
             // Notify remaining members about the departure
             if (updatedMembers.isNotEmpty()) {
                 postSystemNotification("👥 Group Member Left", "$memberName has left ${group.name} group.", CHANNEL_GROUP_ACTIVITY)
@@ -1261,13 +1385,15 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                     val group = snapshot.toObject(Group::class.java)
                     if (group != null) {
                         val currentUserName = userAuth?.displayName ?: userAuth?.email?.substringBefore("@") ?: "Friend"
+                        val currentEmail = userAuth?.email?.lowercase() ?: ""
                         val currentUid = userAuth?.uid ?: ""
 
-                        val updatedMembers = if (group.members.contains(currentUserName)) group.members else group.members + currentUserName
-                        val updatedPending = group.pendingMembers.filter { !it.equals(currentUserName, ignoreCase = true) }
+                        val updatedMembers = if (group.members.any { isUserMatch(it, currentUserName, currentEmail) }) group.members else group.members + currentUserName
+                        val updatedPending = group.pendingMembers.filter { !isUserMatch(it, currentUserName, currentEmail) }
                         val updatedUids = if (currentUid.isNotBlank() && !group.memberUids.contains(currentUid)) group.memberUids + currentUid else group.memberUids
+                        val updatedEmails = if (currentEmail.isNotBlank() && !group.memberEmails.map { it.lowercase() }.contains(currentEmail)) group.memberEmails + currentEmail else group.memberEmails
 
-                        val joinedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberUids = updatedUids)
+                        val joinedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberUids = updatedUids, memberEmails = updatedEmails)
 
                         if (repository != null) {
                             repository.insertGroup(joinedGroup)
@@ -1301,7 +1427,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         splitMode: String = "EQUAL",
         memberSplits: Map<String, Double> = emptyMap(),
         category: String = ExpenseCategories.OTHER,
-        receiptImagePath: String? = null
+        receiptImagePath: String? = null,
+        lineItems: List<com.finance.splitup.data.ReceiptLineItem> = emptyList()
     ) {
         viewModelScope.launch {
             if (!verifyGroupActiveOrPurge(groupId)) return@launch
@@ -1319,7 +1446,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 splitMode = splitMode,
                 memberSplits = memberSplits,
                 category = category,
-                receiptImagePath = receiptImagePath
+                receiptImagePath = receiptImagePath,
+                lineItems = lineItems
             )
             com.finance.splitup.data.CategoryDetector.learnCategory(actualTitle, category, getApplication())
             val updatedGroup = group.copy(expenses = listOf(expense) + group.expenses)
@@ -1515,23 +1643,37 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 android.app.NotificationChannel(
                     CHANNEL_GROUP_ACTIVITY,
                     "Group Activity & Shared Expenses",
-                    android.app.NotificationManager.IMPORTANCE_DEFAULT
-                ).apply { description = "Notifications for new group expenses, settlements, and member updates" },
+                    android.app.NotificationManager.IMPORTANCE_HIGH
+                ).apply { 
+                    description = "Notifications for new group expenses, settlements, and member updates"
+                    enableVibration(true)
+                    enableLights(true)
+                },
                 android.app.NotificationChannel(
                     CHANNEL_FINANCIAL_ALERTS,
                     "Budget & Spending Alerts",
-                    android.app.NotificationManager.IMPORTANCE_DEFAULT
-                ).apply { description = "Alerts when budget thresholds are reached or high-value expenses are logged" },
+                    android.app.NotificationManager.IMPORTANCE_HIGH
+                ).apply { 
+                    description = "Alerts when budget thresholds are reached or high-value expenses are logged"
+                    enableVibration(true)
+                    enableLights(true)
+                },
                 android.app.NotificationChannel(
                     CHANNEL_RECURRING_BILLS,
                     "Subscriptions & Recurring Bills",
-                    android.app.NotificationManager.IMPORTANCE_DEFAULT
-                ).apply { description = "Notifications for auto-logged subscriptions and bill reminders" },
+                    android.app.NotificationManager.IMPORTANCE_HIGH
+                ).apply { 
+                    description = "Notifications for auto-logged subscriptions and bill reminders"
+                    enableVibration(true)
+                },
                 android.app.NotificationChannel(
                     CHANNEL_PAYMENT_DETECTION,
                     "Payment Auto-Detector",
-                    android.app.NotificationManager.IMPORTANCE_DEFAULT
-                ).apply { description = "Prompts when bank/wallet transaction notifications are detected" },
+                    android.app.NotificationManager.IMPORTANCE_HIGH
+                ).apply { 
+                    description = "Prompts when bank/wallet transaction notifications are detected"
+                    enableVibration(true)
+                },
                 android.app.NotificationChannel(
                     CHANNEL_EXPORTS_INSIGHTS,
                     "Reports & AI Insights",
@@ -1540,8 +1682,11 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 android.app.NotificationChannel(
                     CHANNEL_SECURITY_ALERTS,
                     "Account & Security Alerts",
-                    android.app.NotificationManager.IMPORTANCE_DEFAULT
-                ).apply { description = "Alerts for password updates and account security changes" }
+                    android.app.NotificationManager.IMPORTANCE_HIGH
+                ).apply { 
+                    description = "Alerts for password updates and account security changes"
+                    enableVibration(true)
+                }
             )
             for (ch in channels) {
                 manager.createNotificationChannel(ch)
@@ -1609,7 +1754,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))
                 .setAutoCancel(true)
                 .setContentIntent(effectivePendingIntent)
-                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_ALL)
 
             val notificationId = System.currentTimeMillis().toInt() + (0..1000).random()
             androidx.core.app.NotificationManagerCompat.from(app).notify(notificationId, builder.build())

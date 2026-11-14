@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,6 +63,17 @@ fun GroupsScreen(
     val coroutineScope = rememberCoroutineScope()
     var showJoinDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    LaunchedEffect(groups) {
+        val currentSelectedGroup = groups.find { it.id == selectedGroupId }
+        if (currentSelectedGroup != null) {
+            if (selectedGroupTypeFilter == "Archived" && !currentSelectedGroup.isArchived) {
+                selectedGroupTypeFilter = null
+            } else if (selectedGroupTypeFilter != "Archived" && currentSelectedGroup.isArchived) {
+                selectedGroupTypeFilter = "Archived"
+            }
+        }
+    }
 
     ListDetailPaneScaffold(
         directive = navigator.scaffoldDirective,
@@ -120,7 +132,7 @@ fun GroupsScreen(
                     val selfEmail = viewModel.currentUserEmail
                     val pendingInvitationGroups = remember(groups, selfName, selfEmail) {
                         groups.filter { g ->
-                            g.pendingMembers.any { it.equals(selfName, ignoreCase = true) || it.equals("You", ignoreCase = true) || (selfEmail.isNotBlank() && it.equals(selfEmail, ignoreCase = true)) }
+                            g.pendingMembers.any { viewModel.isUserMatch(it, selfName, selfEmail) }
                         }
                     }
 
@@ -354,9 +366,12 @@ fun GroupCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .graphicsLayer(alpha = if (group.isArchived) 0.7f else 1.0f),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(
+            containerColor = if (group.isArchived) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface
+        )
     ) {
         Row(
             modifier = Modifier
@@ -366,7 +381,7 @@ fun GroupCard(
         ) {
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = if (group.isArchived) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(52.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -378,14 +393,30 @@ fun GroupCard(
                             else -> Icons.Rounded.Groups
                         },
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        tint = if (group.isArchived) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(26.dp)
                     )
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = group.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(text = group.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    if (group.isArchived) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                        ) {
+                            Text(
+                                text = "Archived",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(Icons.Rounded.Person, contentDescription = "Members", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(text = "${group.members.size} • Total: $currencySymbol${String.format(Locale.US, "%.2f", totalBalance)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -443,6 +474,9 @@ fun JoinGroupDialog(
     var groupIdInput by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(24.dp),
+        tonalElevation = 6.dp,
         title = { Text("Join Group by ID", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

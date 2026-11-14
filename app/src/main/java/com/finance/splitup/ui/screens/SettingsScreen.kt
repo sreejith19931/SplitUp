@@ -253,6 +253,38 @@ fun SettingsScreen(
                                 }
                             }
 
+                            // Common Currency Rates display
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("Common Exchange Rates (Base: 1 EUR)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                    val ratesList = listOf(
+                                        "USD" to Currencies.liveUsdRate,
+                                        "GBP" to Currencies.liveGbpRate,
+                                        "INR" to Currencies.liveInrRate,
+                                        "CAD" to Currencies.liveCadRate,
+                                        "AUD" to Currencies.liveAudRate,
+                                        "JPY" to Currencies.liveJpyRate,
+                                        "CHF" to Currencies.liveChfRate,
+                                        "SGD" to Currencies.liveSgdRate
+                                    )
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        ratesList.take(4).forEach { (curr, rate) ->
+                                            Text("${Currencies.getFlag(curr)} $curr: ${String.format(Locale.US, "%.2f", rate)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        ratesList.drop(4).forEach { (curr, rate) ->
+                                            Text("${Currencies.getFlag(curr)} $curr: ${String.format(Locale.US, "%.2f", rate)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+
                             // Theme Selector
                             Column(
                                 modifier = Modifier.fillMaxWidth(),

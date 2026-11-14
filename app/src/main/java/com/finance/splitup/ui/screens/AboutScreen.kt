@@ -1,5 +1,6 @@
 package com.finance.splitup.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,12 +12,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import com.finance.splitup.BuildConfig
+import com.finance.splitup.R
+import com.finance.splitup.data.UpdateChecker
 import com.finance.splitup.ui.components.LogoStyle
 import com.finance.splitup.ui.components.SplitUpLogo
 
@@ -25,6 +32,10 @@ import com.finance.splitup.ui.components.SplitUpLogo
 fun AboutScreen(
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isCheckingUpdates by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -80,49 +91,69 @@ fun AboutScreen(
                 fontWeight = FontWeight.Medium
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // What's New in v1.2 Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+            // Quick Actions Row (GitHub, Website, Updates)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "What's New in v1.2",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ) {
-                            Text(
-                                text = "LATEST",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                            )
+                // GitHub Item
+                QuickActionItem(
+                    iconPainter = painterResource(id = R.drawable.ic_github),
+                    imageVector = null,
+                    label = "GitHub",
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        UpdateChecker.openReleaseUrl(context, "https://github.com/sreejith19931/SplitUp")
+                    }
+                )
+
+                // Website Item
+                QuickActionItem(
+                    iconPainter = null,
+                    imageVector = Icons.Rounded.Language,
+                    label = "Website",
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.secondary,
+                    onClick = {
+                        UpdateChecker.openReleaseUrl(context, "https://splitupfin.vercel.app")
+                    }
+                )
+
+                // Updates Item
+                QuickActionItem(
+                    iconPainter = null,
+                    imageVector = Icons.Rounded.SystemUpdate,
+                    label = if (isCheckingUpdates) "Checking..." else "Updates",
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.tertiary,
+                    isLoading = isCheckingUpdates,
+                    onClick = {
+                        if (!isCheckingUpdates) {
+                            isCheckingUpdates = true
+                            coroutineScope.launch {
+                                UpdateChecker.checkLatestRelease(
+                                    onUpdateAvailable = { version, url ->
+                                        isCheckingUpdates = false
+                                        UpdateChecker.openReleaseUrl(context, url)
+                                    },
+                                    onUpToDate = {
+                                        isCheckingUpdates = false
+                                        android.widget.Toast.makeText(context, "You are already on the latest version (v${BuildConfig.VERSION_NAME})!", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            }
                         }
                     }
-                    Text(
-                        text = "• Enhanced AI Scan Receipt Button: Prominent, clear card with OCR badge for instant camera scanning in personal and group expenses.\n• Clean UI Filters: Removed tick marks from active SegmentedButton tabs in Personal Expenses for a cleaner M3 look.\n• Performance & Stability: General stability fixes and transition optimizations.",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                )
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // Tech Stack & Architecture Card
             Card(
@@ -174,40 +205,6 @@ fun AboutScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            var isCheckingUpdates by remember { mutableStateOf(false) }
-            val context = LocalContext.current
-            val coroutineScope = rememberCoroutineScope()
-
-            OutlinedButton(
-                onClick = {
-                    isCheckingUpdates = true
-                    coroutineScope.launch {
-                        com.finance.splitup.data.UpdateChecker.checkLatestRelease(
-                            onUpdateAvailable = { version, url ->
-                                isCheckingUpdates = false
-                                com.finance.splitup.data.UpdateChecker.openReleaseUrl(context, url)
-                            },
-                            onUpToDate = {
-                                isCheckingUpdates = false
-                                android.widget.Toast.makeText(context, "You are already on the latest version (v${BuildConfig.VERSION_NAME})!", android.widget.Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (isCheckingUpdates) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Checking for updates...")
-                } else {
-                    Icon(Icons.Rounded.SystemUpdate, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Check for Updates")
-                }
-            }
-
             var showLicensesDialog by remember { mutableStateOf(false) }
 
             OutlinedButton(
@@ -226,6 +223,65 @@ fun AboutScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+@Composable
+fun QuickActionItem(
+    iconPainter: Painter?,
+    imageVector: ImageVector?,
+    label: String,
+    containerColor: Color,
+    contentColor: Color,
+    isLoading: Boolean = false,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = containerColor,
+            modifier = Modifier.size(52.dp),
+            tonalElevation = 2.dp
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = contentColor
+                    )
+                } else {
+                    if (iconPainter != null) {
+                        Icon(
+                            painter = iconPainter,
+                            contentDescription = label,
+                            modifier = Modifier.size(24.dp),
+                            tint = contentColor
+                        )
+                    } else if (imageVector != null) {
+                        Icon(
+                            imageVector = imageVector,
+                            contentDescription = label,
+                            modifier = Modifier.size(24.dp),
+                            tint = contentColor
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

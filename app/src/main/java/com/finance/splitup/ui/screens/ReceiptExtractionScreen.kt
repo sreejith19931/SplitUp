@@ -9,9 +9,11 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.finance.splitup.data.Currencies
@@ -30,6 +32,9 @@ fun ReceiptExtractionScreen(
     var taxAmount by remember(currentReceipt) { mutableStateOf(formatInputNumber(currentReceipt.taxAmount)) }
     var tipAmount by remember(currentReceipt) { mutableStateOf(formatInputNumber(currentReceipt.tipAmount)) }
     var lineItems by remember(currentReceipt) { mutableStateOf(currentReceipt.lineItems) }
+    var itemPriceStrings by remember(currentReceipt) {
+        mutableStateOf(currentReceipt.lineItems.associate { it.id to formatInputNumber(it.price) })
+    }
 
     val currencySymbol = Currencies.getSymbol(currentReceipt.currency)
     val confidencePct = (currentReceipt.confidenceScore * 100).toInt()
@@ -89,27 +94,30 @@ fun ReceiptExtractionScreen(
                     ) {
                         OutlinedTextField(
                             value = totalAmount,
-                            onValueChange = { totalAmount = it },
+                            onValueChange = { totalAmount = filterPriceInput(it) },
                             label = { Text("Total ($currencySymbol)") },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(14.dp),
-                            singleLine = true
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                         )
                         OutlinedTextField(
                             value = taxAmount,
-                            onValueChange = { taxAmount = it },
+                            onValueChange = { taxAmount = filterPriceInput(it) },
                             label = { Text("Tax ($currencySymbol)") },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(14.dp),
-                            singleLine = true
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                         )
                         OutlinedTextField(
                             value = tipAmount,
-                            onValueChange = { tipAmount = it },
+                            onValueChange = { tipAmount = filterPriceInput(it) },
                             label = { Text("Tip ($currencySymbol)") },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(14.dp),
-                            singleLine = true
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                         )
                     }
                 }
@@ -127,12 +135,14 @@ fun ReceiptExtractionScreen(
                 )
                 OutlinedButton(
                     onClick = {
+                        val newId = java.util.UUID.randomUUID().toString()
                         val newItem = com.finance.splitup.data.ReceiptLineItem(
-                            id = java.util.UUID.randomUUID().toString(),
+                            id = newId,
                             name = "New Item",
                             price = 0.0
                         )
                         lineItems = lineItems + newItem
+                        itemPriceStrings = itemPriceStrings + (newId to "")
                     },
                     shape = RoundedCornerShape(10.dp)
                 ) {
@@ -172,19 +182,23 @@ fun ReceiptExtractionScreen(
                                 singleLine = true
                             )
                             OutlinedTextField(
-                                value = formatInputNumber(item.price),
+                                value = itemPriceStrings[item.id] ?: formatInputNumber(item.price),
                                 onValueChange = { newPriceStr ->
-                                    val newPrice = newPriceStr.parseAmount()
+                                    val filtered = filterPriceInput(newPriceStr)
+                                    itemPriceStrings = itemPriceStrings + (item.id to filtered)
+                                    val newPrice = filtered.parseAmount()
                                     lineItems = lineItems.map { if (it.id == item.id) it.copy(price = newPrice) else it }
                                 },
                                 label = { Text("Price") },
-                                modifier = Modifier.width(95.dp),
+                                modifier = Modifier.width(110.dp),
                                 shape = RoundedCornerShape(10.dp),
-                                singleLine = true
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                             )
                             IconButton(
                                 onClick = {
                                     lineItems = lineItems.filter { it.id != item.id }
+                                    itemPriceStrings = itemPriceStrings - item.id
                                 },
                                 modifier = Modifier.size(36.dp)
                             ) {
@@ -201,16 +215,21 @@ fun ReceiptExtractionScreen(
 
             Button(
                 onClick = {
+                    val updatedLineItems = lineItems.map { item ->
+                        val priceStr = itemPriceStrings[item.id] ?: formatInputNumber(item.price)
+                        item.copy(price = priceStr.parseAmount())
+                    }
                     val parsedTotal = totalAmount.parseAmount()
                     val parsedTax = taxAmount.parseAmount()
                     val parsedTip = tipAmount.parseAmount()
-                    val newTotal = if (parsedTotal > 0.0) parsedTotal else currentReceipt.totalAmount
+                    val itemsSum = updatedLineItems.sumOf { it.price }
+                    val newTotal = if (parsedTotal > 0.0) parsedTotal else itemsSum
                     viewModel.currentExtractedReceipt = currentReceipt.copy(
                         merchantName = merchant,
                         totalAmount = newTotal,
                         taxAmount = parsedTax,
                         tipAmount = parsedTip,
-                        lineItems = lineItems
+                        lineItems = updatedLineItems
                     )
                     onProceedToAllocate()
                 },

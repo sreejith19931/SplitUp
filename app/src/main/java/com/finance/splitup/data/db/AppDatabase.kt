@@ -149,7 +149,7 @@ interface FinanceDao {
     }
 }
 
-@Database(entities = [ExpenseEntity::class, GroupEntity::class, GroupExpenseEntity::class, BudgetEntity::class, UserProfileEntity::class, ActivityLogEntity::class, RecurringExpenseEntity::class, IncomeEntity::class], version = 17, exportSchema = false)
+@Database(entities = [ExpenseEntity::class, GroupEntity::class, GroupExpenseEntity::class, BudgetEntity::class, UserProfileEntity::class, ActivityLogEntity::class, RecurringExpenseEntity::class, IncomeEntity::class], version = 18, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
@@ -177,6 +177,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_17_18 = object : androidx.room.migration.Migration(17, 18) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE expenses ADD COLUMN lineItems TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE group_expenses ADD COLUMN lineItems TEXT NOT NULL DEFAULT '[]'")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -184,7 +191,8 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "splitup_database"
                 )
-                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
+                .fallbackToDestructiveMigration(true)
                 .build()
                 INSTANCE = instance
                 instance

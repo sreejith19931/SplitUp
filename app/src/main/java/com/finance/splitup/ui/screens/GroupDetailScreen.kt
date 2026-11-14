@@ -62,6 +62,11 @@ fun GroupDetailScreen(
     val groups by viewModel.groups.collectAsState()
     val group = groups.find { it.id == groupId }
 
+    DisposableEffect(groupId) {
+        viewModel.refreshData()
+        onDispose { }
+    }
+
     if (group == null) {
         Scaffold(
             topBar = {
@@ -105,7 +110,7 @@ fun GroupDetailContent(
     val selfName = viewModel.currentUserName
     val selfEmail = viewModel.currentUserEmail
     val isPendingUser = remember(group, selfName, selfEmail) {
-        group.pendingMembers.any { it.equals(selfName, ignoreCase = true) || it.equals("You", ignoreCase = true) || (selfEmail.isNotBlank() && it.equals(selfEmail, ignoreCase = true)) }
+        group.pendingMembers.any { viewModel.isUserMatch(it, selfName, selfEmail) }
     }
     var showAddMemberDialog by remember { mutableStateOf(false) }
     var showEditGroupDialog by remember { mutableStateOf(false) }
@@ -165,37 +170,25 @@ fun GroupDetailContent(
                     IconButton(onClick = { showEditGroupDialog = true }) {
                         Icon(Icons.Rounded.Edit, contentDescription = "Edit Group", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    val hasUnsettledBalances = netBalances.any { kotlin.math.abs(it.value) > 0.01 }
                     if (group.isArchived) {
-                        OutlinedButton(
+                        IconButton(
                             onClick = {
                                 viewModel.unarchiveGroup(group.id)
                                 android.widget.Toast.makeText(context, "Group '${group.name}' unarchived", android.widget.Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.height(36.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                                onBack?.invoke()
+                            }
                         ) {
-                            Icon(Icons.Rounded.Unarchive, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Unarchive", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Rounded.Unarchive, contentDescription = "Unarchive Group", tint = MaterialTheme.colorScheme.primary)
                         }
-                    } else if (!hasUnsettledBalances) {
-                        OutlinedButton(
+                    } else {
+                        IconButton(
                             onClick = {
                                 viewModel.archiveGroup(group.id)
                                 android.widget.Toast.makeText(context, "Group '${group.name}' archived", android.widget.Toast.LENGTH_SHORT).show()
                                 onBack?.invoke()
-                            },
-                            modifier = Modifier.height(36.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                            }
                         ) {
-                            Icon(Icons.Rounded.Archive, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Archive", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Rounded.Archive, contentDescription = "Archive Group", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     IconButton(onClick = { showDeleteGroupConfirmDialog = true }) {
@@ -971,6 +964,15 @@ fun GroupDetailContent(
 
                                     if (isExpanded) {
                                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                                        
+                                        if (expense.lineItems.isNotEmpty()) {
+                                            ReceiptLineItemsBreakdownView(
+                                                lineItems = expense.lineItems,
+                                                currencySymbol = currencySym
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                        }
+
                                         Text("Itemized Member Split Breakdown:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         
                                         val memberShares: Map<String, Double> = if (isCustomSplit && expense.memberSplits.isNotEmpty()) {
@@ -1853,7 +1855,7 @@ fun MemberSearchAndAddDialog(
                                     .fillMaxWidth()
                                     .clickable {
                                         viewModel.addRecentFriend(contact.name, contact.email)
-                                        onAddMember(contact.name, contact.email, false)
+                                        onAddMember(contact.name, contact.email, true)
                                     },
                                 shape = RoundedCornerShape(12.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
@@ -1870,12 +1872,12 @@ fun MemberSearchAndAddDialog(
                                     Button(
                                         onClick = {
                                             viewModel.addRecentFriend(contact.name, contact.email)
-                                            onAddMember(contact.name, contact.email, false)
+                                            onAddMember(contact.name, contact.email, true)
                                         },
                                         modifier = Modifier.height(36.dp),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Text("Add", fontSize = 12.sp)
+                                        Text("Invite", fontSize = 12.sp)
                                     }
                                 }
                             }
@@ -1895,7 +1897,7 @@ fun MemberSearchAndAddDialog(
                                     .clickable {
                                         if (!isCloudUserSelfOrExisting) {
                                             viewModel.addRecentFriend(cloudSearchedContact!!.name, cloudSearchedContact!!.email)
-                                            onAddMember(cloudSearchedContact!!.name, cloudSearchedContact!!.email, false)
+                                            onAddMember(cloudSearchedContact!!.name, cloudSearchedContact!!.email, true)
                                         }
                                     },
                                 shape = RoundedCornerShape(12.dp),
@@ -1916,12 +1918,12 @@ fun MemberSearchAndAddDialog(
                                         Button(
                                             onClick = {
                                                 viewModel.addRecentFriend(cloudSearchedContact!!.name, cloudSearchedContact!!.email)
-                                                onAddMember(cloudSearchedContact!!.name, cloudSearchedContact!!.email, false)
+                                                onAddMember(cloudSearchedContact!!.name, cloudSearchedContact!!.email, true)
                                             },
                                             modifier = Modifier.height(36.dp),
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
-                                            Text("Add", fontSize = 12.sp)
+                                            Text("Invite", fontSize = 12.sp)
                                         }
                                     }
                                 }
@@ -1946,7 +1948,7 @@ fun MemberSearchAndAddDialog(
                                         if (contact.isSplitUpMember) {
                                             viewModel.addRecentFriend(contact.name, contact.email)
                                         }
-                                        onAddMember(contact.name, contact.email, !contact.isSplitUpMember)
+                                        onAddMember(contact.name, contact.email, true)
                                     }
                                 },
                             shape = RoundedCornerShape(12.dp),
@@ -1997,7 +1999,7 @@ fun MemberSearchAndAddDialog(
                                             }
                                         }
                                     }
-                                    val subText = if (contact.isSplitUpMember) "SplitUp Member • Directly Added" else "${contact.email} • Not on SplitUp (WhatsApp Invite)"
+                                    val subText = if (contact.isSplitUpMember) "On SplitUp • Sends Group Invitation" else "${contact.email} • Not on SplitUp (WhatsApp Invite)"
                                     Text(subText, style = MaterialTheme.typography.bodySmall, color = if (contact.isSplitUpMember && !isAlreadyMember) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 if (isAlreadyMember) {
@@ -2019,12 +2021,12 @@ fun MemberSearchAndAddDialog(
                                             if (contact.isSplitUpMember) {
                                                 viewModel.addRecentFriend(contact.name, contact.email)
                                             }
-                                            onAddMember(contact.name, contact.email, !contact.isSplitUpMember)
+                                            onAddMember(contact.name, contact.email, true)
                                         },
                                         modifier = Modifier.height(36.dp),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Text(if (contact.isSplitUpMember) "Add" else "Invite", fontSize = 12.sp)
+                                        Text("Invite", fontSize = 12.sp)
                                     }
                                 }
                             }

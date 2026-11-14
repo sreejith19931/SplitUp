@@ -70,7 +70,9 @@ fun DashboardScreen(
     onNavigateToScanner: () -> Unit = {},
     onNavigateToCreateGroup: () -> Unit = {},
     onNavigateToGlobalSearch: () -> Unit = {},
-    onNavigateToAddGroupExpense: (String) -> Unit = {}
+    onNavigateToAddGroupExpense: (String) -> Unit = {},
+    onNavigateToInsights: () -> Unit = {},
+    onNavigateToSubscriptions: () -> Unit = {}
 ) {
     val expenses by viewModel.expenses.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
@@ -555,7 +557,7 @@ fun DashboardScreen(
                     }
                     item {
                         SuggestionChip(
-                            onClick = { showNotificationsSheet = true },
+                            onClick = onNavigateToInsights,
                             label = { Text(if (isPositiveCashFlow) "💡 Positive cash flow" else "⚠️ Negative cash flow", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
                             colors = SuggestionChipDefaults.suggestionChipColors(
                                 containerColor = if (isPositiveCashFlow) EmeraldSuccess.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
@@ -567,7 +569,7 @@ fun DashboardScreen(
                     if (recurringCount > 0) {
                         item {
                             SuggestionChip(
-                                onClick = { showNotificationsSheet = true },
+                                onClick = onNavigateToSubscriptions,
                                 label = { Text("🔔 $recurringCount subscriptions active", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
                                 colors = SuggestionChipDefaults.suggestionChipColors(containerColor = MaterialTheme.colorScheme.primaryContainer, labelColor = MaterialTheme.colorScheme.primary),
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
@@ -1001,6 +1003,7 @@ fun SpeedDialActionItem(
 @Composable
 fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () -> Unit, onEdit: () -> Unit) {
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
 
     val categoryIcon = getCategoryIcon(expense.category)
 
@@ -1014,61 +1017,96 @@ fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () 
             color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clickable(enabled = expense.lineItems.isNotEmpty()) {
+                        isExpanded = !isExpanded
+                    }
                     .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val catColor = getCategoryColor(expense.category)
-                Surface(
-                    shape = CircleShape,
-                    color = catColor.copy(alpha = 0.12f),
-                    modifier = Modifier.size(40.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = categoryIcon,
-                            contentDescription = null,
-                            tint = catColor,
-                            modifier = Modifier.size(20.dp)
+                    val catColor = getCategoryColor(expense.category)
+                    Surface(
+                        shape = CircleShape,
+                        color = catColor.copy(alpha = 0.22f),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = categoryIcon,
+                                contentDescription = null,
+                                tint = catColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = expense.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        if (expense.description.isNotBlank()) {
+                            Text(text = expense.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        val formattedDate = com.finance.splitup.data.DateUtils.formatDisplayDate(expense.date, expense.updatedAt)
+                        Text(
+                            text = "$formattedDate • ${expense.paidBy} • ${expense.paymentMethod}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = expense.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                    if (expense.description.isNotBlank()) {
-                        Text(text = expense.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Column(horizontalAlignment = Alignment.End) {
+                        val expCurrencySymbol = Currencies.getSymbol(expense.currency)
+                        val isIncome = expense.category == ExpenseCategories.INCOME
+                        val amountColor = if (isIncome) EmeraldSuccess else CrimsonDanger
+                        Text(
+                            text = if (isIncome) "+$expCurrencySymbol${String.format(Locale.US, "%.2f", expense.amount)}" else "-$expCurrencySymbol${String.format(Locale.US, "%.2f", expense.amount)}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = amountColor
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(16.dp))
+                            }
+                            IconButton(onClick = { showDeleteConfirmDialog = true }, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                            }
+                        }
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    val formattedDate = com.finance.splitup.data.DateUtils.formatDisplayDate(expense.date, expense.updatedAt)
-                    Text(
-                        text = "$formattedDate • ${expense.paidBy} • ${expense.paymentMethod}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    val expCurrencySymbol = Currencies.getSymbol(expense.currency)
-                    val isIncome = expense.category == ExpenseCategories.INCOME
-                    val amountColor = if (isIncome) EmeraldSuccess else CrimsonDanger
-                    Text(
-                        text = if (isIncome) "+$expCurrencySymbol${String.format(Locale.US, "%.2f", expense.amount)}" else "-$expCurrencySymbol${String.format(Locale.US, "%.2f", expense.amount)}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = amountColor
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(16.dp))
-                        }
-                        IconButton(onClick = { showDeleteConfirmDialog = true }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
-                        }
+
+                if (expense.lineItems.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = if (isExpanded) "Hide receipt items" else "View receipt items (${expense.lineItems.size})",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    if (isExpanded) {
+                        ReceiptLineItemsBreakdownView(
+                            lineItems = expense.lineItems,
+                            currencySymbol = Currencies.getSymbol(expense.currency)
+                        )
                     }
                 }
             }

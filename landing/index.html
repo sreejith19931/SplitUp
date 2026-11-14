@@ -277,6 +277,47 @@
             font-size: 0.9rem;
         }
 
+        /* QR & Deep Link Invite Card */
+        .invite-card {
+            background: linear-gradient(135deg, rgba(29, 78, 216, 0.25), rgba(4, 120, 87, 0.25));
+            border: 1px solid var(--brand-cyan);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin: 0 auto 2.5rem;
+            max-width: 680px;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            box-shadow: 0 12px 30px rgba(56, 189, 248, 0.15);
+        }
+
+        .invite-card-logo {
+            width: 64px;
+            height: 64px;
+            flex-shrink: 0;
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.3));
+        }
+
+        .invite-card-content h2 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-heading);
+            margin-bottom: 0.35rem;
+        }
+
+        .invite-card-content p {
+            font-size: 0.95rem;
+            color: var(--text-bright);
+            margin-bottom: 1rem;
+            line-height: 1.45;
+        }
+
+        .invite-card-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
         footer a {
             color: var(--brand-cyan);
             text-decoration: none;
@@ -288,6 +329,8 @@
             .hero p { font-size: 1.05rem; }
             .hero-actions { flex-direction: column; width: 100%; }
             .btn { width: 100%; justify-content: center; }
+            .invite-card { flex-direction: column; text-align: center; }
+            .invite-card-actions { justify-content: center; }
         }
     </style>
 </head>
@@ -295,27 +338,8 @@
 
     <nav>
         <div class="nav-inner">
-            <a href="#" class="nav-brand">
-                <!-- Inline SVG App Logo -->
-                <svg class="app-logo-svg" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="54" cy="54" r="33" fill="none" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.4" />
-                    <path fill="#1D4ED8" d="M26,38 H54 V70 H26 C23.8,70 22,68.2 22,66 V42 C22,39.8 23.8,38 26,38 Z" />
-                    <path fill="#047857" d="M54,38 H82 C84.2,38 86,39.8 86,42 V66 C86,68.2 84.2,70 82,70 H54 Z" />
-                    <rect x="28" y="47" width="9" height="10" fill="#FBBF24" rx="1" />
-                    <rect x="30.5" y="49" width="4" height="6" fill="#78350F" rx="0.5" />
-                    <rect x="41" y="47" width="6" height="10" fill="#93C5FD" opacity="0.85" rx="1" />
-                    <path stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" fill="none" d="M 72,48 A 5,5 0 0,1 72,56 M 75,45 A 8,8 0 0,1 75,59" />
-                    <g fill="#38BDF8">
-                        <rect x="53.5" y="40" width="1" height="2" />
-                        <rect x="53.5" y="44" width="1" height="2" />
-                        <rect x="53.5" y="48" width="1" height="2" />
-                        <rect x="53.5" y="52" width="1" height="2" />
-                        <rect x="53.5" y="56" width="1" height="2" />
-                        <rect x="53.5" y="60" width="1" height="2" />
-                        <rect x="53.5" y="64" width="1" height="2" />
-                        <rect x="53.5" y="68" width="1" height="2" />
-                    </g>
-                </svg>
+            <a href="./" class="nav-brand">
+                <img src="./logo.svg" alt="SplitUp Logo" class="app-logo-svg">
                 <span>SplitUp</span>
             </a>
             <div class="nav-actions">
@@ -326,26 +350,8 @@
     </nav>
 
     <section class="hero">
-        <!-- Inline SVG Hero Logo -->
-        <svg class="hero-logo-svg" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="54" cy="54" r="33" fill="none" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.4" />
-            <path fill="#1D4ED8" d="M26,38 H54 V70 H26 C23.8,70 22,68.2 22,66 V42 C22,39.8 23.8,38 26,38 Z" />
-            <path fill="#047857" d="M54,38 H82 C84.2,38 86,39.8 86,42 V66 C86,68.2 84.2,70 82,70 H54 Z" />
-            <rect x="28" y="47" width="9" height="10" fill="#FBBF24" rx="1" />
-            <rect x="30.5" y="49" width="4" height="6" fill="#78350F" rx="0.5" />
-            <rect x="41" y="47" width="6" height="10" fill="#93C5FD" opacity="0.85" rx="1" />
-            <path stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" fill="none" d="M 72,48 A 5,5 0 0,1 72,56 M 75,45 A 8,8 0 0,1 75,59" />
-            <g fill="#38BDF8">
-                <rect x="53.5" y="40" width="1" height="2" />
-                <rect x="53.5" y="44" width="1" height="2" />
-                <rect x="53.5" y="48" width="1" height="2" />
-                <rect x="53.5" y="52" width="1" height="2" />
-                <rect x="53.5" y="56" width="1" height="2" />
-                <rect x="53.5" y="60" width="1" height="2" />
-                <rect x="53.5" y="64" width="1" height="2" />
-                <rect x="53.5" y="68" width="1" height="2" />
-            </g>
-        </svg>
+        <!-- SplitUp App Logo -->
+        <img src="./logo.svg" alt="SplitUp App Logo" class="hero-logo-svg">
 
         <div class="version-badge">
             SplitUp v1.3 is out
@@ -359,6 +365,8 @@
     </section>
 
     <div class="container">
+        <!-- Dynamic Group Invite / User QR Code Banner -->
+        <div id="invite-banner-container" style="display: none;"></div>
 
         <!-- What's New Section -->
         <div class="release-card">
@@ -442,6 +450,49 @@
         <p>Built for Android using Jetpack Compose & Material 3. Open Source under the MIT License.</p>
         <p style="margin-top: 0.5rem;"><a href="https://github.com/sreejith19931/SplitUp" target="_blank">SplitUp on GitHub</a></p>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const groupId = urlParams.get('groupId') || urlParams.get('id');
+            const email = urlParams.get('email');
+            const name = urlParams.get('name') || (email ? email.split('@')[0] : '');
+
+            if (groupId || email) {
+                const bannerContainer = document.getElementById('invite-banner-container');
+                if (bannerContainer) {
+                    let inviteTitle = '';
+                    let inviteDesc = '';
+                    let openAppUrl = '';
+
+                    if (groupId) {
+                        inviteTitle = 'Group Invitation Request 📩';
+                        inviteDesc = 'You have been invited to join a shared expense group on SplitUp. Open the app to view expenses and settle balances.';
+                        openAppUrl = `splitup://group/invite?groupId=${encodeURIComponent(groupId)}`;
+                    } else if (email) {
+                        inviteTitle = `Connect with ${name} on SplitUp 🤝`;
+                        inviteDesc = `Add ${name} (${email}) to your SplitUp contacts to share bills and track group expenses easily.`;
+                        openAppUrl = `splitup://user?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`;
+                    }
+
+                    bannerContainer.innerHTML = `
+                        <div class="invite-card">
+                            <img src="./logo.svg" alt="SplitUp App Logo" class="invite-card-logo">
+                            <div class="invite-card-content">
+                                <h2>${inviteTitle}</h2>
+                                <p>${inviteDesc}</p>
+                                <div class="invite-card-actions">
+                                    <a href="${openAppUrl}" class="btn btn-primary">Open in SplitUp App</a>
+                                    <a href="https://github.com/sreejith19931/SplitUp/releases" class="btn btn-secondary">Download App APK</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    bannerContainer.style.display = 'block';
+                }
+            }
+        });
+    </script>
 
 </body>
 </html>

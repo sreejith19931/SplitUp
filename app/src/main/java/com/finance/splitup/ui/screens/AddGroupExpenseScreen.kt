@@ -68,10 +68,10 @@ fun AddGroupExpenseScreen(
         mutableStateMapOf<String, Boolean>().apply {
             val defaultMembers = existingExpense?.splitAmong?.ifEmpty { null }
                 ?: existingExpense?.memberSplits?.keys?.toList()
-                ?: group?.allMembers
+                ?: group?.members
                 ?: emptyList()
             group?.allMembers?.forEach { member ->
-                this[member] = if (existingExpense != null) defaultMembers.contains(member) else true
+                this[member] = if (existingExpense != null) defaultMembers.contains(member) else (group.members.contains(member) || member == "You" || member.equals(currentUserName, ignoreCase = true))
             }
         }
     }

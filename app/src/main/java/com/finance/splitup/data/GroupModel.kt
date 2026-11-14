@@ -18,7 +18,8 @@ data class GroupExpense(
     val memberSplits: Map<String, Double> = emptyMap(),
     val category: String = ExpenseCategories.OTHER,
     val receiptImagePath: String? = null,
-    val receiptUrl: String? = null
+    val receiptUrl: String? = null,
+    val lineItems: List<ReceiptLineItem> = emptyList()
 )
 
 @Immutable
@@ -36,7 +37,8 @@ data class Group(
     val updatedAt: Long = System.currentTimeMillis(),
     val emoji: String = "✈️",
     val colorHex: String = "#3B82F6",
-    val isArchived: Boolean = false
+    @com.google.firebase.firestore.PropertyName("isArchived")
+    var isArchived: Boolean = false
 ) {
     val allMembers: List<String>
         get() = (members + pendingMembers).distinct()

@@ -130,7 +130,7 @@ fun InsightsScreen(
                                 val catColor = getCategoryColor(category)
                                 Surface(
                                     shape = CircleShape,
-                                    color = catColor.copy(alpha = 0.12f),
+                                    color = catColor.copy(alpha = 0.22f),
                                     modifier = Modifier.size(42.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {

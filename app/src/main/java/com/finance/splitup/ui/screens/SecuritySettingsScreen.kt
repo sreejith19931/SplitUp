@@ -37,6 +37,7 @@ fun SecuritySettingsScreen(
 
     var showPinDialog by remember { mutableStateOf(false) }
     var newPinInput by remember { mutableStateOf("") }
+    var pendingBiometricEnable by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -104,8 +105,10 @@ fun SecuritySettingsScreen(
                                             object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
                                                 override fun onAuthenticationSucceeded(result: androidx.biometric.BiometricPrompt.AuthenticationResult) {
                                                     super.onAuthenticationSucceeded(result)
-                                                    viewModel.toggleBiometricLock(true)
-                                                    Toast.makeText(context, "Biometric authentication verified!", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, "Biometric verified! Now set your fallback PIN.", Toast.LENGTH_SHORT).show()
+                                                    pendingBiometricEnable = true
+                                                    newPinInput = ""
+                                                    showPinDialog = true
                                                 }
                                                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                                                     super.onAuthenticationError(errorCode, errString)
@@ -115,15 +118,18 @@ fun SecuritySettingsScreen(
                                         )
                                         val promptInfo = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
                                             .setTitle("Biometric Authentication")
-                                            .setSubtitle("Confirm your identity to enable biometric lock")
+                                            .setSubtitle("Confirm your fingerprint to enable biometric lock")
                                             .setNegativeButtonText("Cancel")
                                             .build()
                                         biometricPrompt.authenticate(promptInfo)
                                     } else {
-                                        viewModel.toggleBiometricLock(true)
+                                        pendingBiometricEnable = true
+                                        newPinInput = ""
+                                        showPinDialog = true
                                     }
                                 } else {
                                     viewModel.toggleBiometricLock(false)
+                                    Toast.makeText(context, "Biometric lock disabled", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         )
@@ -139,7 +145,7 @@ fun SecuritySettingsScreen(
                             Text("Fallback PIN for unlocking", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         OutlinedButton(
-                            onClick = { newPinInput = ""; showPinDialog = true },
+                            onClick = { pendingBiometricEnable = false; newPinInput = ""; showPinDialog = true },
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text("Change PIN")
@@ -170,6 +176,12 @@ fun SecuritySettingsScreen(
 
                     HorizontalDivider()
 
+                    Text(
+                        text = "Note: On Android 13+, notification access may be restricted by system security settings. If the toggle is greyed out, go to Phone Settings > Apps > SplitUp (App info), tap the three dots in the top right, and select 'Allow restricted settings', then return here to enable.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                    )
+
                     Button(
                         onClick = {
                             try {
@@ -190,15 +202,18 @@ fun SecuritySettingsScreen(
 
     if (showPinDialog) {
         AlertDialog(
-            onDismissRequest = { showPinDialog = false },
-            title = { Text("Set 4-Digit Security PIN", fontWeight = FontWeight.Bold) },
+            onDismissRequest = { 
+                showPinDialog = false 
+                pendingBiometricEnable = false
+            },
+            title = { Text(if (pendingBiometricEnable) "Set Fallback PIN to Enable Biometrics" else "Set 4-Digit Security PIN", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Enter a 4-digit numeric PIN for fallback unlocking:")
+                    Text(if (pendingBiometricEnable) "Please enter a 4-digit numeric PIN as a fallback unlock method before biometric lock is activated:" else "Enter a 4-digit numeric PIN for fallback unlocking:")
                     OutlinedTextField(
                         value = newPinInput,
                         onValueChange = { if (it.length <= 4 && it.all { char -> char.isDigit() }) newPinInput = it },
-                        label = { Text("4-Digit Fallback PIN") },
+                        label = { Text("4-Digit PIN") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
@@ -213,7 +228,14 @@ fun SecuritySettingsScreen(
                             val hashed = com.finance.splitup.hashSecurityPin(newPinInput)
                             val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
                             prefs.edit().putString("security_pin_hash", hashed).apply()
-                            Toast.makeText(context, "Security PIN updated & hashed successfully!", Toast.LENGTH_SHORT).show()
+                            
+                            if (pendingBiometricEnable) {
+                                viewModel.toggleBiometricLock(true)
+                                pendingBiometricEnable = false
+                                Toast.makeText(context, "Biometric lock & fallback PIN activated successfully!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Security PIN updated & hashed successfully!", Toast.LENGTH_SHORT).show()
+                            }
                             showPinDialog = false
                         } else {
                             Toast.makeText(context, "PIN must be exactly 4 digits", Toast.LENGTH_SHORT).show()
@@ -224,7 +246,12 @@ fun SecuritySettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPinDialog = false }) {
+                TextButton(
+                    onClick = { 
+                        showPinDialog = false 
+                        pendingBiometricEnable = false
+                    }
+                ) {
                     Text("Cancel")
                 }
             }

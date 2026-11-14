@@ -178,9 +178,9 @@ object CloudSyncManager {
             for (grp in dirtyGroups) {
                 val userName = user.displayName?.ifBlank { null } ?: user.email?.substringBefore("@") ?: "You"
                 val uids = (if (grp.memberUids.contains(user.uid)) grp.memberUids else grp.memberUids + user.uid).toMutableSet()
-                val emails = (if (!user.email.isNullOrBlank() && !grp.memberEmails.contains(user.email!!.lowercase())) {
-                    grp.memberEmails + user.email!!.lowercase()
-                } else grp.memberEmails).map { it.lowercase() }.distinct()
+                val emails = (if (!user.email.isNullOrBlank() && !grp.memberEmails.map { it.lowercase().trim() }.contains(user.email!!.lowercase().trim())) {
+                    grp.memberEmails + user.email!!.lowercase().trim()
+                } else grp.memberEmails).map { it.lowercase().trim() }.distinct()
 
                 if (emails.isNotEmpty()) {
                     try {
@@ -357,6 +357,10 @@ object CloudSyncManager {
                         }
                         val rawGrp = doc.toObject(Group::class.java)
                         if (rawGrp != null) {
+                            val existingLocal = repository.getGroupById(rawGrp.id)
+                            if (existingLocal != null && existingLocal.updatedAt >= rawGrp.updatedAt) {
+                                continue
+                            }
                             val grp = fetchGroupExpensesFromSubcollection(db, rawGrp)
                             repository.insertGroupClean(grp)
                         }
@@ -375,6 +379,10 @@ object CloudSyncManager {
                             }
                             val rawGrp = doc.toObject(Group::class.java)
                             if (rawGrp != null) {
+                                val existingLocal = repository.getGroupById(rawGrp.id)
+                                if (existingLocal != null && existingLocal.updatedAt >= rawGrp.updatedAt) {
+                                    continue
+                                }
                                 val grp = fetchGroupExpensesFromSubcollection(db, rawGrp)
                                 repository.insertGroupClean(grp)
                             }
@@ -394,6 +402,10 @@ object CloudSyncManager {
                                 }
                                 val rawGrp = doc.toObject(Group::class.java)
                                 if (rawGrp != null) {
+                                    val existingLocal = repository.getGroupById(rawGrp.id)
+                                    if (existingLocal != null && existingLocal.updatedAt >= rawGrp.updatedAt) {
+                                        continue
+                                    }
                                     val grpWithSubcoll = fetchGroupExpensesFromSubcollection(db, rawGrp)
                                     val userName = user.displayName?.ifBlank { null } ?: email.substringBefore("@")
                                     val updatedUids = if (grpWithSubcoll.memberUids.contains(uid)) grpWithSubcoll.memberUids else grpWithSubcoll.memberUids + uid
@@ -408,7 +420,11 @@ object CloudSyncManager {
                                         (email.isNotBlank() && it.equals(email.substringBefore("@"), ignoreCase = true)) 
                                     }
                                     val updatedMembers = if (isPending) {
-                                        membersList.filter { !it.equals(userName, ignoreCase = true) }
+                                        membersList.filter { 
+                                            !it.equals(userName, ignoreCase = true) && 
+                                            !it.equals("You", ignoreCase = true) &&
+                                            (email.isBlank() || (!it.equals(email, ignoreCase = true) && !it.equals(email.substringBefore("@"), ignoreCase = true)))
+                                        }
                                     } else membersList
 
                                     val updatedPending = grpWithSubcoll.pendingMembers
@@ -624,10 +640,26 @@ object CloudSyncManager {
             }
             withTimeout(SYNC_TIMEOUT_MS) {
                 val userName = user.displayName?.ifBlank { null } ?: user.email?.substringBefore("@") ?: "You"
-                val uids = (if (group.memberUids.contains(user.uid)) group.memberUids else group.memberUids + user.uid).toMutableSet()
-                val emails = (if (!user.email.isNullOrBlank() && !group.memberEmails.contains(user.email!!.lowercase())) {
-                    group.memberEmails + user.email!!.lowercase()
-                } else group.memberEmails).map { it.lowercase() }.distinct()
+                val userEmailLower = user.email?.lowercase()?.trim() ?: ""
+
+                val isUserMemberOrPending = (userEmailLower.isNotBlank() && group.memberEmails.any { it.equals(userEmailLower, ignoreCase = true) }) ||
+                        group.members.any { it.equals("You", ignoreCase = true) || it.equals(userName, ignoreCase = true) || (userEmailLower.isNotBlank() && (it.equals(userEmailLower, ignoreCase = true) || it.equals(userEmailLower.substringBefore("@"), ignoreCase = true))) } ||
+                        group.pendingMembers.any { it.equals("You", ignoreCase = true) || it.equals(userName, ignoreCase = true) || (userEmailLower.isNotBlank() && (it.equals(userEmailLower, ignoreCase = true) || it.equals(userEmailLower.substringBefore("@"), ignoreCase = true))) } ||
+                        (group.createdBy.isNotBlank() && (group.createdBy.equals(userName, ignoreCase = true) || group.createdBy.equals("You", ignoreCase = true) || (userEmailLower.isNotBlank() && group.createdBy.equals(userEmailLower.substringBefore("@"), ignoreCase = true))))
+
+                val uids = if (isUserMemberOrPending) {
+                    (if (group.memberUids.contains(user.uid)) group.memberUids else group.memberUids + user.uid).toMutableSet()
+                } else {
+                    group.memberUids.filter { it != user.uid }.toSet()
+                }.toMutableSet()
+
+                val emails = if (isUserMemberOrPending) {
+                    (if (userEmailLower.isNotBlank() && !group.memberEmails.contains(userEmailLower)) {
+                        group.memberEmails + userEmailLower
+                    } else group.memberEmails).map { it.lowercase() }.distinct()
+                } else {
+                    group.memberEmails.filter { userEmailLower.isBlank() || it.lowercase() != userEmailLower }.map { it.lowercase() }.distinct()
+                }
 
                 val updatedMembers = group.members.map { if (it == "You") userName else it }.distinct()
 
@@ -664,12 +696,23 @@ object CloudSyncManager {
                     updatedAt = System.currentTimeMillis()
                 )
 
-                db.collection("users")
-                    .document(user.uid)
-                    .collection("groups")
-                    .document(updatedGroup.id)
-                    .set(updatedGroup)
-                    .await()
+                if (isUserMemberOrPending) {
+                    db.collection("users")
+                        .document(user.uid)
+                        .collection("groups")
+                        .document(updatedGroup.id)
+                        .set(updatedGroup)
+                        .await()
+                } else {
+                    try {
+                        db.collection("users")
+                            .document(user.uid)
+                            .collection("groups")
+                            .document(updatedGroup.id)
+                            .delete()
+                            .await()
+                    } catch (_: Exception) {}
+                }
 
                 db.collection("groups")
                     .document(updatedGroup.id)

@@ -367,7 +367,8 @@ fun ReceiptAllocationScreen(
                             date = expenseDate.ifBlank { "Today" },
                             description = "Scanned receipt from ${extracted.merchantName}",
                             paidBy = "You",
-                            currency = extracted.currency
+                            currency = extracted.currency,
+                            lineItems = extracted.lineItems
                         )
                         viewModel.currentExtractedReceipt = null
                         viewModel.targetGroupIdForReceipt = null
@@ -401,6 +402,11 @@ fun ReceiptAllocationScreen(
                                 Triple("CUSTOM", memberTotals.toMap(), memberTotals.keys.toList().ifEmpty { group.members })
                             }
 
+                            val lineItemsWithAssignments = extracted.lineItems.map { item ->
+                                val assigned = itemAssignments[item.id] ?: group.members
+                                item.copy(assignedTo = assigned)
+                            }
+
                             viewModel.addGroupExpense(
                                 groupId = group.id,
                                 title = extracted.merchantName,
@@ -411,7 +417,8 @@ fun ReceiptAllocationScreen(
                                 currency = extracted.currency,
                                 splitMode = splitModeStr,
                                 memberSplits = memberSplitsMap,
-                                category = selectedCategory
+                                category = selectedCategory,
+                                lineItems = lineItemsWithAssignments
                             )
                             viewModel.currentExtractedReceipt = null
                             viewModel.targetGroupIdForReceipt = null

@@ -8,6 +8,7 @@ import com.finance.splitup.data.Expense
 import com.finance.splitup.data.ExpenseCategories
 import com.finance.splitup.data.Group
 import com.finance.splitup.data.GroupExpense
+import com.finance.splitup.data.ReceiptLineItem
 import kotlinx.serialization.Serializable
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -23,6 +24,28 @@ class Converters {
 
     private val mapType = Types.newParameterizedType(Map::class.java, String::class.java, Double::class.javaObjectType)
     private val mapAdapter = moshi.adapter<Map<String, Double>>(mapType)
+
+    private val lineItemListType = Types.newParameterizedType(List::class.java, ReceiptLineItem::class.java)
+    private val lineItemListAdapter = moshi.adapter<List<ReceiptLineItem>>(lineItemListType)
+
+    @TypeConverter
+    fun fromReceiptLineItemList(value: List<ReceiptLineItem>): String {
+        return try {
+            lineItemListAdapter.toJson(value) ?: "[]"
+        } catch (_: Exception) {
+            "[]"
+        }
+    }
+
+    @TypeConverter
+    fun toReceiptLineItemList(value: String): List<ReceiptLineItem> {
+        if (value.isBlank()) return emptyList()
+        return try {
+            lineItemListAdapter.fromJson(value) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
 
     @TypeConverter
     fun fromStringList(value: List<String>): String {
@@ -96,13 +119,14 @@ data class ExpenseEntity(
     val paymentMethod: String = "Cash",
     val receiptImagePath: String? = null,
     val receiptUrl: String? = null,
+    val lineItems: List<ReceiptLineItem> = emptyList(),
     val updatedAt: Long = System.currentTimeMillis(),
     val isDirty: Boolean = true
 ) {
-    fun toDomain() = Expense(id, title, amount, category, date, description, paidBy, currency, paymentMethod, receiptImagePath, receiptUrl, updatedAt)
+    fun toDomain() = Expense(id, title, amount, category, date, description, paidBy, currency, paymentMethod, receiptImagePath, receiptUrl, lineItems, updatedAt)
     companion object {
         fun fromDomain(expense: Expense, isDirty: Boolean = true) = ExpenseEntity(
-            expense.id, expense.title, expense.amount, expense.category, expense.date, expense.description, expense.paidBy, expense.currency, expense.paymentMethod, expense.receiptImagePath, expense.receiptUrl, expense.updatedAt, isDirty
+            expense.id, expense.title, expense.amount, expense.category, expense.date, expense.description, expense.paidBy, expense.currency, expense.paymentMethod, expense.receiptImagePath, expense.receiptUrl, expense.lineItems, expense.updatedAt, isDirty
         )
     }
 }
@@ -159,12 +183,13 @@ data class GroupExpenseEntity(
     val memberSplits: Map<String, Double> = emptyMap(),
     val category: String = ExpenseCategories.OTHER,
     val receiptImagePath: String? = null,
-    val receiptUrl: String? = null
+    val receiptUrl: String? = null,
+    val lineItems: List<ReceiptLineItem> = emptyList()
 ) {
-    fun toDomain() = GroupExpense(id, title, amount, paidBy, date, splitAmong, currency, splitMode, memberSplits, category, receiptImagePath, receiptUrl)
+    fun toDomain() = GroupExpense(id, title, amount, paidBy, date, splitAmong, currency, splitMode, memberSplits, category, receiptImagePath, receiptUrl, lineItems)
     companion object {
         fun fromDomain(groupId: String, expense: GroupExpense) = GroupExpenseEntity(
-            expense.id, groupId, expense.title, expense.amount, expense.paidBy, expense.date, expense.splitAmong, expense.currency, expense.splitMode, expense.memberSplits, expense.category, expense.receiptImagePath, expense.receiptUrl
+            expense.id, groupId, expense.title, expense.amount, expense.paidBy, expense.date, expense.splitAmong, expense.currency, expense.splitMode, expense.memberSplits, expense.category, expense.receiptImagePath, expense.receiptUrl, expense.lineItems
         )
     }
 }

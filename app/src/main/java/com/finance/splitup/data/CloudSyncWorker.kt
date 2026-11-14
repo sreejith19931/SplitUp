@@ -54,8 +54,12 @@ class CloudSyncWorker(
                         val channel = android.app.NotificationChannel(
                             "splitup_cloud_sync_notifications",
                             "Cloud Sync & Group Updates",
-                            android.app.NotificationManager.IMPORTANCE_DEFAULT
-                        ).apply { description = "Notifications for new expenses and updates from group members" }
+                            android.app.NotificationManager.IMPORTANCE_HIGH
+                        ).apply { 
+                            description = "Notifications for new expenses and updates from group members" 
+                            enableVibration(true)
+                            enableLights(true)
+                        }
                         notificationManager.createNotificationChannel(channel)
                     }
 
@@ -87,7 +91,8 @@ class CloudSyncWorker(
                         .setContentText(bodyText)
                         .setAutoCancel(true)
                         .setContentIntent(pendingIntent)
-                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                        .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_ALL)
 
                     @android.annotation.SuppressLint("MissingPermission")
                     androidx.core.app.NotificationManagerCompat.from(applicationContext)

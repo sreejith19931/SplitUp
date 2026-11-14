@@ -3,105 +3,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SplitUp - Expense Sharing & Bill Splitting</title>
+    <title>SplitUp — Simple Group Expense Splitting for Android</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
+        :root {
+            --brand-blue: #1D4ED8;
+            --brand-emerald: #047857;
+            --brand-cyan: #38BDF8;
+            --bg-main: #0B0F17;
+            --card-bg: #151C2C;
+            --card-border: #232D42;
+            --text-heading: #F8FAFC;
+            --text-body: #94A3B8;
+            --text-bright: #CBD5E1;
+            --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-heading);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(11, 15, 23, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1rem 1.5rem;
+        }
+
+        .nav-inner {
+            max-width: 960px;
+            margin: 0 auto;
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
+            justify-content: space-between;
         }
-        .card {
-            background: #ffffff;
-            padding: 40px;
-            border-radius: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        h1 {
-            font-size: 24px;
-            margin-bottom: 12px;
-            color: #0f172a;
-        }
-        p {
-            color: #64748b;
-            font-size: 15px;
-            line-height: 1.5;
-            margin-bottom: 24px;
-        }
-        .btn {
-            display: inline-block;
-            background-color: #2563eb;
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 16px;
-            padding: 14px 28px;
-            border-radius: 12px;
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
             text-decoration: none;
-            transition: background-color 0.2s;
-            width: 100%;
-            box-sizing: border-box;
-            margin-bottom: 12px;
+            color: var(--text-heading);
+            font-weight: 800;
+            font-size: 1.35rem;
+            letter-spacing: -0.02em;
         }
-        .btn:hover {
-            background-color: #1d4ed8;
+
+        .hero-logo-svg {
+            width: 72px;
+            height: 72px;
+            margin-bottom: 1.5rem;
+            filter: drop-shadow(0 10px 20px rgba(56, 189, 248, 0.2));
         }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--brand-blue);
+            color: #FFFFFF;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563EB;
+            transform: translateY(-1px);
+        }
+
         .btn-secondary {
-            background-color: #047857;
+            background-color: transparent;
+            color: var(--text-bright);
+            border: 1px solid var(--card-border);
         }
+
         .btn-secondary:hover {
-            background-color: #065f46;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-color: #334155;
         }
-        .logo {
-            font-size: 48px;
-            margin-bottom: 16px;
+
+        .hero {
+            max-width: 800px;
+            margin: 4.5rem auto 3rem;
+            padding: 0 1.5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .version-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            background-color: rgba(4, 120, 87, 0.15);
+            border: 1px solid rgba(4, 120, 87, 0.4);
+            color: #34D399;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 span {
+            color: var(--brand-cyan);
+        }
+
+        .hero p {
+            color: var(--text-body);
+            font-size: 1.15rem;
+            max-width: 650px;
+            margin-bottom: 2rem;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto 4rem;
+            padding: 0 1.5rem;
+        }
+
+        .invite-card {
+            background: var(--card-bg);
+            border: 1px solid var(--brand-cyan);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            box-shadow: 0 20px 40px rgba(56, 189, 248, 0.15);
+        }
+
+        .invite-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: var(--text-heading);
+        }
+
+        .invite-card p {
+            color: var(--text-body);
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .invite-card-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.75rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text-heading);
+        }
+
+        .feature-card p {
+            color: var(--text-body);
+            font-size: 0.95rem;
+        }
+
+        footer {
+            border-top: 1px solid var(--card-border);
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            color: var(--text-body);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--brand-cyan);
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <div class="logo">💸</div>
-        <h1>You're Invited to SplitUp!</h1>
-        <p id="message">Scan or open this link inside the SplitUp app to view your group or add your friend.</p>
-        <a id="openAppBtn" href="#" class="btn">Open in SplitUp App</a>
-        <a href="https://github.com/sreejith19931/SplitUp/releases" target="_blank" class="btn btn-secondary">Download SplitUp App</a>
+    <nav>
+        <div class="nav-inner">
+            <a href="#" class="nav-brand">
+                <span>SplitUp</span>
+            </a>
+            <div class="nav-actions">
+                <a href="https://github.com/sreejith19931/SplitUp" target="_blank" class="btn btn-secondary">GitHub</a>
+                <a href="https://github.com/sreejith19931/SplitUp/releases" target="_blank" class="btn btn-primary">Download v1.3</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="version-badge">SplitUp v1.3 is out</div>
+        <h1>No awkward calculations. <span>Just settled up.</span></h1>
+        <p>Built for roommate bills, group trips, and dinner splits. Track who paid what, scan receipts, convert live currencies, and keep your finances clear.</p>
+        <div class="hero-actions">
+            <a href="https://github.com/sreejith19931/SplitUp/releases" target="_blank" class="btn btn-primary">Download Android APK (v1.3)</a>
+            <a href="https://github.com/sreejith19931/SplitUp" target="_blank" class="btn btn-secondary">View Source Code</a>
+        </div>
+    </section>
+
+    <div class="container">
+        <!-- Dynamic Group Invite / User QR Code Banner -->
+        <div id="invite-banner-container" style="display: none;"></div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>Smart Expense Splitting</h3>
+                <p>Split group costs equally or custom per member with automatic balance simplification so you make fewer transfers.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Receipt Scanning</h3>
+                <p>Take a photo of any receipt to extract items and line costs using on-device text recognition.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Live Currency Conversion</h3>
+                <p>Real-time exchange rates for multi-currency group trips so everyone pays in their preferred currency.</p>
+            </div>
+            <div class="feature-card">
+                <h3>100% Offline First</h3>
+                <p>Your financial records live locally on your device with optional real-time cloud backup when connected.</p>
+            </div>
+        </div>
     </div>
 
+    <footer>
+        <p>Built for Android using Jetpack Compose & Material 3. Open Source under the MIT License.</p>
+        <p style="margin-top: 0.5rem;"><a href="https://github.com/sreejith19931/SplitUp" target="_blank">SplitUp on GitHub</a></p>
+    </footer>
+
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const groupId = urlParams.get('groupId');
-        const email = urlParams.get('email');
-        const name = urlParams.get('name');
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const groupId = urlParams.get('groupId') || urlParams.get('id');
+            const email = urlParams.get('email');
+            const name = urlParams.get('name') || (email ? email.split('@')[0] : '');
 
-        const messageEl = document.getElementById('message');
-        const openAppBtn = document.getElementById('openAppBtn');
+            if (groupId || email) {
+                const bannerContainer = document.getElementById('invite-banner-container');
+                if (bannerContainer) {
+                    let inviteTitle = '';
+                    let inviteDesc = '';
+                    let openAppUrl = '';
 
-        let deepLink = "splitup://";
+                    if (groupId) {
+                        inviteTitle = 'Group Invitation Request 📩';
+                        inviteDesc = 'You have been invited to join a shared expense group on SplitUp. Open the app to view expenses and settle balances.';
+                        openAppUrl = `splitup://group/invite?groupId=${encodeURIComponent(groupId)}`;
+                    } else if (email) {
+                        inviteTitle = `Connect with ${name} on SplitUp 🤝`;
+                        inviteDesc = `Add ${name} (${email}) to your SplitUp contacts to share bills and track group expenses easily.`;
+                        openAppUrl = `splitup://user?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`;
+                    }
 
-        if (groupId) {
-            messageEl.innerText = `You have been invited to join a shared expense group on SplitUp.`;
-            deepLink = `splitup://group/invite?id=${groupId}`;
-        } else if (email) {
-            messageEl.innerText = `Connect with ${name || email} on SplitUp to share expenses and settle debts easily.`;
-            deepLink = `splitup://profile?email=${email}&name=${encodeURIComponent(name || '')}`;
-        }
-
-        openAppBtn.href = deepLink;
-
-        // Auto-attempt to open app if installed
-        window.onload = function() {
-            setTimeout(function() {
-                window.location.href = deepLink;
-            }, 500);
-        };
+                    bannerContainer.innerHTML = `
+                        <div class="invite-card">
+                            <h2>${inviteTitle}</h2>
+                            <p>${inviteDesc}</p>
+                            <div class="invite-card-actions">
+                                <a href="${openAppUrl}" class="btn btn-primary">Open in SplitUp App</a>
+                                <a href="https://github.com/sreejith19931/SplitUp/releases" class="btn btn-secondary">Download App APK</a>
+                            </div>
+                        </div>
+                    `;
+                    bannerContainer.style.display = 'block';
+                }
+            }
+        });
     </script>
+
 </body>
 </html>

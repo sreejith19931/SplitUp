@@ -1,6 +1,8 @@
 {
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/invite", "destination": "/index.html" },
+    { "source": "/user", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

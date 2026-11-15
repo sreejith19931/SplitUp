@@ -132,6 +132,28 @@ fun SplitUpApp(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
+    var isSplashFinished by remember { mutableStateOf(false) }
+
+    if (!isSplashFinished) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                com.finance.splitup.ui.components.AnimatedSplitUpLaunchLogo(
+                    modifier = Modifier.width(260.dp),
+                    onAnimationFinished = {
+                        isSplashFinished = true
+                    }
+                )
+            }
+        }
+        return
+    }
+
     LaunchedEffect(Unit) {
         val constraints = androidx.work.Constraints.Builder()
             .setRequiredNetworkType(androidx.work.NetworkType.NOT_REQUIRED)
@@ -150,6 +172,7 @@ fun SplitUpApp(
             .build()
         val syncWork = androidx.work.PeriodicWorkRequestBuilder<com.finance.splitup.data.CloudSyncWorker>(15, java.util.concurrent.TimeUnit.MINUTES)
             .setConstraints(syncConstraints)
+            .setBackoffCriteria(androidx.work.BackoffPolicy.EXPONENTIAL, 30, java.util.concurrent.TimeUnit.SECONDS)
             .build()
         androidx.work.WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             "SplitUpCloudSyncWork",

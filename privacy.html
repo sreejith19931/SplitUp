@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — SplitUp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-blue: #1D4ED8;
+            --brand-emerald: #047857;
+            --brand-cyan: #38BDF8;
+            --bg-main: #0B0F17;
+            --card-bg: #151C2C;
+            --card-border: #232D42;
+            --text-heading: #F8FAFC;
+            --text-body: #94A3B8;
+            --text-bright: #CBD5E1;
+            --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-heading);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(11, 15, 23, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1rem 1.5rem;
+        }
+
+        .nav-inner {
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-heading);
+            font-weight: 800;
+            font-size: 1.35rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #F8FAFC 0%, #38BDF8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-body);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            color: var(--brand-cyan);
+            margin-bottom: 0.75rem;
+        }
+
+        .card p, .card ul {
+            color: var(--text-bright);
+            font-size: 0.95rem;
+        }
+
+        .card ul {
+            padding-left: 1.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .card li {
+            margin-bottom: 0.5rem;
+        }
+
+        footer {
+            max-width: 960px;
+            margin: 4rem auto 2rem;
+            padding: 0 1.5rem;
+            text-align: center;
+            color: var(--text-body);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--card-border);
+            padding-top: 2rem;
+        }
+
+        footer a {
+            color: var(--brand-cyan);
+            text-decoration: none;
+            margin: 0 0.5rem;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-inner">
+            <a href="/" class="nav-brand">
+                <svg style="width:36px;height:36px;" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="100" height="100" rx="22" fill="#151C2C"/>
+                    <path d="M15 25C15 19.4772 19.4772 15 25 15H48V85H25C19.4772 85 15 80.5228 15 75V25Z" fill="#1D4ED8"/>
+                    <path d="M52 15H75C80.5228 15 85 19.4772 85 25V75C85 80.5228 80.5228 85 75 85H52V15Z" fill="#047857"/>
+                    <circle cx="50" cy="25" r="2.5" fill="#38BDF8"/>
+                    <circle cx="50" cy="41.6" r="2.5" fill="#38BDF8"/>
+                    <circle cx="50" cy="58.3" r="2.5" fill="#38BDF8"/>
+                    <circle cx="50" cy="75" r="2.5" fill="#38BDF8"/>
+                </svg>
+                <span>SplitUp</span>
+            </a>
+            <a href="/" style="color: var(--text-bright); text-decoration: none; font-weight: 600; font-size: 0.9rem;">← Back to Home</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Privacy Policy</h1>
+        <p class="subtitle">Effective Date: October 24, 2024</p>
+
+        <div class="card">
+            <h2>1. Local-First Data Philosophy</h2>
+            <p>SplitUp is built on a privacy-respecting, local-first architecture. Your personal expenses, category budgets, receipts, and group records reside locally on your device. SplitUp does not sell, license, or monetize user data.</p>
+        </div>
+
+        <div class="card">
+            <h2>2. Device Permission Disclosures</h2>
+            <ul>
+                <li><strong>Camera Access (`CAMERA`):</strong> Used exclusively for real-time on-device OCR receipt recognition via Google ML Kit. Captured photos remain on your device and are processed in local sandbox cache (`cacheDir`).</li>
+                <li><strong>Contacts Access (`READ_CONTACTS`):</strong> Processed strictly locally in memory on your device to help you discover friends on SplitUp and add them to expense groups. Your contact list is never uploaded or transmitted off-device.</li>
+                <li><strong>Notification Access (`BIND_NOTIFICATION_LISTENER_SERVICE`):</strong> Processed strictly locally on-device to extract monetary figures from bank and wallet app alerts. Notification content is parsed in memory and is never logged or transmitted off-device.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>3. Cloud Synchronization & Data Safety</h2>
+            <p>If you create an account, optional cloud sync uses Firebase Authentication and Firebase Cloud Firestore encrypted in transit via HTTPS/TLS. Cloud data is isolated to authenticated account members.</p>
+        </div>
+
+        <div class="card">
+            <h2>4. User Rights & Account Deletion</h2>
+            <p>You have full control over your data:</p>
+            <ul>
+                <li><strong>Data Export (GDPR Art. 20):</strong> You can export full JSON backups, CSV reports, or PDF statements at any time inside the app.</li>
+                <li><strong>Account & Data Erasure (GDPR Art. 17):</strong> You can instantly delete your account and clear all cloud records inside the app under <em>Settings > Data Management & Backups > Delete Account</em>, or submit a request on our <a href="/delete-account" style="color: var(--brand-cyan);">Account Deletion Request Portal</a>.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>5. Contact Us</h2>
+            <p>If you have any questions or privacy inquiries, contact us at <a href="https://github.com/sreejith19931/SplitUp" target="_blank" style="color: var(--brand-cyan);">GitHub Support</a>.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>Built for Android using Jetpack Compose & Material 3. Open Source under the MIT License.</p>
+        <p style="margin-top: 0.5rem;">
+            <a href="/">Home</a> |
+            <a href="/privacy">Privacy Policy</a> |
+            <a href="/terms">Terms of Service</a> |
+            <a href="/delete-account">Account Deletion</a>
+        </p>
+    </footer>
+
+</body>
+</html>

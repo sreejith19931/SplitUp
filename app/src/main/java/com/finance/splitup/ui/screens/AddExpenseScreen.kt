@@ -27,6 +27,8 @@ import com.finance.splitup.data.ExpenseCategories
 import com.finance.splitup.ui.theme.SplitUpTheme
 import com.finance.splitup.viewmodel.FinanceViewModel
 
+import androidx.compose.runtime.saveable.rememberSaveable
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExpenseScreen(
@@ -42,22 +44,22 @@ fun AddExpenseScreen(
     val expenses by viewModel.expenses.collectAsState()
     val existingExpense = remember(expenses, expenseId) { expenses.find { it.id == expenseId } }
 
-    var title by remember { mutableStateOf(existingExpense?.title ?: initialTitle ?: viewModel.currentExtractedReceipt?.merchantName ?: "") }
-    var amount by remember { mutableStateOf(existingExpense?.amount?.let { formatInputNumber(it) } ?: initialAmount?.let { formatInputNumber(it) } ?: viewModel.currentExtractedReceipt?.totalAmount?.let { formatInputNumber(it) } ?: "") }
-    var selectedCategory by remember { mutableStateOf(existingExpense?.category ?: initialCategory ?: ExpenseCategories.FOOD) }
-    var selectedCurrency by remember { mutableStateOf(existingExpense?.currency ?: viewModel.currentExtractedReceipt?.currency ?: Currencies.EUR) }
+    var title by rememberSaveable { mutableStateOf(existingExpense?.title ?: initialTitle ?: viewModel.currentExtractedReceipt?.merchantName ?: "") }
+    var amount by rememberSaveable { mutableStateOf(existingExpense?.amount?.let { formatInputNumber(it) } ?: initialAmount?.let { formatInputNumber(it) } ?: viewModel.currentExtractedReceipt?.totalAmount?.let { formatInputNumber(it) } ?: "") }
+    var selectedCategory by rememberSaveable { mutableStateOf(existingExpense?.category ?: initialCategory ?: ExpenseCategories.FOOD) }
+    var selectedCurrency by rememberSaveable { mutableStateOf(existingExpense?.currency ?: viewModel.currentExtractedReceipt?.currency ?: Currencies.EUR) }
     val currencySymbol = remember(selectedCurrency) { Currencies.getSymbol(selectedCurrency) }
-    var description by remember { mutableStateOf(existingExpense?.description ?: "") }
-    var paidBy by remember { mutableStateOf(existingExpense?.paidBy ?: "You") }
-    var expenseDate by remember { mutableStateOf(existingExpense?.date ?: "Today") }
-    var selectedPaymentMethod by remember { mutableStateOf(existingExpense?.paymentMethod ?: com.finance.splitup.data.PaymentMethods.CASH) }
+    var description by rememberSaveable { mutableStateOf(existingExpense?.description ?: "") }
+    var paidBy by rememberSaveable { mutableStateOf(existingExpense?.paidBy ?: "You") }
+    var expenseDate by rememberSaveable { mutableStateOf(existingExpense?.date ?: "Today") }
+    var selectedPaymentMethod by rememberSaveable { mutableStateOf(existingExpense?.paymentMethod ?: com.finance.splitup.data.PaymentMethods.CASH) }
     var expandedCategoryDropdown by remember { mutableStateOf(false) }
     var expandedCurrencyDropdown by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
 
-    var isCategoryManuallySelected by remember { mutableStateOf(existingExpense != null || initialCategory != null) }
-    var isIncome by remember { mutableStateOf(initialIsIncome) }
+    var isCategoryManuallySelected by rememberSaveable { mutableStateOf(existingExpense != null || initialCategory != null) }
+    var isIncome by rememberSaveable { mutableStateOf(initialIsIncome) }
 
     Scaffold(
         topBar = {

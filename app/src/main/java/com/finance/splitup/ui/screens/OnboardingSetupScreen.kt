@@ -70,6 +70,7 @@ fun OnboardingSetupScreen(
 
     var upiVpa by remember { mutableStateOf("") }
     var paypalHandle by remember { mutableStateOf("") }
+    var showPayPalLoginDialog by remember { mutableStateOf(false) }
     var enableBiometrics by remember { mutableStateOf(false) }
 
     var expandedCurrency by remember { mutableStateOf(false) }
@@ -390,13 +391,35 @@ fun OnboardingSetupScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(10.dp)
                                     )
-                                    OutlinedTextField(
-                                        value = paypalHandle,
-                                        onValueChange = { paypalHandle = it },
-                                        label = { Text("PayPal Username / Handle") },
+                                    Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(10.dp)
-                                    )
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        OutlinedTextField(
+                                            value = paypalHandle,
+                                            onValueChange = { paypalHandle = it },
+                                            label = { Text("PayPal Username / Handle") },
+                                            modifier = Modifier.weight(1f),
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+                                        OutlinedButton(
+                                            onClick = { showPayPalLoginDialog = true },
+                                            modifier = Modifier.height(56.dp),
+                                            shape = RoundedCornerShape(10.dp)
+                                        ) {
+                                            Text("Connect", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+
+                                    if (showPayPalLoginDialog) {
+                                        PayPalLoginDialog(
+                                            onDismiss = { showPayPalLoginDialog = false },
+                                            onPayPalHandleRetrieved = { handle ->
+                                                paypalHandle = handle
+                                            }
+                                        )
+                                    }
                                 }
                             }
 

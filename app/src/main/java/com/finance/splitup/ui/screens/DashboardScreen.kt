@@ -276,7 +276,7 @@ fun DashboardScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 10.dp),
+                        .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     contentPadding = PaddingValues(bottom = 88.dp)
                 ) {
@@ -607,7 +607,7 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                 ) {
                     val cats = listOf("All", ExpenseCategories.FOOD, ExpenseCategories.TRANSPORT, ExpenseCategories.SHOPPING, ExpenseCategories.BILLS, ExpenseCategories.ENTERTAINMENT)
-                    items(cats) { cat ->
+                    items(cats, key = { it }) { cat ->
                         FilterChip(
                             selected = selectedDashboardCategory == cat,
                             onClick = { selectedDashboardCategory = cat },
@@ -725,6 +725,7 @@ fun DashboardScreen(
       Box(
           modifier = Modifier
               .fillMaxSize()
+              .navigationBarsPadding()
               .padding(16.dp),
           contentAlignment = Alignment.BottomEnd
       ) {

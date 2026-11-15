@@ -260,7 +260,7 @@ fun PersonalExpensesScreen(
                     Text("Category Monthly Limits", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
 
-                items(ExpenseCategories.all) { category ->
+                items(ExpenseCategories.all, key = { it }) { category ->
                     val currentLimit = budgets[category] ?: 200.0
                     var limitText by remember { mutableStateOf(formatInputNumber(currentLimit)) }
 
@@ -508,7 +508,7 @@ fun PersonalExpensesScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         val ranges = listOf("All", "This Month", "Last 30 Days", "This Year")
-                        items(ranges) { range ->
+                        items(ranges, key = { it }) { range ->
                             FilterChip(
                                 selected = selectedDateRange == range,
                                 onClick = { selectedDateRange = range },
@@ -531,7 +531,7 @@ fun PersonalExpensesScreen(
                                 shape = RoundedCornerShape(10.dp)
                             )
                         }
-                        items(ExpenseCategories.all) { category ->
+                        items(ExpenseCategories.all, key = { it }) { category ->
                             FilterChip(
                                 selected = selectedCategoryFilter == category,
                                 onClick = {

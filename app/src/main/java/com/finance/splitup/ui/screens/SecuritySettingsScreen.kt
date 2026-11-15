@@ -177,7 +177,7 @@ fun SecuritySettingsScreen(
                     HorizontalDivider()
 
                     Text(
-                        text = "Note: On Android 13+, notification access may be restricted by system security settings. If the toggle is greyed out, go to Phone Settings > Apps > SplitUp (App info), tap the three dots in the top right, and select 'Allow restricted settings', then return here to enable.",
+                        text = "Prominent Disclosure: SplitUp's Payment Auto-Detector reads system notification alerts strictly locally on your device to automatically detect monetary transactions from bank and wallet apps. Notification content is processed entirely in memory, is never stored on external servers, and is never transmitted off your device.\n\nNote for Android 13+: If Notification Access is greyed out in settings, open Phone Settings > Apps > SplitUp, tap the three dots menu at the top right, select 'Allow restricted settings', and then grant access.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
                     )
@@ -217,6 +217,7 @@ fun SecuritySettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
                         visualTransformation = PasswordVisualTransformation()
                     )
                 }

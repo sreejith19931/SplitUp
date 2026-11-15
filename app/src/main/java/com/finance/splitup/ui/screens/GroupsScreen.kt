@@ -150,7 +150,7 @@ fun GroupsScreen(
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(10.dp),
+                                .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                             contentPadding = PaddingValues(bottom = 88.dp)
                         ) {
@@ -317,7 +317,7 @@ fun GroupsScreen(
             }
         },
         detailPane = {
-            AnimatedPane {
+            AnimatedPane(modifier = Modifier.padding(start = 12.dp)) {
                 val selectedGroup = groups.find { it.id == selectedGroupId } ?: groups.firstOrNull()
                 if (selectedGroup != null) {
                     GroupDetailContent(
@@ -527,7 +527,7 @@ fun ShimmerGroupCard() {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(84.dp),
+            .height(96.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha)

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Deletion Request — SplitUp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-blue: #1D4ED8;
+            --brand-red: #DC2626;
+            --brand-cyan: #38BDF8;
+            --bg-main: #0B0F17;
+            --card-bg: #151C2C;
+            --card-border: #232D42;
+            --text-heading: #F8FAFC;
+            --text-body: #94A3B8;
+            --text-bright: #CBD5E1;
+            --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-heading);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(11, 15, 23, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1rem 1.5rem;
+        }
+
+        .nav-inner {
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-heading);
+            font-weight: 800;
+            font-size: 1.35rem;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: #F8FAFC;
+        }
+
+        .subtitle {
+            color: var(--text-body);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+
+        .alert-box {
+            background-color: rgba(220, 38, 38, 0.12);
+            border: 1px solid rgba(220, 38, 38, 0.4);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: #FCA5A5;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.75rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-heading);
+        }
+
+        input[type="email"], textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: #0B0F17;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+
+        input[type="email"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--brand-cyan);
+        }
+
+        .btn-delete {
+            width: 100%;
+            padding: 0.85rem;
+            background-color: var(--brand-red);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-delete:hover {
+            background-color: #B91C1C;
+        }
+
+        footer {
+            max-width: 960px;
+            margin: 4rem auto 2rem;
+            padding: 0 1.5rem;
+            text-align: center;
+            color: var(--text-body);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--card-border);
+            padding-top: 2rem;
+        }
+
+        footer a {
+            color: var(--brand-cyan);
+            text-decoration: none;
+            margin: 0 0.5rem;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-inner">
+            <a href="/" class="nav-brand">
+                <svg style="width:36px;height:36px;" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="100" height="100" rx="22" fill="#151C2C"/>
+                    <path d="M15 25C15 19.4772 19.4772 15 25 15H48V85H25C19.4772 85 15 80.5228 15 75V25Z" fill="#1D4ED8"/>
+                    <path d="M52 15H75C80.5228 15 85 19.4772 85 25V75C85 80.5228 80.5228 85 75 85H52V15Z" fill="#047857"/>
+                    <circle cx="50" cy="25" r="2.5" fill="#38BDF8"/>
+                    <circle cx="50" cy="41.6" r="2.5" fill="#38BDF8"/>
+                    <circle cx="50" cy="58.3" r="2.5" fill="#38BDF8"/>
+                    <circle cx="50" cy="75" r="2.5" fill="#38BDF8"/>
+                </svg>
+                <span>SplitUp</span>
+            </a>
+            <a href="/" style="color: var(--text-bright); text-decoration: none; font-weight: 600; font-size: 0.9rem;">← Back to Home</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Account Deletion Request</h1>
+        <p class="subtitle">Google Play Developer Policy Compliance Portal</p>
+
+        <div class="alert-box">
+            <strong>Instant In-App Deletion Available:</strong> You can also delete your account immediately inside the SplitUp app under <em>Settings > Data Management & Backups > Delete Account</em>.
+        </div>
+
+        <div class="card">
+            <form action="mailto:sreejith19931@gmail.com" method="POST" enctype="text/plain">
+                <div class="form-group">
+                    <label for="email">Account Email Address:</label>
+                    <input type="email" id="email" name="Account Email" required placeholder="user@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="reason">Reason for Deletion (Optional):</label>
+                    <textarea id="reason" name="Reason" rows="3" placeholder="No longer needed..."></textarea>
+                </div>
+                <button type="submit" class="btn-delete">Submit Account Deletion Request</button>
+            </form>
+        </div>
+
+        <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-body);">
+            Upon receiving your request, your authentication credentials, cloud profile, backup records, and group memberships will be permanently deleted from Firebase Cloud Firestore within 30 days.
+        </p>
+    </div>
+
+    <footer>
+        <p>Built for Android using Jetpack Compose & Material 3. Open Source under the MIT License.</p>
+        <p style="margin-top: 0.5rem;">
+            <a href="/">Home</a> |
+            <a href="/privacy">Privacy Policy</a> |
+            <a href="/terms">Terms of Service</a> |
+            <a href="/delete-account">Account Deletion</a>
+        </p>
+    </footer>
+
+</body>
+</html>

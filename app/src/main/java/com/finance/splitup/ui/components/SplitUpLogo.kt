@@ -2,6 +2,8 @@ package com.finance.splitup.ui.components
 
 import android.content.res.Configuration
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -33,6 +35,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -80,6 +84,7 @@ fun SplitUpLogo(
 fun RefinedCardSplitUpWordmark(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
+            .semantics { contentDescription = "SplitUp Logo" }
             .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp), clip = false),
         contentAlignment = Alignment.Center
     ) {
@@ -223,15 +228,23 @@ fun AnimatedSplitUpLaunchLogo(
 ) {
     var isStarted by remember { mutableStateOf(false) }
 
+    val scale by animateFloatAsState(
+        targetValue = if (isStarted) 1f else 0.2f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        finishedListener = { onAnimationFinished() }
+    )
+
     val expandProgress by animateFloatAsState(
         targetValue = if (isStarted) 1f else 0f,
-        animationSpec = tween(durationMillis = 700, delayMillis = 100),
-        finishedListener = { onAnimationFinished() }
+        animationSpec = tween(durationMillis = 700, delayMillis = 100)
     )
 
     val contentAlpha by animateFloatAsState(
         targetValue = if (isStarted) 1f else 0f,
-        animationSpec = tween(durationMillis = 500, delayMillis = 400)
+        animationSpec = tween(durationMillis = 500, delayMillis = 200)
     )
 
     LaunchedEffect(Unit) {
@@ -240,7 +253,10 @@ fun AnimatedSplitUpLaunchLogo(
 
     Box(
         modifier = modifier
-            .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp), clip = false),
+            .graphicsLayer(
+                scaleX = scale,
+                scaleY = scale
+            ),
         contentAlignment = Alignment.Center
     ) {
         Row(

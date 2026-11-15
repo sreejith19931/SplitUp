@@ -23,6 +23,8 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.background
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -142,7 +144,9 @@ fun MemberAvatar(
     textColor: Color = MaterialTheme.colorScheme.onPrimaryContainer
 ) {
     Surface(
-        modifier = modifier.size(size),
+        modifier = modifier
+            .size(size)
+            .semantics { contentDescription = "Avatar for $name" },
         shape = CircleShape,
         color = backgroundColor
     ) {
@@ -166,14 +170,17 @@ fun SwipeableItemContainer(
     content: @Composable () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState()
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     androidx.compose.runtime.LaunchedEffect(dismissState.targetValue) {
         when (dismissState.targetValue) {
             SwipeToDismissBoxValue.EndToStart -> {
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                 onDelete()
                 dismissState.snapTo(SwipeToDismissBoxValue.Settled)
             }
             SwipeToDismissBoxValue.StartToEnd -> {
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                 onEdit()
                 dismissState.snapTo(SwipeToDismissBoxValue.Settled)
             }
@@ -514,23 +521,29 @@ fun ProfileQRCodeDialog(
     email: String,
     onDismiss: () -> Unit
 ) {
-    val qrText = "https://splitupfin.vercel.app/user?email=$email&name=$name"
-    val qrBitmap = remember(qrText) {
-        try {
-            val writer = com.google.zxing.qrcode.QRCodeWriter()
-            val hints = mapOf(com.google.zxing.EncodeHintType.MARGIN to 1)
-            val bitMatrix = writer.encode(qrText, com.google.zxing.BarcodeFormat.QR_CODE, 256, 256, hints)
-            val width = bitMatrix.width
-            val height = bitMatrix.height
-            val bmp = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.RGB_565)
-            for (x in 0 until width) {
-                for (y in 0 until height) {
-                    bmp.setPixel(x, y, if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+    val userToken = remember(email) {
+        val hashBytes = java.security.MessageDigest.getInstance("SHA-256").digest(email.toByteArray())
+        hashBytes.take(8).joinToString("") { "%02x".format(it) }
+    }
+    val qrText = "https://splitupfin.vercel.app/user?id=$userToken&name=${java.net.URLEncoder.encode(name, "UTF-8")}"
+    val qrBitmap by produceState<android.graphics.Bitmap?>(initialValue = null, qrText) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            try {
+                val writer = com.google.zxing.qrcode.QRCodeWriter()
+                val hints = mapOf(com.google.zxing.EncodeHintType.MARGIN to 1)
+                val bitMatrix = writer.encode(qrText, com.google.zxing.BarcodeFormat.QR_CODE, 256, 256, hints)
+                val width = bitMatrix.width
+                val height = bitMatrix.height
+                val bmp = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.RGB_565)
+                for (x in 0 until width) {
+                    for (y in 0 until height) {
+                        bmp.setPixel(x, y, if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+                    }
                 }
+                bmp
+            } catch (_: Exception) {
+                null
             }
-            bmp
-        } catch (_: Exception) {
-            null
         }
     }
 
@@ -547,14 +560,15 @@ fun ProfileQRCodeDialog(
                 Text(name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text(email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 
-                if (qrBitmap != null) {
+                val currentQr = qrBitmap
+                if (currentQr != null) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = Color.White,
                         modifier = Modifier.padding(8.dp)
                     ) {
                         Image(
-                            bitmap = qrBitmap.asImageBitmap(),
+                            bitmap = currentQr.asImageBitmap(),
                             contentDescription = "Profile QR Code",
                             modifier = Modifier.size(200.dp).padding(12.dp)
                         )
@@ -660,6 +674,108 @@ fun ReceiptLineItemsBreakdownView(
         }
     }
 }
+
+@Composable
+fun PayPalLoginDialog(
+    onDismiss: () -> Unit,
+    onPayPalHandleRetrieved: (String) -> Unit
+) {
+    val context = LocalContext.current
+    var paypalEmailInput by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.AccountBalanceWallet,
+                            contentDescription = "Payment Handle",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Text("Connect PayPal Account", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Sign in to PayPal via web browser or enter your PayPal email / me handle below to automatically retrieve and save your payment username:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = paypalEmailInput,
+                    onValueChange = { paypalEmailInput = it },
+                    label = { Text("PayPal Email or PayPal.Me Handle") },
+                    placeholder = { Text("e.g. user@example.com or paypal.me/john") },
+                    leadingIcon = { Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Button(
+                    onClick = {
+                        val uri = android.net.Uri.parse("https://www.paypal.com/signin")
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                        try {
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            Toast.makeText(context, "Could not open web browser", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF003087), contentColor = Color.White)
+                ) {
+                    Icon(Icons.Rounded.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Sign In on PayPal Web", fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (paypalEmailInput.isNotBlank()) {
+                        val handle = if (paypalEmailInput.contains("@") || paypalEmailInput.startsWith("paypal.me/")) {
+                            paypalEmailInput.trim()
+                        } else {
+                            "paypal.me/${paypalEmailInput.trim().removePrefix("@")}"
+                        }
+                        onPayPalHandleRetrieved(handle)
+                        Toast.makeText(context, "PayPal account '$handle' connected!", Toast.LENGTH_SHORT).show()
+                        onDismiss()
+                    }
+                },
+                enabled = paypalEmailInput.isNotBlank(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Confirm & Use Handle", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 
 
 

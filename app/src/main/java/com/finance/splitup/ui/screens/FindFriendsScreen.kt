@@ -2,6 +2,7 @@ package com.finance.splitup.ui.screens
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -101,16 +102,24 @@ fun FindFriendsScreen(
             if (!contactPermissionState.status.isGranted) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Contacts Permission Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
-                        Text("To see which of your friends are already on SplitUp, please grant contacts permission.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Rounded.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text("Contacts Prominent Disclosure", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                        Text(
+                            "SplitUp accesses your contact list strictly locally on your device to discover which of your friends are already registered on SplitUp and allow adding them to shared expense groups. Your contacts are processed in memory and are never uploaded, stored remotely, or sold to 3rd party servers.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                        )
                         Button(
                             onClick = { contactPermissionState.launchPermissionRequest() },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                         ) {
-                            Text("Grant Permission")
+                            Text("I Understand & Grant Permission")
                         }
                     }
                 }
@@ -223,9 +232,11 @@ fun FindFriendsScreen(
 
                 if (filteredContacts.isEmpty()) {
                     item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                            Text("No contacts found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                        com.finance.splitup.ui.components.EmptyStateComponent(
+                            icon = Icons.Rounded.PersonSearch,
+                            title = "No Contacts Found",
+                            description = if (searchQuery.isNotBlank()) "No contacts match '$searchQuery'." else "No contacts loaded. Make sure contacts permission is granted."
+                        )
                     }
                 }
             }

@@ -30,4 +30,22 @@ class SplitUpUiTest {
         // Verify Dashboard displays title
         composeTestRule.onNodeWithText("SplitUp").assertExists()
     }
+
+    @Test
+    fun testNavigationTabs() {
+        composeTestRule.setContent {
+            SplitUpTheme {
+                SplitUpApp()
+            }
+        }
+
+        // Unlock app
+        composeTestRule.onNodeWithText("Unlock with Biometrics / PIN").performClick()
+
+        // Verify dashboard is shown
+        composeTestRule.onNodeWithText("SplitUp").assertExists()
+
+        // Click on Groups bottom nav item if present
+        composeTestRule.onAllNodesWithText("Groups").onFirst().performClick()
+    }
 }

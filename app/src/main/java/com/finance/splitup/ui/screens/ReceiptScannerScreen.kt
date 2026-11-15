@@ -301,6 +301,7 @@ fun ReceiptScannerScreen(
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // Left: Gallery
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 IconButton(
                                     onClick = { galleryLauncher.launch("image/*") },
@@ -313,23 +314,7 @@ fun ReceiptScannerScreen(
                                 Text("Gallery", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
                             }
 
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                IconButton(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            viewModel.currentExtractedReceipt = SampleReceipts.sampleWholeFoods
-                                            onReceiptExtracted()
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .size(52.dp)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f), CircleShape)
-                                ) {
-                                    Icon(Icons.Rounded.AutoAwesome, contentDescription = "Sample Receipt", tint = MaterialTheme.colorScheme.onPrimary)
-                                }
-                                Text("Sample", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
-                            }
-
+                            // Center: Capture Camera Shutter Button
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Button(
                                     onClick = {
@@ -342,19 +327,31 @@ fun ReceiptScannerScreen(
                                                     val buffer = image.planes[0].buffer
                                                     val bytes = ByteArray(buffer.remaining())
                                                     buffer.get(bytes)
-                                                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                                    val rawBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                                                     val rotationDegrees = image.imageInfo.rotationDegrees
                                                     val rotatedBitmap = if (rotationDegrees != 0) {
                                                         val matrix = android.graphics.Matrix().apply {
                                                             postRotate(rotationDegrees.toFloat())
                                                         }
-                                                        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                                                        Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.width, rawBitmap.height, matrix, true)
                                                     } else {
-                                                        bitmap
+                                                        rawBitmap
                                                     }
                                                     image.close()
+
+                                                    // Downsample to max 2048x2048 for memory efficiency
+                                                    val maxDim = 2048
+                                                    val finalBitmap = if (rotatedBitmap.width > maxDim || rotatedBitmap.height > maxDim) {
+                                                        val scale = minOf(maxDim.toFloat() / rotatedBitmap.width, maxDim.toFloat() / rotatedBitmap.height)
+                                                        val targetW = (rotatedBitmap.width * scale).toInt().coerceAtLeast(1)
+                                                        val targetH = (rotatedBitmap.height * scale).toInt().coerceAtLeast(1)
+                                                        Bitmap.createScaledBitmap(rotatedBitmap, targetW, targetH, true)
+                                                    } else {
+                                                        rotatedBitmap
+                                                    }
+
                                                     isProcessing = false
-                                                    capturedBitmap = rotatedBitmap
+                                                    capturedBitmap = finalBitmap
                                                 }
 
                                                 override fun onError(exception: ImageCaptureException) {
@@ -373,6 +370,25 @@ fun ReceiptScannerScreen(
                                 ) {
                                     Icon(Icons.Rounded.CameraAlt, contentDescription = "Capture", modifier = Modifier.size(34.dp))
                                 }
+                                Text("Capture", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
+                            }
+
+                            // Right: Sample Receipt
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            viewModel.currentExtractedReceipt = SampleReceipts.sampleWholeFoods
+                                            onReceiptExtracted()
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f), CircleShape)
+                                ) {
+                                    Icon(Icons.Rounded.AutoAwesome, contentDescription = "Sample Receipt", tint = MaterialTheme.colorScheme.onPrimary)
+                                }
+                                Text("Sample", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
                             }
                         }
                     }

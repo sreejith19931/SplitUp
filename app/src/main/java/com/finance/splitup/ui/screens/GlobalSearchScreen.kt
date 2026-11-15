@@ -220,9 +220,11 @@ fun GlobalSearchScreen(
 
                 if (totalResults == 0) {
                     item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                            Text("No results found for '$query'.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                        com.finance.splitup.ui.components.EmptyStateComponent(
+                            icon = Icons.Rounded.SearchOff,
+                            title = "No Results Found",
+                            description = "No expenses or groups match '$query'. Try searching with a different term."
+                        )
                     }
                 }
 

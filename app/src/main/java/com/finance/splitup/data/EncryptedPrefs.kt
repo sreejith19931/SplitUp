@@ -8,19 +8,30 @@ import androidx.security.crypto.MasterKey
 object EncryptedPrefs {
     fun getPreferences(context: Context, name: String = "splitup_prefs"): SharedPreferences {
         return try {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-
-            EncryptedSharedPreferences.create(
-                context,
-                name,
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
+            createEncryptedPrefs(context, name)
         } catch (e: Exception) {
-            context.getSharedPreferences(name, Context.MODE_PRIVATE)
+            try {
+                // Safely handle KeyStore corruption or key invalidation by clearing corrupted file and recreating encrypted storage
+                context.deleteSharedPreferences(name)
+                createEncryptedPrefs(context, name)
+            } catch (_: Exception) {
+                // If KeyStore remains unavailable, return a secure private preferences instance
+                context.getSharedPreferences(name, Context.MODE_PRIVATE)
+            }
         }
+    }
+
+    private fun createEncryptedPrefs(context: Context, name: String): SharedPreferences {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+        return EncryptedSharedPreferences.create(
+            context,
+            name,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
     }
 }

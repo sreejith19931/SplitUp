@@ -48,6 +48,7 @@ fun EditProfileScreen(
     var venmoHandle by remember(userProfile) { mutableStateOf(userProfile.venmoHandle) }
     var revolutHandle by remember(userProfile) { mutableStateOf(userProfile.revolutHandle) }
 
+    var showPayPalLoginDialog by remember { mutableStateOf(false) }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var sendEmailOnPasswordChange by remember { mutableStateOf(true) }
@@ -232,29 +233,55 @@ fun EditProfileScreen(
                 shape = RoundedCornerShape(16.dp)
             )
 
-            OutlinedTextField(
-                value = paypalHandle,
-                onValueChange = { paypalHandle = it },
-                label = { Text("PayPal Username / Email") },
-                leadingIcon = { Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null) },
-                trailingIcon = if (paypalHandle.isNotBlank()) {
-                    {
-                        IconButton(
-                            onClick = {
-                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                val clip = android.content.ClipData.newPlainText("PayPal Handle", paypalHandle)
-                                clipboard.setPrimaryClip(clip)
-                                Toast.makeText(context, "PayPal handle copied to clipboard", Toast.LENGTH_SHORT).show()
-                            }
-                        ) {
-                            Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy PayPal Handle", modifier = Modifier.size(18.dp))
-                        }
-                    }
-                } else null,
-                singleLine = true,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
-            )
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = paypalHandle,
+                    onValueChange = { paypalHandle = it },
+                    label = { Text("PayPal Username / Email") },
+                    leadingIcon = { Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = null) },
+                    trailingIcon = if (paypalHandle.isNotBlank()) {
+                        {
+                            IconButton(
+                                onClick = {
+                                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                    val clip = android.content.ClipData.newPlainText("PayPal Handle", paypalHandle)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, "PayPal handle copied to clipboard", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy PayPal Handle", modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    } else null,
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+
+                OutlinedButton(
+                    onClick = { showPayPalLoginDialog = true },
+                    modifier = Modifier.height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Rounded.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Connect", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            if (showPayPalLoginDialog) {
+                PayPalLoginDialog(
+                    onDismiss = { showPayPalLoginDialog = false },
+                    onPayPalHandleRetrieved = { handle ->
+                        paypalHandle = handle
+                    }
+                )
+            }
 
             OutlinedTextField(
                 value = venmoHandle,

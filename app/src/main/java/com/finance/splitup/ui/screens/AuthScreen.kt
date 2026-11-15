@@ -148,12 +148,12 @@ fun AuthScreen(
                 .verticalScroll(rememberScrollState())
                 .systemBarsPadding()
                 .imePadding()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             SplitUpLogo(
-                size = 72.dp,
+                modifier = Modifier.width(180.dp),
                 style = LogoStyle.ANIMATED_LAUNCH
             )
 
@@ -240,7 +240,7 @@ fun AuthScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
                     OutlinedTextField(
@@ -476,6 +476,16 @@ fun AuthScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "By continuing, you agree to SplitUp's Terms of Service & Privacy Policy.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
     }
 }

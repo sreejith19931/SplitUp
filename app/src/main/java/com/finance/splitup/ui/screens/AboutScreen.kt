@@ -55,6 +55,7 @@ fun AboutScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -105,7 +106,7 @@ fun AboutScreen(
                     imageVector = null,
                     label = "GitHub",
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     onClick = {
                         UpdateChecker.openReleaseUrl(context, "https://github.com/sreejith19931/SplitUp")
                     }
@@ -117,7 +118,7 @@ fun AboutScreen(
                     imageVector = Icons.Rounded.Language,
                     label = "Website",
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     onClick = {
                         UpdateChecker.openReleaseUrl(context, "https://splitupfin.vercel.app")
                     }
@@ -129,7 +130,7 @@ fun AboutScreen(
                     imageVector = Icons.Rounded.SystemUpdate,
                     label = if (isCheckingUpdates) "Checking..." else "Updates",
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     isLoading = isCheckingUpdates,
                     onClick = {
                         if (!isCheckingUpdates) {
@@ -190,7 +191,7 @@ fun AboutScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "Privacy Guarantee",
+                        text = "Privacy & Local-First Security",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -203,7 +204,54 @@ fun AboutScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // Legal & Financial Disclaimer Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Legal & Financial Disclaimers",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "• Financial Disclaimer: SplitUp is a personal expense calculation and tracking tool. SplitUp is not a bank, escrow service, or licensed money transmitter, and does not hold, transmit, or process financial payments directly.\n\n• Trademark Notice: PayPal, Venmo, Revolut, and UPI are registered trademarks of their respective owners. SplitUp is an independent app and is not affiliated with or endorsed by these entities.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { UpdateChecker.openReleaseUrl(context, "https://splitupfin.vercel.app/privacy") },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Rounded.PrivacyTip, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Privacy Policy", fontSize = 12.sp)
+                }
+
+                OutlinedButton(
+                    onClick = { UpdateChecker.openReleaseUrl(context, "https://splitupfin.vercel.app/terms") },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Rounded.Gavel, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Terms", fontSize = 12.sp)
+                }
+            }
 
             var showLicensesDialog by remember { mutableStateOf(false) }
 

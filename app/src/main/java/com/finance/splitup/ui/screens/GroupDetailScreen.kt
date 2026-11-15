@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -123,6 +125,7 @@ fun GroupDetailContent(
     var expandedExpenseId by remember { mutableStateOf<String?>(null) }
     var showSettlementCelebration by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     var showQrDialog by remember { mutableStateOf(false) }
     var selectedGroupTab by remember { mutableStateOf(0) }
     val userProfile by viewModel.userProfile.collectAsState()
@@ -200,7 +203,10 @@ fun GroupDetailContent(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onAddExpense,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onAddExpense()
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -228,7 +234,10 @@ fun GroupDetailContent(
                             Text("You were invited to join '${group.name}' by ${group.createdBy}. Accept to participate in group expenses and settlements.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(
-                                    onClick = { viewModel.acceptGroupInvitation(group.id) },
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.acceptGroupInvitation(group.id)
+                                    },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
@@ -236,6 +245,7 @@ fun GroupDetailContent(
                                 }
                                 OutlinedButton(
                                     onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         viewModel.declineGroupInvitation(group.id)
                                         if (onBack != null) onBack()
                                     },

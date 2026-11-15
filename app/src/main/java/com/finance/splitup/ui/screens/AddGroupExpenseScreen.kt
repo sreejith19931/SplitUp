@@ -570,10 +570,11 @@ fun AddGroupExpenseScreen(
             val rawAmount = amount.parseAmount()
             val activeSplit = splitAmong.filter { it.value }.keys.toList()
             val customSum = group?.allMembers?.filter { splitAmong[it] == true }?.sumOf { customAmounts[it]?.parseAmount() ?: 0.0 } ?: 0.0
+            val diffCent = rawAmount - customSum
             val isSplitValid = if (splitMode == "EQUAL") {
                 activeSplit.isNotEmpty()
             } else {
-                abs(customSum - rawAmount) < 0.01 && rawAmount > 0.0
+                abs(diffCent) <= 0.02 && rawAmount > 0.0
             }
             val isFormValid = title.isNotBlank() && rawAmount > 0.0 && isSplitValid && !isSubmitting
 
@@ -591,11 +592,15 @@ fun AddGroupExpenseScreen(
                     } else if (splitMode == "EQUAL" && activeSplit.isEmpty()) {
                         errorMessage = "Select at least one member to split among."
                     } else if (splitMode == "CUSTOM") {
-                        if (abs(customSum - rawAmount) >= 0.01) {
+                        if (abs(diffCent) > 0.02) {
                             errorMessage = "Split total ($currencySymbol${String.format(Locale.US, "%.2f", customSum)}) must match total ($currencySymbol${String.format(Locale.US, "%.2f", rawAmount)})."
                         } else {
                             isSubmitting = true
-                            val memberSplitsMap = group?.allMembers?.filter { splitAmong[it] == true }?.associateWith { customAmounts[it]?.parseAmount() ?: 0.0 } ?: emptyMap()
+                            val initialSplitsMap = group?.allMembers?.filter { splitAmong[it] == true }?.associateWith { customAmounts[it]?.parseAmount() ?: 0.0 }?.toMutableMap() ?: mutableMapOf()
+                            if (abs(diffCent) > 0.0001 && initialSplitsMap.containsKey(paidBy)) {
+                                initialSplitsMap[paidBy] = (initialSplitsMap[paidBy] ?: 0.0) + diffCent
+                            }
+                            val memberSplitsMap = initialSplitsMap.toMap()
                             if (existingExpense != null) {
                                 val updated = existingExpense.copy(
                                     title = title,

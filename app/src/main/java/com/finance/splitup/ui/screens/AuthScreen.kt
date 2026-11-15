@@ -477,15 +477,7 @@ fun AuthScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "By continuing, you agree to SplitUp's Terms of Service & Privacy Policy.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
         }
     }
 }

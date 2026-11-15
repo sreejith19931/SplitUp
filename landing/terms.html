@@ -64,7 +64,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 860px;
             margin: 3rem auto;
             padding: 0 1.5rem;
         }
@@ -98,9 +98,18 @@
             margin-bottom: 0.75rem;
         }
 
-        .card p, .card ul {
+        .card p, .card ul, .card ol {
             color: var(--text-bright);
             font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .card ul {
+            padding-left: 1.25rem;
+        }
+
+        .card li {
+            margin-bottom: 0.5rem;
         }
 
         footer {
@@ -139,26 +148,53 @@
 
     <div class="container">
         <h1>Terms of Service</h1>
-        <p class="subtitle">Effective Date: October 24, 2024</p>
+        <p class="subtitle">Effective Date: October 24, 2024 &bull; Last Revised: October 2024</p>
 
         <div class="card">
-            <h2>1. Financial Non-Banking Disclaimer</h2>
-            <p>SplitUp is a personal expense tracking and calculation tool. SplitUp is not a bank, escrow service, or licensed money transmitter, and does not hold, transmit, or process financial payments directly. All calculations are provided for organizational purposes.</p>
+            <h2>1. Acceptance of Terms</h2>
+            <p>By downloading, installing, accessing, or using the <strong>SplitUp</strong> mobile application or web services at <code>splitupfin.vercel.app</code> (collectively, the "Services"), you enter into a legally binding agreement to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must immediately uninstall and cease using the Services.</p>
         </div>
 
         <div class="card">
-            <h2>2. Trademark Non-Affiliation Notice</h2>
-            <p>PayPal, Venmo, Revolut, Cash App, and UPI are registered trademarks of their respective owners. SplitUp is an independent application and is not affiliated with, endorsed by, or sponsored by these entities.</p>
+            <h2>2. Financial Non-Banking & Non-Payment Processor Disclaimer</h2>
+            <p style="text-transform: uppercase; font-weight: 700; color: #FCA5A5;">IMPORTANT FINANCIAL NOTICE:</p>
+            <p>SPLITUP IS AN INDEPENDENT PERSONAL EXPENSE CALCULATION, RECORD-KEEPING, AND BILL-SPLITTING SOFTWARE TOOL. SPLITUP IS NOT A BANK, FINANCIAL INSTITUTION, ESCROW SERVICE, OR LICENSED MONEY TRANSMITTER. SPLITUP DOES NOT DEPOSIT, HOLD, TRANSMIT, ESCROW, OR PROCESS MONETARY FUNDS, CURRENCY, OR FINANCIAL PAYMENTS DIRECTLY.</p>
+            <p>All group balance summaries, settlement calculations, and transaction logs generated within the app are strictly organizational records. Any actual money transfers or peer-to-peer payments executed by users must take place on external third-party payment platforms outside of SplitUp.</p>
         </div>
 
         <div class="card">
-            <h2>3. Limitation of Liability</h2>
-            <p>The application and calculations are provided on an "AS IS" and "AS AVAILABLE" basis without warranties of any kind. Users are responsible for double-checking transaction amounts prior to making external peer-to-peer transfers.</p>
+            <h2>3. Third-Party Trademarks & Non-Affiliation Disclaimer</h2>
+            <p>PayPal, Venmo, Revolut, Cash App, and UPI are registered trademarks of their respective owners. SplitUp is an independent software application and is not affiliated with, sponsored by, endorsed by, or associated with PayPal Holdings, Inc., Block, Inc., Revolut Ltd., or the National Payments Corporation of India (NPCI).</p>
         </div>
 
         <div class="card">
-            <h2>4. Open-Source Licensing</h2>
-            <p>SplitUp source code is provided under the MIT License. Dependencies including Jetpack Compose, Material 3, Room, CameraX, and ZXing are governed by their respective Apache 2.0 or open-source licenses.</p>
+            <h2>4. Calculation Accuracy & User Due Diligence</h2>
+            <p>While SplitUp uses robust mathematical algorithms for debt simplification and balance calculation, you acknowledge and agree that you remain solely responsible for verifying the accuracy of all expense figures, currency exchange conversions, and split amounts prior to initiating external monetary transfers with third parties.</p>
+        </div>
+
+        <div class="card">
+            <h2>5. Intellectual Property & Open-Source Attribution</h2>
+            <p>The SplitUp brand name, split card logo mark, software code, and user interface designs are protected by intellectual property laws. Open-source core libraries included within SplitUp (including Jetpack Compose, Material 3, Jetpack Room, CameraX, ZXing, and Coil) are licensed under the MIT or Apache 2.0 licenses.</p>
+        </div>
+
+        <div class="card">
+            <h2>6. Disclaimer of Warranties ("AS IS")</h2>
+            <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SERVICES ARE PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.</p>
+        </div>
+
+        <div class="card">
+            <h2>7. Limitation of Liability</h2>
+            <p>TO THE FULLEST EXTENT PERMITTED BY LAW, IN NO EVENT SHALL SPLITUP, ITS DEVELOPERS, OR AFFILIATES BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR LOSS OF PROFITS, DATA, OR GOODWILL, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE SERVICES.</p>
+        </div>
+
+        <div class="card">
+            <h2>8. Governing Law & Dispute Resolution</h2>
+            <p>These Terms shall be governed by and construed in accordance with applicable laws, without regard to conflict of law principles. Any legal disputes arising under these Terms shall be resolved through good-faith negotiation or binding individual arbitration.</p>
+        </div>
+
+        <div class="card">
+            <h2>9. Contact Information</h2>
+            <p>If you have questions regarding these Terms, please contact us at <a href="mailto:sreejith19931@gmail.com" style="color: var(--brand-cyan);">sreejith19931@gmail.com</a>.</p>
         </div>
     </div>
 

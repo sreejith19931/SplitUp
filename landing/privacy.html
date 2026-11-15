@@ -64,7 +64,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 860px;
             margin: 3rem auto;
             padding: 0 1.5rem;
         }
@@ -98,14 +98,14 @@
             margin-bottom: 0.75rem;
         }
 
-        .card p, .card ul {
+        .card p, .card ul, .card ol {
             color: var(--text-bright);
             font-size: 0.95rem;
+            margin-bottom: 0.75rem;
         }
 
-        .card ul {
+        .card ul, .card ol {
             padding-left: 1.25rem;
-            margin-top: 0.5rem;
         }
 
         .card li {
@@ -148,39 +148,74 @@
 
     <div class="container">
         <h1>Privacy Policy</h1>
-        <p class="subtitle">Effective Date: October 24, 2024</p>
+        <p class="subtitle">Effective Date: October 24, 2024 &bull; Last Revised: October 2024</p>
 
         <div class="card">
-            <h2>1. Local-First Data Philosophy</h2>
-            <p>SplitUp is built on a privacy-respecting, local-first architecture. Your personal expenses, category budgets, receipts, and group records reside locally on your device. SplitUp does not sell, license, or monetize user data.</p>
+            <h2>1. Introduction & Overview</h2>
+            <p>This Privacy Policy governs the collection, processing, storage, and protection of personal data by <strong>SplitUp</strong> ("we", "us", or "our") when you install, access, or use the SplitUp mobile application for Android or our web services at <code>splitupfin.vercel.app</code> (collectively, the "Services").</p>
+            <p>SplitUp is built on a <strong>local-first privacy model</strong> designed to prioritize user autonomy, data isolation, and cryptographic security. We do not sell, rent, license, or commercially exploit personal user data or financial transaction records.</p>
         </div>
 
         <div class="card">
-            <h2>2. Device Permission Disclosures</h2>
+            <h2>2. Categories of Information We Process</h2>
+            <ol>
+                <li><strong>Account Registration Data:</strong> When you create an account, we process your email address, display name, and unique user identifier (UID) managed securely via Google Firebase Authentication.</li>
+                <li><strong>Financial & Transaction Records:</strong> Individual personal expenses, group expense records, custom split ratios, settlement records, category budgets, and recurring subscriptions created by you.</li>
+                <li><strong>Device Permission Data (Processed Locally):</strong>
+                    <ul>
+                        <li><strong>Camera Access (`CAMERA`):</strong> Used exclusively for real-time, on-device Optical Character Recognition (OCR) receipt parsing via Google ML Kit. Captured image bitmaps are processed in temporary sandbox memory (`cacheDir`) and are not transmitted to external servers.</li>
+                        <li><strong>Contacts Access (`READ_CONTACTS`):</strong> Read strictly in-memory on your device to discover which of your phone contacts are registered SplitUp users. Your contact list is never uploaded, stored remotely, or shared with third-party marketers.</li>
+                        <li><strong>Notification Access (`BIND_NOTIFICATION_LISTENER_SERVICE`):</strong> Parsed strictly locally on-device to extract monetary figures from incoming bank and wallet application alerts. Notification text is processed in memory and is never logged or transmitted off-device.</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>3. Legal Bases for Processing (GDPR Art. 6)</h2>
+            <p>We process personal data under the following legal bases:</p>
             <ul>
-                <li><strong>Camera Access (`CAMERA`):</strong> Used exclusively for real-time on-device OCR receipt recognition via Google ML Kit. Captured photos remain on your device and are processed in local sandbox cache (`cacheDir`).</li>
-                <li><strong>Contacts Access (`READ_CONTACTS`):</strong> Processed strictly locally in memory on your device to help you discover friends on SplitUp and add them to expense groups. Your contact list is never uploaded or transmitted off-device.</li>
-                <li><strong>Notification Access (`BIND_NOTIFICATION_LISTENER_SERVICE`):</strong> Processed strictly locally on-device to extract monetary figures from bank and wallet app alerts. Notification content is parsed in memory and is never logged or transmitted off-device.</li>
+                <li><strong>Contractual Necessity (Art. 6(1)(b)):</strong> To deliver core bill-splitting, group balance calculation, and account synchronization services.</li>
+                <li><strong>Legitimate Interests (Art. 6(1)(f)):</strong> To ensure application security, prevent fraudulent activity, and maintain system performance.</li>
+                <li><strong>User Consent (Art. 6(1)(a)):</strong> For runtime device permissions including camera, contacts, and notification access, which you can revoke at any time in device settings.</li>
             </ul>
         </div>
 
         <div class="card">
-            <h2>3. Cloud Synchronization & Data Safety</h2>
-            <p>If you create an account, optional cloud sync uses Firebase Authentication and Firebase Cloud Firestore encrypted in transit via HTTPS/TLS. Cloud data is isolated to authenticated account members.</p>
-        </div>
-
-        <div class="card">
-            <h2>4. User Rights & Account Deletion</h2>
-            <p>You have full control over your data:</p>
+            <h2>4. Third-Party Service Providers & Sub-Processors</h2>
+            <p>We restrict data processing to essential enterprise infrastructure providers operating under strict confidentiality and security standards:</p>
             <ul>
-                <li><strong>Data Export (GDPR Art. 20):</strong> You can export full JSON backups, CSV reports, or PDF statements at any time inside the app.</li>
-                <li><strong>Account & Data Erasure (GDPR Art. 17):</strong> You can instantly delete your account and clear all cloud records inside the app under <em>Settings > Data Management & Backups > Delete Account</em>, or submit a request on our <a href="/delete-account" style="color: var(--brand-cyan);">Account Deletion Request Portal</a>.</li>
+                <li><strong>Google Firebase (Authentication & Cloud Firestore):</strong> Manages user authentication and encrypted database cloud sync. Data in transit is encrypted using TLS/HTTPS.</li>
+                <li><strong>Google ML Kit (On-Device Vision):</strong> Executes local machine learning text recognition without sending receipt imagery to cloud APIs.</li>
             </ul>
         </div>
 
         <div class="card">
-            <h2>5. Contact Us</h2>
-            <p>If you have any questions or privacy inquiries, contact us at <a href="https://github.com/sreejith19931/SplitUp" target="_blank" style="color: var(--brand-cyan);">GitHub Support</a>.</p>
+            <h2>5. Data Security & Storage Encryption</h2>
+            <p>SplitUp employs industry-standard technical and organizational security measures to protect your information:</p>
+            <ul>
+                <li><strong>On-Device Encryption:</strong> Sensitive preference keys and local state are encrypted using Android KeyStore MasterKey AES-256-GCM encryption (`EncryptedSharedPreferences`).</li>
+                <li><strong>Network Security:</strong> All API communication and Firestore cloud synchronization utilize Secure Sockets Layer (SSL) / Transport Layer Security (TLS 1.3) encryption.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>6. User Data Rights & Account Deletion (GDPR / CCPA)</h2>
+            <p>In accordance with global privacy regulations, including GDPR and CCPA, you retain full ownership and control over your personal data:</p>
+            <ul>
+                <li><strong>Right to Data Portability (GDPR Art. 20):</strong> You can export complete copies of your data as encrypted JSON database backups, CSV transactions, or PDF statements directly inside the app.</li>
+                <li><strong>Right to Erasure / Account Deletion (GDPR Art. 17):</strong> You can instantly delete your account and wipe all cloud records inside the app under <em>Settings &gt; Data Management &amp; Backups &gt; Delete Account</em>. Alternatively, you can submit an external request on our <a href="/delete-account" style="color: var(--brand-cyan);">Web Account Deletion Request Portal</a>.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>7. Children's Privacy Notice</h2>
+            <p>SplitUp is intended for general adult audiences and is not directed to children under 13 years of age (or 16 in the European Union). We do not knowingly collect or solicit personal data from children.</p>
+        </div>
+
+        <div class="card">
+            <h2>8. Contact & Data Protection Inquiries</h2>
+            <p>For any privacy inquiries, data subject access requests, or regulatory questions, please contact our Data Protection Officer at <a href="mailto:sreejith19931@gmail.com" style="color: var(--brand-cyan);">sreejith19931@gmail.com</a> or via our <a href="https://github.com/sreejith19931/SplitUp" target="_blank" style="color: var(--brand-cyan);">GitHub Repository Support</a>.</p>
         </div>
     </div>
 

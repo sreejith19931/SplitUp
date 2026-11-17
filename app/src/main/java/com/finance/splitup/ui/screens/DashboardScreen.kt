@@ -1,5 +1,6 @@
 package com.finance.splitup.ui.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -66,13 +67,15 @@ fun DashboardScreen(
     onNavigateToEditExpense: (String) -> Unit = {},
     onNavigateToPersonalExpenses: (String?) -> Unit = {},
     onNavigateToGroups: () -> Unit = {},
-    onNavigateToGroupDetail: (String) -> Unit = {},
+    onNavigateToGroupDetail: (String, Int) -> Unit = { _, _ -> },
     onNavigateToScanner: () -> Unit = {},
     onNavigateToCreateGroup: () -> Unit = {},
     onNavigateToGlobalSearch: () -> Unit = {},
     onNavigateToAddGroupExpense: (String) -> Unit = {},
     onNavigateToInsights: () -> Unit = {},
-    onNavigateToSubscriptions: () -> Unit = {}
+    onNavigateToSubscriptions: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToBudgets: () -> Unit = {}
 ) {
     val expenses by viewModel.expenses.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
@@ -183,7 +186,8 @@ fun DashboardScreen(
         list
     }
 
-    val notificationCount = activeNotificationItems.size
+    val pendingApprovalRequests by viewModel.pendingApprovalRequests.collectAsState()
+    val notificationCount = activeNotificationItems.size + pendingApprovalRequests.size
 
     val currentUser = remember {
         try { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser } catch (_: Exception) { null }
@@ -217,12 +221,32 @@ fun DashboardScreen(
             topBar = {
                 TopAppBar(
                     title = {
+                        val networkObserver = remember(context) { com.finance.splitup.data.NetworkConnectivityObserver(context) }
+                        val isOnline by networkObserver.isOnline.collectAsState(initial = true)
                         Column(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             horizontalAlignment = Alignment.Start,
                             modifier = Modifier.padding(bottom = 6.dp)
                         ) {
-                            SplitUpLogo(size = 24.dp, style = LogoStyle.REFINED_CARD_SPLITUP)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                SplitUpLogo(size = 24.dp, style = LogoStyle.REFINED_CARD_SPLITUP)
+                                if (!isOnline) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.errorContainer,
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(Icons.Rounded.CloudOff, contentDescription = null, modifier = Modifier.size(12.dp))
+                                            Text("Offline", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
                             Text(
                                 text = displayedGreeting,
                                 fontSize = 15.sp,
@@ -241,7 +265,7 @@ fun DashboardScreen(
                                 }
                             }
                         ) {
-                            IconButton(onClick = { showNotificationsSheet = true }) {
+                            IconButton(onClick = onNavigateToNotifications) {
                                 Icon(Icons.Rounded.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.onSurface)
                             }
                         }
@@ -278,7 +302,7 @@ fun DashboardScreen(
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
-                    contentPadding = PaddingValues(bottom = 88.dp)
+                    contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
                     if (syncStatus == com.finance.splitup.data.SyncStatus.ERROR || currentUser == null) {
                         item {
@@ -314,7 +338,9 @@ fun DashboardScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                         ) {
                     Column(
                         modifier = Modifier
@@ -423,7 +449,7 @@ fun DashboardScreen(
                                     Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable { onNavigateToPersonalExpenses(null) }
+                                            .clickable { onNavigateToPersonalExpenses("INCOME") }
                                     ) {
                                         Text("Income & Cash Flow", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                         Spacer(modifier = Modifier.height(12.dp))
@@ -548,7 +574,7 @@ fun DashboardScreen(
                     if (exceededBudgetsCount > 0) {
                         item {
                             SuggestionChip(
-                                onClick = { showNotificationsSheet = true },
+                                onClick = onNavigateToBudgets,
                                 label = { Text("⚠️ $exceededBudgetsCount budget exceeded", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
                                 colors = SuggestionChipDefaults.suggestionChipColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, labelColor = CrimsonDanger),
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
@@ -694,7 +720,7 @@ fun DashboardScreen(
                     GroupCard(
                         group = group,
                         viewModel = viewModel,
-                        onClick = { onNavigateToGroupDetail(group.id) }
+                        onClick = { onNavigateToGroupDetail(group.id, 0) }
                     )
                 }
             }
@@ -859,8 +885,212 @@ fun DashboardScreen(
         NotificationTraySheet(
             viewModel = viewModel,
             activeNotifications = activeNotificationItems,
+            onNavigateToGroupDetail = { gId, tab ->
+                showNotificationsSheet = false
+                onNavigateToGroupDetail(gId, tab)
+            },
             onDismiss = { showNotificationsSheet = false }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NotificationTraySheet(
+    viewModel: FinanceViewModel,
+    activeNotifications: List<Pair<String, String>>,
+    onNavigateToGroupDetail: (String, Int) -> Unit = { _, _ -> },
+    onDismiss: () -> Unit
+) {
+    val dismissedNotifications by viewModel.dismissedNotifications.collectAsState()
+    val pendingApprovalRequests by viewModel.pendingApprovalRequests.collectAsState()
+    val groups by viewModel.groups.collectAsState()
+    val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Rounded.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("Notifications & Alerts", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                }
+                if (activeNotifications.isNotEmpty() || pendingApprovalRequests.isNotEmpty()) {
+                    TextButton(onClick = {
+                        if (activeNotifications.isNotEmpty()) {
+                            viewModel.dismissNotifications(activeNotifications.map { it.first })
+                        }
+                        pendingApprovalRequests.forEach { req ->
+                            viewModel.rejectGroupRequest(req)
+                        }
+                    }) {
+                        Text("Clear All", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+
+            HorizontalDivider()
+
+            Button(
+                onClick = {
+                    viewModel.sendSampleApprovalRequest(null, "EXPENSE_EDIT")
+                    Toast.makeText(context, "Sample expense edit request sent from Alice! ✉️", Toast.LENGTH_SHORT).show()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
+            ) {
+                Icon(Icons.Rounded.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Test: Send Sample Approval Request ✋", fontWeight = FontWeight.Bold)
+            }
+
+            if (activeNotifications.isEmpty() && pendingApprovalRequests.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = EmeraldSuccess, modifier = Modifier.size(56.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("All caught up! No active notifications.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (dismissedNotifications.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedButton(
+                            onClick = { viewModel.clearDismissedNotifications() },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Reset Cleared Alerts", fontSize = 13.sp)
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (pendingApprovalRequests.isNotEmpty()) {
+                        item {
+                            Text("Pending Group Approval Requests ✋", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                        }
+                        items(pendingApprovalRequests, key = { "req_${it.id}" }) { req ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onNavigateToGroupDetail(req.groupId, 1) },
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Approval Needed • ${req.groupName}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                        Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primary) {
+                                            Text(req.requestType.replace("_", " "), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 10.sp, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Text("${req.requestedBy} requested ${req.requestType.lowercase().replace("_", " ")} in '${req.groupName}'.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Button(
+                                            onClick = { viewModel.approveGroupRequest(req) },
+                                            modifier = Modifier.weight(1f),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldSuccess, contentColor = androidx.compose.ui.graphics.Color.White)
+                                        ) {
+                                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Approve", fontWeight = FontWeight.Bold)
+                                        }
+                                        OutlinedButton(
+                                            onClick = { viewModel.rejectGroupRequest(req) },
+                                            modifier = Modifier.weight(1f),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = CrimsonDanger)
+                                        ) {
+                                            Icon(Icons.Rounded.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Decline", fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (activeNotifications.isNotEmpty()) {
+                        if (pendingApprovalRequests.isNotEmpty()) {
+                            item {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Active Alerts", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground)
+                            }
+                        }
+                        items(activeNotifications, key = { it.first }) { (key, note) ->
+                            val matchingGroup = groups.find { note.contains("'${it.name}'", ignoreCase = true) }
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .let { mod ->
+                                        if (matchingGroup != null) {
+                                            mod.clickable { onNavigateToGroupDetail(matchingGroup.id, 1) }
+                                        } else {
+                                            mod
+                                        }
+                                    },
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                                        }
+                                    }
+                                    Text(note, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                                    IconButton(onClick = { viewModel.dismissNotifications(listOf(key)) }, modifier = Modifier.size(32.dp)) {
+                                        Icon(Icons.Rounded.Close, contentDescription = "Dismiss Notification", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 
@@ -1138,89 +1368,5 @@ fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun NotificationTraySheet(
-    viewModel: FinanceViewModel,
-    activeNotifications: List<Pair<String, String>>,
-    onDismiss: () -> Unit
-) {
-    val dismissedNotifications by viewModel.dismissedNotifications.collectAsState()
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-                .heightIn(max = 480.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Rounded.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("Notifications", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                }
-                if (activeNotifications.isNotEmpty()) {
-                    TextButton(onClick = {
-                        viewModel.dismissNotifications(activeNotifications.map { it.first })
-                    }) {
-                        Text("Clear All", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-            }
-
-            HorizontalDivider()
-
-            if (activeNotifications.isEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("All caught up! No active notifications.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (dismissedNotifications.isNotEmpty()) {
-                        OutlinedButton(
-                            onClick = { viewModel.clearDismissedNotifications() },
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Reset Cleared Alerts", fontSize = 12.sp)
-                        }
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(activeNotifications, key = { it.first }) { (key, note) ->
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(14.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                                Text(note, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                IconButton(onClick = { viewModel.dismissNotifications(listOf(key)) }, modifier = Modifier.size(28.dp)) {
-                                    Icon(Icons.Rounded.Close, contentDescription = "Dismiss Notification", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
-}
 

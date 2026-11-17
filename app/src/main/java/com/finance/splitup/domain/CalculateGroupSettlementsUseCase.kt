@@ -17,18 +17,34 @@ class CalculateGroupSettlementsUseCase {
     fun calculateNetBalances(
         group: Group,
         targetCurrency: String = group.expenses.firstOrNull()?.currency ?: Currencies.EUR,
-        currentUserName: String = "You"
+        currentUserName: String = "You",
+        currentUserEmail: String = ""
     ): Map<String, Double> {
-        val canonicalSelf = group.allMembers.firstOrNull { it == "You" || it.equals("You", ignoreCase = true) }
-            ?: group.allMembers.firstOrNull { currentUserName.isNotBlank() && it.equals(currentUserName, ignoreCase = true) }
-            ?: "You"
+        fun isSelfUser(n: String): Boolean {
+            val trimmed = n.trim().lowercase()
+            if (trimmed == "you") return true
+            if (currentUserName.isNotBlank() && trimmed == currentUserName.trim().lowercase()) return true
+            if (currentUserEmail.isNotBlank()) {
+                val emailLower = currentUserEmail.trim().lowercase()
+                if (trimmed == emailLower || trimmed == emailLower.substringBefore("@")) return true
+                val memberIdx = group.members.indexOfFirst { it.equals(n, ignoreCase = true) }
+                if (memberIdx >= 0) {
+                    val memberEmail = group.memberEmails.getOrNull(memberIdx)
+                    if (memberEmail != null && memberEmail.equals(currentUserEmail, ignoreCase = true)) {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        val canonicalSelf = group.allMembers.firstOrNull { isSelfUser(it) } ?: "You"
 
         fun matchMember(name: String): String {
-            val trimmed = name.trim()
-            if (trimmed == "You" || trimmed.equals("You", ignoreCase = true) || (currentUserName.isNotBlank() && trimmed.equals(currentUserName, ignoreCase = true))) {
+            if (isSelfUser(name)) {
                 return canonicalSelf
             }
-            return group.allMembers.firstOrNull { it.equals(trimmed, ignoreCase = true) } ?: trimmed
+            return group.allMembers.firstOrNull { it.equals(name.trim(), ignoreCase = true) } ?: name.trim()
         }
 
         val distinctMembers = group.allMembers.map { matchMember(it) }.distinct()
@@ -126,9 +142,10 @@ class CalculateGroupSettlementsUseCase {
     fun calculateSettlements(
         group: Group,
         targetCurrency: String = group.expenses.firstOrNull()?.currency ?: Currencies.EUR,
-        currentUserName: String = "You"
+        currentUserName: String = "You",
+        currentUserEmail: String = ""
     ): List<Settlement> {
-        val netBalances = calculateNetBalances(group, targetCurrency, currentUserName)
+        val netBalances = calculateNetBalances(group, targetCurrency, currentUserName, currentUserEmail)
         val debtors = netBalances.filter { it.value < -0.01 }.mapValues { -it.value }.toMutableMap()
         val creditors = netBalances.filter { it.value > 0.01 }.toMutableMap()
         val settlements = mutableListOf<Settlement>()
@@ -176,10 +193,11 @@ class CalculateGroupSettlementsUseCase {
     fun execute(
         group: Group,
         targetCurrency: String = group.expenses.firstOrNull()?.currency ?: Currencies.EUR,
-        currentUserName: String = "You"
+        currentUserName: String = "You",
+        currentUserEmail: String = ""
     ): SettlementResult {
-        val balances = calculateNetBalances(group, targetCurrency, currentUserName)
-        val settlements = calculateSettlements(group, targetCurrency, currentUserName)
+        val balances = calculateNetBalances(group, targetCurrency, currentUserName, currentUserEmail)
+        val settlements = calculateSettlements(group, targetCurrency, currentUserName, currentUserEmail)
         return SettlementResult(netBalances = balances, settlements = settlements)
     }
 }

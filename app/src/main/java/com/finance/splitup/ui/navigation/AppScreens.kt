@@ -46,7 +46,7 @@ data class AddExpenseRoute(
 ) : NavKey
 
 @Serializable
-data class GroupDetailRoute(val groupId: String) : NavKey
+data class GroupDetailRoute(val groupId: String, val initialTab: Int = 0) : NavKey
 
 @Serializable
 data class AddGroupExpenseRoute(val groupId: String, val expenseId: String? = null) : NavKey
@@ -65,5 +65,11 @@ data object SubscriptionsRoute : NavKey
 
 @Serializable
 data object InsightsRoute : NavKey
+
+@Serializable
+data object BudgetRoute : NavKey
+
+@Serializable
+data object NotificationsRoute : NavKey
 
 

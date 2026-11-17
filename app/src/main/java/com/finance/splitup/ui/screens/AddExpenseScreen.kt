@@ -60,6 +60,8 @@ fun AddExpenseScreen(
 
     var isCategoryManuallySelected by rememberSaveable { mutableStateOf(existingExpense != null || initialCategory != null) }
     var isIncome by rememberSaveable { mutableStateOf(initialIsIncome) }
+    var isRecurring by rememberSaveable { mutableStateOf(false) }
+    var recurringFrequency by rememberSaveable { mutableStateOf("Monthly") }
 
     Scaffold(
         topBar = {
@@ -292,6 +294,31 @@ fun AddExpenseScreen(
                 }
             }
 
+            val defaultCurr = viewModel.defaultCurrency
+            if (selectedCurrency != defaultCurr && amount.parseAmount() > 0) {
+                val converted = Currencies.convert(amount.parseAmount(), selectedCurrency, defaultCurr)
+                val targetSymbol = Currencies.getSymbol(defaultCurr)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Rounded.SwapHoriz, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                        Text(
+                            text = "Travel Mode: ~ $targetSymbol${String.format(java.util.Locale.US, "%.2f", converted)} ($defaultCurr)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
             // Category dropdown menu
             val budgets by viewModel.budgets.collectAsState()
             if (!isIncome) {
@@ -314,7 +341,7 @@ fun AddExpenseScreen(
                         expanded = expandedCategoryDropdown,
                         onDismissRequest = { expandedCategoryDropdown = false }
                     ) {
-                        ExpenseCategories.all.forEach { category ->
+                        ExpenseCategories.expenseCategories.forEach { category ->
                             DropdownMenuItem(
                                 text = { Text(category) },
                                 onClick = {
@@ -443,6 +470,42 @@ fun AddExpenseScreen(
                 )
             }
 
+            if (isIncome) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Recurring Income", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Text("Auto-log this income periodically", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = isRecurring,
+                        onCheckedChange = { isRecurring = it }
+                    )
+                }
+
+                if (isRecurring) {
+                    Text("Frequency", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("Weekly", "Monthly", "Yearly").forEach { freq ->
+                            FilterChip(
+                                selected = recurringFrequency == freq,
+                                onClick = { recurringFrequency = freq },
+                                label = { Text(freq) }
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
             val amt = amount.parseAmount()
@@ -459,6 +522,18 @@ fun AddExpenseScreen(
                         errorMessage = "Please enter a valid amount greater than 0."
                     } else {
                         isSubmitting = true
+                        val nextDueStr = if (isRecurring && isIncome) {
+                            val now = java.time.LocalDate.now()
+                            val futureDate = when (recurringFrequency.lowercase(java.util.Locale.ROOT)) {
+                                "weekly" -> now.plusWeeks(1)
+                                "yearly" -> now.plusYears(1)
+                                else -> now.plusMonths(1)
+                            }
+                            futureDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy", java.util.Locale.US))
+                        } else {
+                            finalDate
+                        }
+
                         if (isIncome) {
                             viewModel.addExpense(
                                 title = title,
@@ -470,6 +545,17 @@ fun AddExpenseScreen(
                                 currency = selectedCurrency,
                                 paymentMethod = selectedPaymentMethod
                             )
+                            if (isRecurring) {
+                                viewModel.addRecurringExpense(
+                                    title = title,
+                                    amount = amt,
+                                    category = ExpenseCategories.INCOME,
+                                    frequency = recurringFrequency,
+                                    nextDueDate = nextDueStr,
+                                    currency = selectedCurrency,
+                                    isIncome = true
+                                )
+                            }
                         } else {
                             if (existingExpense != null) {
                                 val updated = existingExpense.copy(

@@ -1,5 +1,6 @@
 package com.finance.splitup.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -64,16 +65,7 @@ fun GroupsScreen(
     var showJoinDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    LaunchedEffect(groups) {
-        val currentSelectedGroup = groups.find { it.id == selectedGroupId }
-        if (currentSelectedGroup != null) {
-            if (selectedGroupTypeFilter == "Archived" && !currentSelectedGroup.isArchived) {
-                selectedGroupTypeFilter = null
-            } else if (selectedGroupTypeFilter != "Archived" && currentSelectedGroup.isArchived) {
-                selectedGroupTypeFilter = "Archived"
-            }
-        }
-    }
+
 
     ListDetailPaneScaffold(
         directive = navigator.scaffoldDirective,
@@ -150,9 +142,9 @@ fun GroupsScreen(
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            contentPadding = PaddingValues(bottom = 88.dp)
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(bottom = 32.dp)
                         ) {
                             item {
                                 val currencySymbol = com.finance.splitup.data.Currencies.getSymbol(viewModel.defaultCurrency)
@@ -162,7 +154,9 @@ fun GroupsScreen(
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(20.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(14.dp),
@@ -218,7 +212,7 @@ fun GroupsScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    Text(group.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                                    Text(group.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onTertiaryContainer)
                                                     Text("Invited by ${group.createdBy}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f))
                                                 }
                                                 Text("${group.members.size} active members", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
@@ -266,7 +260,14 @@ fun GroupsScreen(
                                             onClick = {
                                                 selectedGroupTypeFilter = if (selectedGroupTypeFilter == type) null else type
                                             },
-                                            label = { Text(type) },
+                                            label = {
+                                                Text(
+                                                    text = type,
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                )
+                                            },
                                             shape = RoundedCornerShape(10.dp)
                                         )
                                     }
@@ -349,6 +350,7 @@ fun GroupCard(
     onClick: () -> Unit
 ) {
     val userBalance = viewModel.getUserNetBalance(group, viewModel.defaultCurrency)
+    val settlements = viewModel.calculateSettlements(group, viewModel.defaultCurrency)
     val totalBalance = group.expenses
         .filter { it.category != ExpenseCategories.SETTLEMENT && !it.title.contains("Settlement", ignoreCase = true) }
         .sumOf { 
@@ -360,6 +362,7 @@ fun GroupCard(
     val statusText = when {
         userBalance > 0.01 -> "You are owed $currencySymbol${String.format(Locale.US, "%.2f", userBalance)}"
         userBalance < -0.01 -> "You owe $currencySymbol${String.format(Locale.US, "%.2f", -userBalance)}"
+        settlements.isNotEmpty() -> "Peer transfers pending"
         else -> "Settled up"
     }
 
@@ -401,7 +404,7 @@ fun GroupCard(
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(text = group.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Text(text = group.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     if (group.isArchived) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),

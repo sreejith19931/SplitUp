@@ -86,7 +86,7 @@ class CloudSyncWorker(
                     }
 
                     val builder = androidx.core.app.NotificationCompat.Builder(applicationContext, "splitup_cloud_sync_notifications")
-                        .setSmallIcon(android.R.drawable.ic_dialog_info)
+                        .setSmallIcon(com.finance.splitup.R.mipmap.ic_launcher_round)
                         .setContentTitle(titleText)
                         .setContentText(bodyText)
                         .setAutoCancel(true)

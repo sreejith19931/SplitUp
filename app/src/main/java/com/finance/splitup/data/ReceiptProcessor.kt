@@ -159,20 +159,23 @@ object ReceiptProcessor {
     private fun parseReceiptPrice(priceStr: String): Double {
         if (priceStr.isBlank()) return 0.0
         val cleaned = priceStr.trim()
-        val normalized = if (cleaned.contains(",") && cleaned.contains(".")) {
-            val lastComma = cleaned.lastIndexOf(',')
-            val lastDot = cleaned.lastIndexOf('.')
+        val isNegative = cleaned.startsWith("-")
+        val absCleaned = if (isNegative) cleaned.substring(1).trim() else cleaned
+        val normalized = if (absCleaned.contains(",") && absCleaned.contains(".")) {
+            val lastComma = absCleaned.lastIndexOf(',')
+            val lastDot = absCleaned.lastIndexOf('.')
             if (lastComma > lastDot) {
-                cleaned.replace(".", "").replace(",", ".")
+                absCleaned.replace(".", "").replace(",", ".")
             } else {
-                cleaned.replace(",", "")
+                absCleaned.replace(",", "")
             }
-        } else if (cleaned.contains(",")) {
-            cleaned.replace(",", ".")
+        } else if (absCleaned.contains(",")) {
+            absCleaned.replace(",", ".")
         } else {
-            cleaned
+            absCleaned
         }
-        return normalized.toDoubleOrNull() ?: 0.0
+        val value = normalized.toDoubleOrNull() ?: 0.0
+        return if (isNegative) -value else value
     }
 
     fun parseReceiptText(text: String): ExtractedReceipt {
@@ -211,12 +214,12 @@ object ReceiptProcessor {
         val tipKeywords = setOf("TIP", "GRATUITY", "SERVICE", "TRINKGELD", "POURBOIRE", "SERVIZIO")
         val paymentKeywords = setOf("CARD", "VISA", "MASTERCARD", "AMEX", "CREDIT", "DEBIT", "CASH", "PAYMENT", "PAID", "CHANGE", "TENDER", "EFTPOS", "APPLE PAY", "GOOGLE PAY", "BARZAHLUNG", "KARTE", "GUTHABEN", "ESPACE", "EFFECTUE", "CARTA", "CONTANTI", "CONTANT")
         val codeKeywords = setOf("CODE", "ARTIKEL", "ART.", "ITEM NO", "SKU", "PLU", "EAN", "BARCODE", "POS", "REF", "ID:")
-        val discountKeywords = setOf("RABATT", "DISCOUNT", "RABAT", "REDUKTION", "SAVINGS", "GUTSCHEIN", "COUPON", "APP PREIS", "OFF", "NACHLASS")
+        val discountKeywords = setOf("RABATT", "DISCOUNT", "RABAT", "REDUKTION", "SAVINGS", "GUTSCHEIN", "COUPON", "APP PREIS", "OFF", "NACHLASS", "PROMO", "PROMOTIONAL", "SPECIAL", "OFFER", "REBATE", "CREDIT", "REDUCTION", "SCONTO", "DESCUENTO", "KORTING", "SPAREN", "AKTION", "ERMÄSSIGUNG", "MEMBER PRICE")
         val companySuffixes = setOf("GMBH", "AG", "E.K.", "INC", "LLC", "LTD", "CORP", "CO", "HANDELS", "SUPERMARKET", "MARKET")
         val addressTerms = setOf("STREET", "ST", "AVENUE", "AVE", "ROAD", "RD", "BOULEVARD", "BLVD", "DRIVE", "DR", "LANE", "LN", "WAY", "SUITE", "STE", "UNIT", "FLOOR", "FL", "HIGHWAY", "HWY", "PARKWAY", "PKWY", "BOX", "ZIP", "POSTAL", "CITY", "STATE")
         val nonMerchantTerms = setOf("TABLE", "GUEST", "SERVER", "RECEIPT", "INVOICE", "CHECK", "DATE", "TIME", "REGISTER", "TERMINAL", "CASHIER", "WELCOME", "TICKET", "ORDER", "CASH", "CARD", "STORE", "BRANCH", "SHOP", "LOCATION", "MANAGER", "TEL", "PHONE", "FAX", "MOBILE", "WWW", "HTTP", "HTTPS", "COM", "ORG", "NET", "THANK", "THANKS", "VISIT", "CUSTOMER", "DUPLICATE", "ORIGINAL")
 
-        val priceRegex = Regex("""(\d+[.,]\d{1,2})""")
+        val priceRegex = Regex("""(-?\s*\d+[.,]\d{1,2})""")
 
         fun cleanMerchantLine(line: String): String {
             var s = line.trim()
@@ -360,7 +363,7 @@ object ReceiptProcessor {
                 .trim()
         }
 
-        // Pass 2: Extract item lines
+        // Pass 2: Extract item and discount lines
         val items = mutableListOf<ReceiptLineItem>()
         var skipNext = false
         for (i in lines.indices) {
@@ -378,10 +381,14 @@ object ReceiptProcessor {
             if (matches.isNotEmpty()) {
                 val lastMatch = matches.last()
                 val price = parseReceiptPrice(lastMatch.groupValues[1])
-                if (price > 0.0) {
+                if (price != 0.0) {
                     val textBeforePrice = line.substring(0, lastMatch.range.first)
                     itemName = cleanItemName(textBeforePrice)
                     itemPrice = price
+                    val isDiscount = discountKeywords.any { upperLine.contains(it) } || line.startsWith("-") || line.contains(" -") || price < 0.0
+                    if (isDiscount && itemPrice > 0.0) {
+                        itemPrice = -itemPrice
+                    }
                 }
             } else if (i < lines.size - 1) {
                 val nextMatches = priceRegex.findAll(lines[i + 1]).toList()
@@ -390,22 +397,25 @@ object ReceiptProcessor {
                     val price = parseReceiptPrice(nextLastMatch.groupValues[1])
                     val nextTextBefore = lines[i + 1].substring(0, nextLastMatch.range.first)
                     val cleanedNextBefore = cleanItemName(nextTextBefore)
-                    if (price > 0.0 && cleanedNextBefore.isBlank()) {
+                    if (price != 0.0 && cleanedNextBefore.isBlank()) {
                         itemName = cleanItemName(line)
                         itemPrice = price
+                        val isDiscount = discountKeywords.any { upperLine.contains(it) } || lines[i+1].startsWith("-") || lines[i+1].contains(" -") || price < 0.0
+                        if (isDiscount && itemPrice > 0.0) {
+                            itemPrice = -itemPrice
+                        }
                         skipNext = true
                     }
                 }
             }
 
-            if (itemPrice > 0.0 && itemName.isNotBlank()) {
+            if (itemPrice != 0.0 && itemName.isNotBlank()) {
                 val wordsInUpperLine = upperLine.split(Regex("""\s+""")).map { it.replace(Regex("""[^A-Z0-9]"""), "") }.filter { it.isNotBlank() }
                 val isSubtotal = subtotalKeywords.any { wordsInUpperLine.contains(it) || upperLine.contains("SUB TOTAL") || upperLine.contains("SUB-TOTAL") }
                 val isTotalLine = !isSubtotal && totalKeywords.any { wordsInUpperLine.contains(it) || upperLine.contains("GRAND TOTAL") || upperLine.contains("AMOUNT DUE") }
                 val isTaxLine = taxBreakdownKeywords.any { wordsInUpperLine.contains(it) }
                 val isTipLine = tipKeywords.any { wordsInUpperLine.contains(it) }
                 val isPaymentLine = paymentKeywords.any { wordsInUpperLine.contains(it) || upperLine.contains("APPLE PAY") || upperLine.contains("GOOGLE PAY") }
-                val isDiscountLine = discountKeywords.any { wordsInUpperLine.contains(it) } || line.contains("-")
 
                 val nameWithoutCode = codeKeywords.fold(itemName) { acc, kw ->
                     acc.replace(Regex("""\b""" + Regex.escape(kw) + """\b""", RegexOption.IGNORE_CASE), "")
@@ -416,7 +426,7 @@ object ReceiptProcessor {
                 val followsTotalLabel = i > 0 && totalKeywords.any { lines[i - 1].uppercase().contains(it) }
 
                 val isPureNumberOrCode = itemName.matches(Regex("""^[\d\s\-_.:/#]+$"""))
-                if (!isSubtotal && !isTotalLine && !isTaxLine && !isTipLine && !isPaymentLine && !isCodeLine && !isDiscountLine && !isAddressOrSystem && !followsTotalLabel && !isPureNumberOrCode) {
+                if (!isSubtotal && !isTotalLine && !isTaxLine && !isTipLine && !isPaymentLine && !isCodeLine && !isAddressOrSystem && !followsTotalLabel && !isPureNumberOrCode) {
                     if (items.none { it.name.equals(itemName, ignoreCase = true) && kotlin.math.abs(it.price - itemPrice) < 0.01 }) {
                         items.add(ReceiptLineItem(name = itemName, price = itemPrice))
                     }

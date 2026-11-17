@@ -221,7 +221,7 @@ fun AddGroupExpenseScreen(
                     expanded = expandedCategoryDropdown,
                     onDismissRequest = { expandedCategoryDropdown = false }
                 ) {
-                    ExpenseCategories.all.forEach { category ->
+                    ExpenseCategories.expenseCategories.forEach { category ->
                         DropdownMenuItem(
                             text = { Text(category) },
                             onClick = {
@@ -404,10 +404,11 @@ fun AddGroupExpenseScreen(
                         OutlinedButton(
                             onClick = {
                                 val total = amount.parseAmount()
-                                val selectedMembers = group?.allMembers?.filter { splitAmong[it] == true } ?: emptyList()
+                                val allKeys = splitAmong.keys.toList()
+                                val selectedMembers = allKeys.filter { splitAmong[it] == true }
                                 if (total > 0.0 && selectedMembers.isNotEmpty()) {
                                     val share = kotlin.math.round((total / selectedMembers.size) * 100) / 100.0
-                                    group?.allMembers?.forEach { member ->
+                                    allKeys.forEach { member ->
                                         if (selectedMembers.contains(member)) {
                                             val index = selectedMembers.indexOf(member)
                                             val amountToAssign = if (index == selectedMembers.size - 1) {
@@ -432,7 +433,7 @@ fun AddGroupExpenseScreen(
                             onClick = {
                                 val total = amount.parseAmount()
                                 if (total > 0.0) {
-                                    val otherSum = group?.allMembers?.filter { splitAmong[it] == true && it != paidBy }?.sumOf { customAmounts[it]?.parseAmount() ?: 0.0 } ?: 0.0
+                                    val otherSum = splitAmong.keys.filter { splitAmong[it] == true && it != paidBy }.sumOf { customAmounts[it]?.parseAmount() ?: 0.0 }
                                     val remainingForPayer = maxOf(0.0, total - otherSum)
                                     splitAmong[paidBy] = true
                                     customAmounts[paidBy] = String.format(Locale.US, "%.2f", remainingForPayer)
@@ -445,7 +446,7 @@ fun AddGroupExpenseScreen(
 
                         OutlinedButton(
                             onClick = {
-                                group?.allMembers?.forEach { member ->
+                                splitAmong.keys.forEach { member ->
                                     customAmounts[member] = "0.00"
                                 }
                             },

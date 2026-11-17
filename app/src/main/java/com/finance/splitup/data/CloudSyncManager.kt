@@ -629,6 +629,34 @@ object CloudSyncManager {
         }
     }
 
+    suspend fun syncApprovalRequestToCloud(request: com.finance.splitup.data.db.GroupApprovalRequestEntity) {
+        val db = firestore ?: return
+        try {
+            withTimeout(SYNC_TIMEOUT_MS) {
+                db.collection("approval_requests")
+                    .document(request.id)
+                    .set(request)
+                    .await()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed syncApprovalRequestToCloud ${request.id}", e)
+        }
+    }
+
+    suspend fun updateApprovalRequestStatusInCloud(requestId: String, status: String) {
+        val db = firestore ?: return
+        try {
+            withTimeout(SYNC_TIMEOUT_MS) {
+                db.collection("approval_requests")
+                    .document(requestId)
+                    .update("status", status)
+                    .await()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed updateApprovalRequestStatusInCloud $requestId", e)
+        }
+    }
+
     suspend fun syncGroupToCloud(group: Group, repository: FinanceRepository? = null, context: Context? = null) {
         val user = auth?.currentUser ?: return
         val db = firestore ?: return
@@ -1011,7 +1039,7 @@ object CloudSyncManager {
         )
 
         val builder = androidx.core.app.NotificationCompat.Builder(context, SplitUpMessagingService.CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(com.finance.splitup.R.mipmap.ic_launcher_round)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

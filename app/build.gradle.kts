@@ -19,8 +19,8 @@ android {
         applicationId = "com.finance.splitup"
         minSdk = 26
         targetSdk = 37
-        versionCode = 6
-        versionName = "1.3"
+        versionCode = 7
+        versionName = "1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -150,6 +150,7 @@ dependencies {
     testImplementation(libs.androidx.junit)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

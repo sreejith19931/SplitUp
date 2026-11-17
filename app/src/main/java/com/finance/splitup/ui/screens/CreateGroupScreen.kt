@@ -43,6 +43,7 @@ fun CreateGroupScreen(
     var memberSearchQuery by remember { mutableStateOf("") }
     var selectedMembers by remember { mutableStateOf(emptyList<String>()) }
     var selectedMemberEmails by remember { mutableStateOf(emptyList<String>()) }
+    var requireApproval by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var memberForWhatsAppInvite by remember { mutableStateOf<String?>(null) }
 
@@ -425,6 +426,33 @@ fun CreateGroupScreen(
                 )
             }
 
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Require Owner Approval", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Require owner approval when non-owners edit/delete expenses or remove members",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = requireApproval,
+                        onCheckedChange = { requireApproval = it }
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
@@ -439,7 +467,8 @@ fun CreateGroupScreen(
                             pendingMembers = selectedMembers,
                             memberEmails = selectedMemberEmails,
                             emoji = selectedEmoji,
-                            colorHex = selectedColorHex
+                            colorHex = selectedColorHex,
+                            requireApproval = requireApproval
                         )
                         onGroupCreated(newGroupId)
                     }

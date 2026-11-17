@@ -196,11 +196,32 @@ class ReceiptProcessorTest {
         val extracted = ReceiptProcessor.parseReceiptText(ocrText)
         assertEquals("Peter Simmel Handels GmbH", extracted.merchantName)
         assertEquals(25.12, extracted.totalAmount, 0.01)
-        assertEquals(10, extracted.lineItems.size)
+        assertEquals(11, extracted.lineItems.size)
         assertTrue(extracted.lineItems.any { it.name.contains("Pringles", ignoreCase = true) && kotlin.math.abs(it.price - 1.89) < 0.01 })
+        assertTrue(extracted.lineItems.any { (it.name.contains("Rabatt", ignoreCase = true) || it.name.contains("App Preis", ignoreCase = true)) && kotlin.math.abs(it.price - (-0.20)) < 0.01 })
         assertTrue(extracted.lineItems.any { it.name.contains("Gouda", ignoreCase = true) && kotlin.math.abs(it.price - 2.15) < 0.01 })
         assertTrue(extracted.lineItems.any { it.name.contains("Tomaten", ignoreCase = true) && kotlin.math.abs(it.price - 1.32) < 0.01 })
         assertTrue(extracted.lineItems.any { it.name.contains("Ananas", ignoreCase = true) && kotlin.math.abs(it.price - 4.95) < 0.01 })
         assertTrue(extracted.lineItems.any { it.name.contains("Milch", ignoreCase = true) && kotlin.math.abs(it.price - 0.85) < 0.01 })
+    }
+
+    @Test
+    fun testDiscountAndCouponDetection() {
+        val ocrText = """
+            Supermarket Extra
+            Organic Milk 3.50
+            COUPON -1.00
+            App Preis / Rabatt -0,20
+            SPECIAL OFFER -1.50
+            TOTAL 0.80
+        """.trimIndent()
+
+        val extracted = ReceiptProcessor.parseReceiptText(ocrText)
+        assertEquals("Supermarket Extra", extracted.merchantName)
+        assertEquals(4, extracted.lineItems.size)
+        assertTrue(extracted.lineItems.any { it.name.contains("Organic Milk", ignoreCase = true) && kotlin.math.abs(it.price - 3.50) < 0.01 })
+        assertTrue(extracted.lineItems.any { it.name.contains("COUPON", ignoreCase = true) && kotlin.math.abs(it.price - (-1.00)) < 0.01 })
+        assertTrue(extracted.lineItems.any { it.name.contains("Rabatt", ignoreCase = true) && kotlin.math.abs(it.price - (-0.20)) < 0.01 })
+        assertTrue(extracted.lineItems.any { it.name.contains("OFFER", ignoreCase = true) && kotlin.math.abs(it.price - (-1.50)) < 0.01 })
     }
 }

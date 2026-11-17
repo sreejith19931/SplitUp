@@ -83,7 +83,9 @@ fun EditProfileScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -310,10 +312,12 @@ fun EditProfileScreen(
                     isLoading = true
                     viewModel.updateUserProfile(upiVpa, paypalHandle, venmoHandle, revolutHandle)
                     
-                    if (displayName.isNotBlank() && displayName != currentUser?.displayName) {
+                    val oldName = currentUser?.displayName ?: ""
+                    if (displayName.isNotBlank() && displayName != oldName) {
                         authViewModel.updateDisplayName(
                             newName = displayName,
                             onSuccess = {
+                                viewModel.syncUserDisplayNameChange(oldName, displayName)
                                 if (!isGoogleUser && newPassword.isNotBlank()) {
                                     if (newPassword == confirmPassword) {
                                         authViewModel.updatePassword(

@@ -85,7 +85,7 @@ class SplitUpMessagingService : FirebaseMessagingService() {
         )
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(com.finance.splitup.R.mipmap.ic_launcher_round)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

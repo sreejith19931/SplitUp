@@ -38,7 +38,9 @@ data class Group(
     val emoji: String = "✈️",
     val colorHex: String = "#3B82F6",
     @com.google.firebase.firestore.PropertyName("isArchived")
-    var isArchived: Boolean = false
+    var isArchived: Boolean = false,
+    @com.google.firebase.firestore.PropertyName("requireApproval")
+    var requireApproval: Boolean = true
 ) {
     val allMembers: List<String>
         get() = (members + pendingMembers).distinct()

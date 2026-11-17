@@ -71,9 +71,13 @@ fun formatInputNumber(value: Double): String {
 }
 
 fun filterPriceInput(input: String): String {
+    val isNegative = input.startsWith("-")
     val filtered = input.filter { it.isDigit() || it == '.' || it == ',' }
     var hasSeparator = false
     val result = StringBuilder()
+    if (isNegative) {
+        result.append("-")
+    }
     for (ch in filtered) {
         if (ch == '.' || ch == ',') {
             if (!hasSeparator) {
@@ -664,10 +668,10 @@ fun ReceiptLineItemsBreakdownView(
                         }
                     }
                     Text(
-                        text = "$currencySymbol${String.format(Locale.US, "%.2f", item.price)}",
+                        text = if (item.price < 0) "-$currencySymbol${String.format(Locale.US, "%.2f", kotlin.math.abs(item.price))}" else "$currencySymbol${String.format(Locale.US, "%.2f", item.price)}",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = if (item.price < 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
                     )
                 }
             }

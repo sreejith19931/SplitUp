@@ -147,12 +147,13 @@ data class GroupEntity(
     val emoji: String = "✈️",
     val colorHex: String = "#3B82F6",
     val isArchived: Boolean = false,
+    val requireApproval: Boolean = true,
     val isDirty: Boolean = true
 ) {
-    fun toDomain() = Group(id, name, type, members, pendingMembers, memberUids, memberEmails, expenses, createdBy, updatedAt, emoji, colorHex, isArchived)
+    fun toDomain() = Group(id, name, type, members, pendingMembers, memberUids, memberEmails, expenses, createdBy, updatedAt, emoji, colorHex, isArchived, requireApproval)
     companion object {
         fun fromDomain(group: Group, isDirty: Boolean = true) = GroupEntity(
-            group.id, group.name, group.type, group.members, group.pendingMembers, group.memberUids, group.memberEmails, group.expenses, group.createdBy, group.updatedAt, group.emoji, group.colorHex, group.isArchived, isDirty
+            group.id, group.name, group.type, group.members, group.pendingMembers, group.memberUids, group.memberEmails, group.expenses, group.createdBy, group.updatedAt, group.emoji, group.colorHex, group.isArchived, group.requireApproval, isDirty
         )
     }
 }
@@ -213,6 +214,7 @@ data class UserProfileEntity(
     val revolutHandle: String = ""
 )
 
+@Serializable
 @Entity(tableName = "activity_logs")
 data class ActivityLogEntity(
     @PrimaryKey
@@ -222,7 +224,27 @@ data class ActivityLogEntity(
     val actorName: String = "",
     val actionType: String = "",
     val description: String = "",
-    val referenceId: String = ""
+    val referenceId: String = "",
+    val payloadJson: String = "",
+    val isUndone: Boolean = false
+)
+
+@Serializable
+@Entity(tableName = "group_approval_requests")
+data class GroupApprovalRequestEntity(
+    @PrimaryKey
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val groupId: String = "",
+    val groupName: String = "",
+    val targetId: String = "",
+    val requestType: String = "",
+    val requestedBy: String = "",
+    val requestedByEmail: String = "",
+    val ownerName: String = "",
+    val ownerEmail: String = "",
+    val payloadJson: String = "",
+    val status: String = "PENDING",
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 @Serializable
@@ -237,6 +259,7 @@ data class RecurringExpenseEntity(
     val nextDueDate: String = "",
     val currency: String = Currencies.EUR,
     val autoAdd: Boolean = true,
+    val isIncome: Boolean = false,
     val updatedAt: Long = System.currentTimeMillis(),
     val isDirty: Boolean = true
 )

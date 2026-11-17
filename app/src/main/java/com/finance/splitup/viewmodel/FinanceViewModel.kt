@@ -80,6 +80,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
     )
     var isBiometricLockEnabled by mutableStateOf(prefs?.getBoolean("biometrics_enabled", false) ?: false)
+    var biometricLockTimeoutMins by androidx.compose.runtime.mutableIntStateOf(prefs?.getInt("biometric_timeout_mins", 0) ?: 0)
     var defaultCurrency by mutableStateOf(prefs?.getString("default_currency", Currencies.EUR) ?: Currencies.EUR)
 
     private val _registeredUserEmails = MutableStateFlow<Set<String>>(emptySet())
@@ -94,9 +95,22 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     init {
         fetchRegisteredUsers()
         loadRecentFriends()
+        loadPendingApprovalRequests()
         try {
             com.finance.splitup.data.CategoryDetector.init(getApplication())
         } catch (_: Exception) {}
+    }
+
+    private fun loadPendingApprovalRequests() {
+        viewModelScope.launch {
+            if (repository != null) {
+                try {
+                    repository.getPendingApprovalRequestsForOwner().collect { list ->
+                        _pendingApprovalRequestsFallback.value = list
+                    }
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     private fun loadRecentFriends() {
@@ -197,6 +211,55 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     fun toggleBiometricLock(enabled: Boolean) {
         isBiometricLockEnabled = enabled
         prefs?.edit()?.putBoolean("biometrics_enabled", enabled)?.apply()
+    }
+
+    fun updateBiometricLockTimeout(mins: Int) {
+        biometricLockTimeoutMins = mins
+        prefs?.edit()?.putInt("biometric_timeout_mins", mins)?.apply()
+    }
+
+    fun syncUserDisplayNameChange(oldName: String, newName: String) {
+        if (oldName.isBlank() || newName.isBlank() || oldName.equals(newName, ignoreCase = true)) return
+        viewModelScope.launch {
+            val currentGroups = groups.value
+            for (group in currentGroups) {
+                val needsMemberUpdate = group.members.any { it.equals(oldName, ignoreCase = true) }
+                val needsCreatorUpdate = group.createdBy.equals(oldName, ignoreCase = true)
+                val needsExpenseUpdate = group.expenses.any { 
+                    it.paidBy.equals(oldName, ignoreCase = true) || 
+                    it.splitAmong.any { s -> s.equals(oldName, ignoreCase = true) } ||
+                    it.memberSplits.keys.any { k -> k.equals(oldName, ignoreCase = true) }
+                }
+
+                if (needsMemberUpdate || needsCreatorUpdate || needsExpenseUpdate) {
+                    val updatedMembers = group.members.map { if (it.equals(oldName, ignoreCase = true)) newName else it }
+                    val updatedCreator = if (group.createdBy.equals(oldName, ignoreCase = true)) newName else group.createdBy
+                    val updatedExpenses = group.expenses.map { exp ->
+                        val updatedPaidBy = if (exp.paidBy.equals(oldName, ignoreCase = true)) newName else exp.paidBy
+                        val updatedSplitAmong = exp.splitAmong.map { if (it.equals(oldName, ignoreCase = true)) newName else it }
+                        val updatedMemberSplits = exp.memberSplits.mapKeys { if (it.key.equals(oldName, ignoreCase = true)) newName else it.key }
+                        exp.copy(
+                            paidBy = updatedPaidBy,
+                            splitAmong = updatedSplitAmong,
+                            memberSplits = updatedMemberSplits
+                        )
+                    }
+                    val updatedGroup = group.copy(
+                        members = updatedMembers,
+                        createdBy = updatedCreator,
+                        expenses = updatedExpenses
+                    )
+                    if (repository != null) {
+                        repository.insertGroup(updatedGroup)
+                        com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+                    } else {
+                        _groupsFallback.update { current ->
+                            current.map { if (it.id == group.id) updatedGroup else it }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fun updateDefaultCurrency(currency: String) {
@@ -346,6 +409,21 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         return repository?.getActivityLogsForGroup(groupId) ?: kotlinx.coroutines.flow.flowOf(emptyList())
     }
 
+    val allActivityLogs: StateFlow<List<com.finance.splitup.data.db.ActivityLogEntity>> = if (repository != null) {
+        repository.getAllActivityLogs()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    } else {
+        MutableStateFlow<List<com.finance.splitup.data.db.ActivityLogEntity>>(emptyList()).asStateFlow()
+    }
+
+    private val _pendingApprovalRequestsFallback = MutableStateFlow<List<com.finance.splitup.data.db.GroupApprovalRequestEntity>>(emptyList())
+    val pendingApprovalRequests: StateFlow<List<com.finance.splitup.data.db.GroupApprovalRequestEntity>> = if (repository != null) {
+        repository.getPendingApprovalRequestsForOwner()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _pendingApprovalRequestsFallback.value)
+    } else {
+        _pendingApprovalRequestsFallback.asStateFlow()
+    }
+
     private val _incomesFallback = MutableStateFlow<List<com.finance.splitup.data.db.IncomeEntity>>(emptyList())
     private val _recurringExpensesFallback = MutableStateFlow<List<com.finance.splitup.data.db.RecurringExpenseEntity>>(emptyList())
 
@@ -413,7 +491,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         category: String,
         frequency: String,
         nextDueDate: String,
-        currency: String = defaultCurrency
+        currency: String = defaultCurrency,
+        isIncome: Boolean = false
     ) {
         val recurring = com.finance.splitup.data.db.RecurringExpenseEntity(
             id = id ?: java.util.UUID.randomUUID().toString(),
@@ -422,7 +501,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             category = category,
             frequency = frequency,
             nextDueDate = nextDueDate.ifBlank { "Next Month" },
-            currency = currency
+            currency = currency,
+            isIncome = isIncome
         )
         if (repository != null) {
             viewModelScope.launch {
@@ -435,8 +515,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
     }
 
-    fun addRecurringExpense(title: String, amount: Double, category: String, frequency: String, nextDueDate: String, currency: String = defaultCurrency) {
-        upsertRecurringExpense(null, title, amount, category, frequency, nextDueDate, currency)
+    fun addRecurringExpense(title: String, amount: Double, category: String, frequency: String, nextDueDate: String, currency: String = defaultCurrency, isIncome: Boolean = false) {
+        upsertRecurringExpense(null, title, amount, category, frequency, nextDueDate, currency, isIncome)
     }
 
     fun deleteRecurringExpense(id: String) {
@@ -757,11 +837,26 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         _budgetsFallback.asStateFlow()
     }
 
+    private fun getLatestGroupActivityTimestamp(group: Group): Long {
+        val maxExpenseTime = group.expenses.maxOfOrNull { exp ->
+            try {
+                val parsed = java.time.LocalDateTime.parse(exp.date, java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy, h:mm a", java.util.Locale.US))
+                parsed.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            } catch (_: Exception) {
+                0L
+            }
+        } ?: 0L
+        return maxOf(group.updatedAt, maxExpenseTime)
+    }
+
     val groups: StateFlow<List<Group>> = if (repository != null) {
         repository.getAllGroups()
+            .map { list -> list.sortedByDescending { getLatestGroupActivityTimestamp(it) } }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     } else {
-        _groupsFallback.asStateFlow()
+        _groupsFallback
+            .map { list -> list.sortedByDescending { getLatestGroupActivityTimestamp(it) } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     }
 
     val dashboardUiState: StateFlow<DashboardUiState> = combine(
@@ -963,7 +1058,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         memberEmails: List<String> = emptyList(),
         emoji: String = "✈️",
         colorHex: String = "#3B82F6",
-        pendingMembers: List<String> = emptyList()
+        pendingMembers: List<String> = emptyList(),
+        requireApproval: Boolean = true
     ): String {
         val selfName = currentUserName
         val selfEmail = currentUserEmail.lowercase()
@@ -980,7 +1076,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             pendingMembers = pendingMembers.filter { !isUserMatch(it, selfName, selfEmail) }.distinct(),
             memberEmails = memberEmails,
             expenses = emptyList(),
-            createdBy = selfName
+            createdBy = selfName,
+            requireApproval = requireApproval
         )
         if (repository != null) {
             viewModelScope.launch {
@@ -1450,7 +1547,10 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 lineItems = lineItems
             )
             com.finance.splitup.data.CategoryDetector.learnCategory(actualTitle, category, getApplication())
-            val updatedGroup = group.copy(expenses = listOf(expense) + group.expenses)
+            val updatedGroup = group.copy(
+                expenses = listOf(expense) + group.expenses,
+                updatedAt = System.currentTimeMillis()
+            )
             val symbol = Currencies.getSymbol(currency)
             logActivity(groupId, actualPayer, "EXPENSE_ADDED", "Added '$actualTitle' ($symbol${String.format(java.util.Locale.US, "%.2f", amount)})", referenceId = expense.id)
 
@@ -1506,18 +1606,35 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         viewModelScope.launch {
             if (!verifyGroupActiveOrPurge(groupId)) return@launch
             val group = groups.value.find { it.id == groupId } ?: repository?.getGroupById(groupId) ?: return@launch
-            val deletedExpense = group.expenses.find { it.id == expenseId }
-            val updatedGroup = group.copy(expenses = group.expenses.filter { it.id != expenseId })
-            if (deletedExpense != null) {
-                logActivity(groupId, "You", "EXPENSE_DELETED", "Deleted expense '${deletedExpense.title}'")
-            }
-            com.finance.splitup.data.CloudSyncManager.deleteGroupExpenseFromCloud(groupId, expenseId)
-            if (repository != null) {
-                repository.insertGroup(updatedGroup)
-                com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+            val deletedExpense = group.expenses.find { it.id == expenseId } ?: return@launch
+
+            val requiresApproval = group.requireApproval && !isGroupOwner(group)
+
+            if (requiresApproval) {
+                val ownerName = group.createdBy.ifBlank { group.members.firstOrNull() ?: "Owner" }
+                val ownerEmail = group.memberEmails.firstOrNull() ?: ownerName
+                createApprovalRequest(
+                    group = group,
+                    targetId = expenseId,
+                    requestType = "EXPENSE_DELETE",
+                    ownerName = ownerName,
+                    ownerEmail = ownerEmail,
+                    payloadJson = expenseId
+                )
             } else {
-                _groupsFallback.update { current ->
-                    current.map { if (it.id == groupId) updatedGroup else it }
+                val updatedGroup = group.copy(
+                    expenses = group.expenses.filter { it.id != expenseId },
+                    updatedAt = System.currentTimeMillis()
+                )
+                logActivity(groupId, "You", "EXPENSE_DELETED", "Deleted expense '${deletedExpense.title}'")
+                com.finance.splitup.data.CloudSyncManager.deleteGroupExpenseFromCloud(groupId, expenseId)
+                if (repository != null) {
+                    repository.insertGroup(updatedGroup)
+                    com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+                } else {
+                    _groupsFallback.update { current ->
+                        current.map { if (it.id == groupId) updatedGroup else it }
+                    }
                 }
             }
         }
@@ -1530,21 +1647,41 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             val normalizedExpense = expense.copy(
                 date = com.finance.splitup.data.DateUtils.normalizeExpenseDate(expense.date)
             )
-            val updatedExpenses = group.expenses.map { if (it.id == normalizedExpense.id) normalizedExpense else it }
-            val updatedGroup = group.copy(expenses = updatedExpenses)
-            logActivity(groupId, normalizedExpense.paidBy, "EXPENSE_UPDATED", "Updated expense '${normalizedExpense.title}'")
-            if (repository != null) {
-                repository.insertGroup(updatedGroup)
-                com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+
+            val requiresApproval = group.requireApproval && !isGroupOwner(group)
+
+            if (requiresApproval) {
+                val ownerName = group.createdBy.ifBlank { group.members.firstOrNull() ?: "Owner" }
+                val ownerEmail = group.memberEmails.firstOrNull() ?: ownerName
+                val payload = kotlinx.serialization.json.Json.encodeToString(GroupExpense.serializer(), normalizedExpense)
+                createApprovalRequest(
+                    group = group,
+                    targetId = normalizedExpense.id,
+                    requestType = "EXPENSE_EDIT",
+                    ownerName = ownerName,
+                    ownerEmail = ownerEmail,
+                    payloadJson = payload
+                )
             } else {
-                _groupsFallback.update { current ->
-                    current.map { if (it.id == groupId) updatedGroup else it }
+                val updatedExpenses = group.expenses.map { if (it.id == normalizedExpense.id) normalizedExpense else it }
+                val updatedGroup = group.copy(
+                    expenses = updatedExpenses,
+                    updatedAt = System.currentTimeMillis()
+                )
+                logActivity(groupId, normalizedExpense.paidBy, "EXPENSE_UPDATED", "Updated expense '${normalizedExpense.title}'")
+                if (repository != null) {
+                    repository.insertGroup(updatedGroup)
+                    com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+                } else {
+                    _groupsFallback.update { current ->
+                        current.map { if (it.id == groupId) updatedGroup else it }
+                    }
                 }
             }
         }
     }
 
-    fun updateGroup(groupId: String, name: String, type: String, members: List<String>, emoji: String = "✈️", colorHex: String = "#3B82F6") {
+    fun updateGroup(groupId: String, name: String, type: String, members: List<String>, emoji: String = "✈️", colorHex: String = "#3B82F6", requireApproval: Boolean = true) {
         viewModelScope.launch {
             if (!verifyGroupActiveOrPurge(groupId)) return@launch
             val group = groups.value.find { it.id == groupId } ?: repository?.getGroupById(groupId) ?: return@launch
@@ -1553,7 +1690,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 type = type,
                 emoji = emoji.ifBlank { group.emoji },
                 colorHex = colorHex.ifBlank { group.colorHex },
-                members = members.ifEmpty { group.members }
+                members = members.ifEmpty { group.members },
+                requireApproval = requireApproval
             )
             if (repository != null) {
                 repository.insertGroup(updatedGroup)
@@ -1625,6 +1763,333 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             }
         } catch (_: Exception) {
             // Handle import gracefully
+        }
+    }
+
+    fun isExpenseOwner(expense: com.finance.splitup.data.GroupExpense, group: Group): Boolean {
+        val selfName = currentUserName
+        val selfEmail = currentUserEmail.lowercase()
+        if (expense.paidBy.isBlank()) return true
+        if (isUserMatch(expense.paidBy, selfName, selfEmail)) return true
+        if (group.createdBy.isNotBlank() && isUserMatch(group.createdBy, selfName, selfEmail)) return true
+        return false
+    }
+
+    fun isGroupOwner(group: Group): Boolean {
+        val selfName = currentUserName
+        val selfEmail = currentUserEmail.lowercase()
+        if (group.createdBy.isBlank()) return true
+        return isUserMatch(group.createdBy, selfName, selfEmail)
+    }
+
+    fun recordSettlementPayment(
+        group: Group,
+        payer: String,
+        payee: String,
+        amount: Double,
+        currency: String = Currencies.EUR,
+        onResult: (isPendingApproval: Boolean) -> Unit
+    ) {
+        val actualPayer = payer.ifBlank { "You" }
+        val actualPayee = payee.ifBlank { "You" }
+        val selfName = currentUserName
+        val isSelfPayee = actualPayee.equals(selfName, ignoreCase = true) || actualPayee.equals("You", ignoreCase = true)
+
+        val requiresApproval = group.requireApproval && !isSelfPayee
+
+        val settlementExpense = GroupExpense(
+            title = "Payment: $actualPayer to $actualPayee",
+            amount = amount,
+            paidBy = actualPayer,
+            date = "Today",
+            splitAmong = listOf(actualPayee),
+            currency = currency,
+            splitMode = "EQUAL",
+            memberSplits = emptyMap(),
+            category = ExpenseCategories.SETTLEMENT
+        )
+
+        if (requiresApproval) {
+            val payload = kotlinx.serialization.json.Json.encodeToString(GroupExpense.serializer(), settlementExpense)
+            val payeeEmail = group.memberEmails.find { email ->
+                val idx = group.members.indexOfFirst { it.equals(actualPayee, ignoreCase = true) }
+                idx != -1 && group.memberEmails.getOrNull(idx) == email
+            } ?: actualPayee
+
+            createApprovalRequest(
+                group = group,
+                targetId = settlementExpense.id,
+                requestType = "SETTLEMENT_RECORD",
+                ownerName = actualPayee,
+                ownerEmail = payeeEmail,
+                payloadJson = payload
+            )
+            onResult(true)
+        } else {
+            addGroupExpense(
+                groupId = group.id,
+                title = settlementExpense.title,
+                amount = settlementExpense.amount,
+                paidBy = settlementExpense.paidBy,
+                splitAmong = settlementExpense.splitAmong,
+                date = settlementExpense.date,
+                currency = settlementExpense.currency,
+                splitMode = settlementExpense.splitMode,
+                memberSplits = settlementExpense.memberSplits,
+                category = settlementExpense.category
+            )
+            onResult(false)
+        }
+    }
+
+    fun createApprovalRequest(
+        group: Group,
+        targetId: String,
+        requestType: String,
+        ownerName: String,
+        ownerEmail: String,
+        payloadJson: String
+    ) {
+        val req = com.finance.splitup.data.db.GroupApprovalRequestEntity(
+            groupId = group.id,
+            groupName = group.name,
+            targetId = targetId,
+            requestType = requestType,
+            requestedBy = currentUserName,
+            requestedByEmail = currentUserEmail,
+            ownerName = ownerName,
+            ownerEmail = ownerEmail.ifBlank { ownerName },
+            payloadJson = payloadJson,
+            status = "PENDING",
+            timestamp = System.currentTimeMillis()
+        )
+        viewModelScope.launch {
+            if (repository != null) {
+                repository.upsertApprovalRequest(req)
+            }
+            _pendingApprovalRequestsFallback.update { current -> listOf(req) + current.filter { it.id != req.id } }
+            com.finance.splitup.data.CloudSyncManager.syncApprovalRequestToCloud(req)
+            val msgTitle = if (requestType == "SETTLEMENT_RECORD") "Settlement Approval Requested ✉️" else "Approval Request Sent ✉️"
+            val msgBody = if (requestType == "SETTLEMENT_RECORD") "Your recorded settlement payment in '${group.name}' was sent to $ownerName for approval." else "Your proposed $requestType in '${group.name}' was sent to $ownerName for approval."
+            postSystemNotification(msgTitle, msgBody, CHANNEL_GROUP_ACTIVITY)
+        }
+    }
+
+    fun approveGroupRequest(request: com.finance.splitup.data.db.GroupApprovalRequestEntity) {
+        viewModelScope.launch {
+            when (request.requestType) {
+                "SETTLEMENT_RECORD" -> {
+                    try {
+                        val settlementExpense = kotlinx.serialization.json.Json.decodeFromString(GroupExpense.serializer(), request.payloadJson)
+                        val group = groups.value.find { it.id == request.groupId } ?: repository?.getGroupById(request.groupId)
+                        if (group != null) {
+                            val updatedExpenses = listOf(settlementExpense) + group.expenses.filter { it.id != settlementExpense.id }
+                            val updatedGroup = group.copy(
+                                expenses = updatedExpenses,
+                                updatedAt = System.currentTimeMillis()
+                            )
+                            if (repository != null) {
+                                repository.insertGroup(updatedGroup)
+                                com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+                            } else {
+                                _groupsFallback.update { current ->
+                                    current.map { if (it.id == group.id) updatedGroup else it }
+                                }
+                            }
+                            val symbol = Currencies.getSymbol(settlementExpense.currency)
+                            val amtFormatted = String.format(java.util.Locale.US, "%.2f", settlementExpense.amount)
+                            logActivity(group.id, request.ownerName, "EXPENSE_ADDED", "Approved settlement of $symbol$amtFormatted from ${request.requestedBy}", referenceId = settlementExpense.id)
+                        }
+                    } catch (_: Exception) {}
+                }
+                "EXPENSE_DELETE" -> {
+                    val group = groups.value.find { it.id == request.groupId }
+                    if (group != null) {
+                        val updatedGroup = group.copy(
+                            expenses = group.expenses.filter { it.id != request.targetId },
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        if (repository != null) {
+                            repository.insertGroup(updatedGroup)
+                            com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+                        } else {
+                            _groupsFallback.update { current ->
+                                current.map { if (it.id == group.id) updatedGroup else it }
+                            }
+                        }
+                        com.finance.splitup.data.CloudSyncManager.deleteGroupExpenseFromCloud(request.groupId, request.targetId)
+                    }
+                }
+                "EXPENSE_EDIT" -> {
+                    try {
+                        val editedExpense = kotlinx.serialization.json.Json.decodeFromString(GroupExpense.serializer(), request.payloadJson)
+                        val group = groups.value.find { it.id == request.groupId }
+                        if (group != null) {
+                            val updatedExpenses = group.expenses.map { if (it.id == editedExpense.id) editedExpense else it }
+                            val updatedGroup = group.copy(
+                                expenses = updatedExpenses,
+                                updatedAt = System.currentTimeMillis()
+                            )
+                            if (repository != null) {
+                                repository.insertGroup(updatedGroup)
+                                com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+                            } else {
+                                _groupsFallback.update { current ->
+                                    current.map { if (it.id == group.id) updatedGroup else it }
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+                "MEMBER_REMOVE" -> {
+                    val group = groups.value.find { it.id == request.groupId }
+                    if (group != null) {
+                        val updatedMembers = group.members.filter { !it.equals(request.targetId, ignoreCase = true) }
+                        val updatedPending = group.pendingMembers.filter { !it.equals(request.targetId, ignoreCase = true) }
+                        val updatedGroup = group.copy(
+                            members = updatedMembers,
+                            pendingMembers = updatedPending,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        if (repository != null) {
+                            repository.insertGroup(updatedGroup)
+                            com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+                        } else {
+                            _groupsFallback.update { current ->
+                                current.map { if (it.id == group.id) updatedGroup else it }
+                            }
+                        }
+                    }
+                }
+            }
+            if (repository != null) {
+                repository.updateApprovalRequestStatus(request.id, "APPROVED")
+            }
+            _pendingApprovalRequestsFallback.update { current -> current.filter { it.id != request.id } }
+            com.finance.splitup.data.CloudSyncManager.updateApprovalRequestStatusInCloud(request.id, "APPROVED")
+            val notifTitle = if (request.requestType == "SETTLEMENT_RECORD") "Settlement Approved! 🎉" else "Request Approved! ✅"
+            val notifMsg = if (request.requestType == "SETTLEMENT_RECORD") "Approved settlement payment from ${request.requestedBy} in '${request.groupName}'" else "Approved ${request.requestedBy}'s request in '${request.groupName}'"
+            postSystemNotification(notifTitle, notifMsg, CHANNEL_GROUP_ACTIVITY)
+        }
+    }
+
+    fun rejectGroupRequest(request: com.finance.splitup.data.db.GroupApprovalRequestEntity) {
+        viewModelScope.launch {
+            if (repository != null) {
+                repository.updateApprovalRequestStatus(request.id, "REJECTED")
+            }
+            _pendingApprovalRequestsFallback.update { current -> current.filter { it.id != request.id } }
+            com.finance.splitup.data.CloudSyncManager.updateApprovalRequestStatusInCloud(request.id, "REJECTED")
+            val notifTitle = if (request.requestType == "SETTLEMENT_RECORD") "Settlement Declined ❌" else "Request Declined ❌"
+            val notifMsg = if (request.requestType == "SETTLEMENT_RECORD") "Declined settlement payment from ${request.requestedBy} in '${request.groupName}'" else "Declined ${request.requestedBy}'s request in '${request.groupName}'"
+            postSystemNotification(notifTitle, notifMsg, CHANNEL_GROUP_ACTIVITY)
+        }
+    }
+
+    fun sendSampleApprovalRequest(groupId: String? = null, requestType: String = "EXPENSE_EDIT") {
+        viewModelScope.launch {
+            var targetGroup = groups.value.find { it.id == groupId } ?: groups.value.firstOrNull()
+            if (targetGroup == null) {
+                val newGroup = Group(
+                    name = "Sample Trip",
+                    type = "Trip",
+                    members = listOf("You", "Alice", "Bob"),
+                    requireApproval = true
+                )
+                if (repository != null) {
+                    repository.insertGroup(newGroup)
+                }
+                _groupsFallback.update { listOf(newGroup) + it }
+                targetGroup = newGroup
+            }
+
+            val sampleExpense = targetGroup.expenses.firstOrNull() ?: GroupExpense(
+                title = "Dinner & Drinks",
+                amount = 90.0,
+                paidBy = "You",
+                date = "Today",
+                splitAmong = listOf("You", "Alice", "Bob"),
+                currency = Currencies.EUR
+            )
+
+            val editedExpense = sampleExpense.copy(
+                title = "${sampleExpense.title} (Edited)",
+                amount = sampleExpense.amount + 30.0
+            )
+            val payloadJson = kotlinx.serialization.json.Json.encodeToString(GroupExpense.serializer(), editedExpense)
+
+            val req = com.finance.splitup.data.db.GroupApprovalRequestEntity(
+                id = "sample_req_${System.currentTimeMillis()}",
+                groupId = targetGroup.id,
+                groupName = targetGroup.name,
+                targetId = sampleExpense.id,
+                requestType = requestType,
+                requestedBy = "Alice",
+                requestedByEmail = "alice@example.com",
+                ownerName = currentUserName,
+                ownerEmail = currentUserEmail.ifBlank { "You" },
+                payloadJson = payloadJson,
+                status = "PENDING",
+                timestamp = System.currentTimeMillis()
+            )
+
+            if (repository != null) {
+                try {
+                    repository.upsertApprovalRequest(req)
+                } catch (_: Exception) {}
+            }
+            _pendingApprovalRequestsFallback.update { current -> listOf(req) + current.filter { it.id != req.id } }
+            com.finance.splitup.data.CloudSyncManager.syncApprovalRequestToCloud(req)
+            postSystemNotification(
+                "Approval Needed ✋ • ${targetGroup.name}",
+                "Alice requested to edit expense '${sampleExpense.title}' to €${String.format(java.util.Locale.US, "%.2f", editedExpense.amount)}",
+                CHANNEL_GROUP_ACTIVITY
+            )
+        }
+    }
+
+    fun undoActivityLog(log: com.finance.splitup.data.db.ActivityLogEntity) {
+        viewModelScope.launch {
+            try {
+                when (log.actionType) {
+                    "PERSONAL_EXPENSE_ADDED" -> {
+                        deleteExpense(log.referenceId)
+                    }
+                    "PERSONAL_EXPENSE_DELETED" -> {
+                        if (log.payloadJson.isNotBlank()) {
+                            val exp = kotlinx.serialization.json.Json.decodeFromString(Expense.serializer(), log.payloadJson)
+                            addExpense(exp.title, exp.amount, exp.category, exp.date, exp.paidBy, exp.currency, exp.description, exp.paymentMethod, null, exp.lineItems)
+                        }
+                    }
+                    "PERSONAL_INCOME_DELETED" -> {
+                        if (log.payloadJson.isNotBlank()) {
+                            val inc = kotlinx.serialization.json.Json.decodeFromString(com.finance.splitup.data.db.IncomeEntity.serializer(), log.payloadJson)
+                            addIncome(inc.title, inc.amount, inc.source, inc.currency, inc.date)
+                        }
+                    }
+                    "GROUP_EXPENSE_DELETED", "EXPENSE_DELETED" -> {
+                        if (log.payloadJson.isNotBlank() && log.groupId.isNotBlank()) {
+                            val deletedExp = kotlinx.serialization.json.Json.decodeFromString(GroupExpense.serializer(), log.payloadJson)
+                            addGroupExpense(log.groupId, deletedExp.title, deletedExp.amount, deletedExp.paidBy, deletedExp.splitAmong, deletedExp.date, deletedExp.currency, deletedExp.splitMode, deletedExp.memberSplits, deletedExp.category, null, deletedExp.lineItems)
+                        }
+                    }
+                    "GROUP_EXPENSE_UPDATED", "EXPENSE_UPDATED" -> {
+                        if (log.payloadJson.isNotBlank() && log.groupId.isNotBlank()) {
+                            val oldExp = kotlinx.serialization.json.Json.decodeFromString(GroupExpense.serializer(), log.payloadJson)
+                            val group = groups.value.find { it.id == log.groupId }
+                            if (group != null) {
+                                val restoredExpenses = group.expenses.map { if (it.id == oldExp.id) oldExp else it }
+                                val updatedGroup = group.copy(expenses = restoredExpenses)
+                                repository?.insertGroup(updatedGroup)
+                                com.finance.splitup.data.CloudSyncManager.syncGroupToCloud(updatedGroup, repository, getApplication())
+                            }
+                        }
+                    }
+                }
+                if (repository != null) {
+                    repository.markActivityLogUndone(log.id)
+                }
+            } catch (_: Exception) {}
         }
     }
 

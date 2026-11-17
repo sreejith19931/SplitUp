@@ -135,6 +135,26 @@ fun SecuritySettingsScreen(
                         )
                     }
 
+                    if (viewModel.isBiometricLockEnabled) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Lock Timeout Delay", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                val timeouts = listOf(0 to "Immediately", 1 to "1 Min", 5 to "5 Mins", 15 to "15 Mins")
+                                timeouts.forEach { (mins, label) ->
+                                    FilterChip(
+                                        selected = viewModel.biometricLockTimeoutMins == mins,
+                                        onClick = { viewModel.updateBiometricLockTimeout(mins) },
+                                        label = { Text(label, fontSize = 11.sp) },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,

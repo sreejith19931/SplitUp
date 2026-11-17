@@ -3,6 +3,7 @@ package com.finance.splitup.ui.screens
 import android.content.Intent
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,29 +39,30 @@ fun PersonalExpensesScreen(
     initialCategory: String? = null,
     onNavigateToAddExpense: () -> Unit = {},
     onNavigateToEditExpense: (String) -> Unit = {},
-    onNavigateToGlobalSearch: () -> Unit = {}
+    onNavigateToGlobalSearch: () -> Unit = {},
+    onNavigateToSubscriptions: () -> Unit = {}
 ) {
     val expenses by viewModel.expenses.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
     val incomes by viewModel.incomes.collectAsState()
     val recurringExpenses by viewModel.recurringExpenses.collectAsState()
 
-    var selectedCategoryFilter by remember { mutableStateOf<String?>(initialCategory) }
+    var selectedCategoryFilter by remember { mutableStateOf<String?>(if (initialCategory == "INCOME" || initialCategory == ExpenseCategories.INCOME) null else initialCategory) }
     var selectedDateRange by remember { mutableStateOf("All") }
-    var selectedPersonalTab by remember { mutableIntStateOf(0) } // 0 = Expenses, 1 = Budgets, 2 = Income & Subs
+    var selectedPersonalTab by remember { mutableIntStateOf(if (initialCategory == "INCOME" || initialCategory == ExpenseCategories.INCOME) 1 else 0) } // 0 = Expenses, 1 = Incomes
 
     var showAddIncomeDialog by remember { mutableStateOf(false) }
-    var showAddRecurringDialog by remember { mutableStateOf(false) }
+    var showBudgetsDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     val filteredExpenses = remember(expenses, selectedCategoryFilter, selectedDateRange) {
         expenses.filter { exp ->
-            val matchesCategory = selectedCategoryFilter == null || exp.category == selectedCategoryFilter
-            val matchesDate = com.finance.splitup.data.DateUtils.matchesDateRange(exp.date, exp.updatedAt, selectedDateRange)
-            matchesCategory && matchesDate
-        }
+            exp.category != ExpenseCategories.INCOME &&
+            (selectedCategoryFilter == null || exp.category == selectedCategoryFilter) &&
+            com.finance.splitup.data.DateUtils.matchesDateRange(exp.date, exp.updatedAt, selectedDateRange)
+        }.sortedByDescending { it.date }
     }
 
     val totalPersonalSpent = remember(filteredExpenses, viewModel.defaultCurrency) {
@@ -77,6 +79,10 @@ fun PersonalExpensesScreen(
             TopAppBar(
                 title = { Text("Personal Expenses", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
                 actions = {
+                    // Budgets Button on Top Right
+                    IconButton(onClick = { showBudgetsDialog = true }) {
+                        Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = "Manage Budgets", tint = MaterialTheme.colorScheme.primary)
+                    }
                     IconButton(onClick = {
                         try {
                             val pdfFile = com.finance.splitup.data.PdfGenerator.generateFullAppSummaryPdf(context, expenses, groups)
@@ -103,6 +109,23 @@ fun PersonalExpensesScreen(
                     }) {
                         Icon(Icons.Rounded.PictureAsPdf, contentDescription = "Export PDF Report", tint = MaterialTheme.colorScheme.primary)
                     }
+                    IconButton(onClick = {
+                        try {
+                            val csvFile = com.finance.splitup.data.CsvExportImporter.exportExpensesToCsv(context, expenses)
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", csvFile)
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/csv"
+                                putExtra(Intent.EXTRA_SUBJECT, "Personal Expenses CSV")
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Export Personal Expenses CSV"))
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "CSV export error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                        }
+                    }) {
+                        Icon(Icons.Rounded.TableChart, contentDescription = "Export CSV", tint = MaterialTheme.colorScheme.primary)
+                    }
                     IconButton(onClick = onNavigateToGlobalSearch) {
                         Icon(Icons.Rounded.Search, contentDescription = "Global Search", tint = MaterialTheme.colorScheme.onSurface)
                     }
@@ -125,15 +148,17 @@ fun PersonalExpensesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 88.dp)
+            contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 ) {
                     Column(
                         modifier = Modifier
@@ -148,7 +173,7 @@ fun PersonalExpensesScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        val subtitleText = if (selectedCategoryFilter != null) "Filtered by $selectedCategoryFilter" else "Logged individual expenses & receipts"
+                        val subtitleText = if (selectedCategoryFilter != null) "Filtered by $selectedCategoryFilter" else "Logged individual expenses & recurring bills"
                         Text(subtitleText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
                     }
                 }
@@ -163,7 +188,7 @@ fun PersonalExpensesScreen(
                     SegmentedButton(
                         selected = selectedPersonalTab == 0,
                         onClick = { selectedPersonalTab = 0 },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                         icon = {},
                         colors = SegmentedButtonDefaults.colors(
                             activeContainerColor = MaterialTheme.colorScheme.primary,
@@ -172,12 +197,19 @@ fun PersonalExpensesScreen(
                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                         )
                     ) {
-                        Text("Expenses", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = "Expenses & Recurring",
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                     SegmentedButton(
                         selected = selectedPersonalTab == 1,
                         onClick = { selectedPersonalTab = 1 },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                         icon = {},
                         colors = SegmentedButtonDefaults.colors(
                             activeContainerColor = MaterialTheme.colorScheme.primary,
@@ -186,126 +218,26 @@ fun PersonalExpensesScreen(
                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                         )
                     ) {
-                        Text("Budgets", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                    SegmentedButton(
-                        selected = selectedPersonalTab == 2,
-                        onClick = { selectedPersonalTab = 2 },
-                        shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                        icon = {},
-                        colors = SegmentedButtonDefaults.colors(
-                            activeContainerColor = MaterialTheme.colorScheme.primary,
-                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                            inactiveContentColor = MaterialTheme.colorScheme.onSurface
+                        Text(
+                            text = "Incomes",
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
-                    ) {
-                        Text("Income & Subs", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
 
             if (selectedPersonalTab == 1) {
-                // BUDGETS SECTION
+                // INCOMES TAB
                 item {
-                    var totalMonthlyInput by remember(budgets) { mutableStateOf(formatInputNumber(budgets.values.sum())) }
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text("Monthly Budget Allocation", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Text("Set total monthly budget and distribute evenly or adjust category limits below", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                            OutlinedTextField(
-                                value = totalMonthlyInput,
-                                onValueChange = { totalMonthlyInput = it },
-                                label = { Text("Total Monthly Budget ($currencySymbol)") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                            )
-
-                            Button(
-                                onClick = {
-                                    val total = totalMonthlyInput.parseAmount()
-                                    if (total > 0.0) {
-                                        val perCat = total / ExpenseCategories.all.size
-                                        ExpenseCategories.all.forEach { cat ->
-                                            viewModel.updateBudget(cat, kotlin.math.round(perCat * 100) / 100.0)
-                                        }
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Budgets auto-distributed successfully!")
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Text("Auto-Distribute Evenly Across Categories")
-                            }
-                        }
+                    val totalIncomeAmt = remember(incomes, recurringExpenses, viewModel.defaultCurrency) {
+                        val oneTime = incomes.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+                        val rec = recurringExpenses.filter { it.isIncome || it.category == ExpenseCategories.INCOME }.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+                        oneTime + rec
                     }
-                }
-
-                item {
-                    Text("Category Monthly Limits", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                }
-
-                items(ExpenseCategories.all, key = { it }) { category ->
-                    val currentLimit = budgets[category] ?: 200.0
-                    var limitText by remember { mutableStateOf(formatInputNumber(currentLimit)) }
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = category, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                Text(text = "Monthly Spending Limit", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            OutlinedTextField(
-                                value = limitText,
-                                onValueChange = { newVal ->
-                                    limitText = newVal
-                                    newVal.parseAmount().let { limit ->
-                                        viewModel.updateBudget(category, limit)
-                                    }
-                                },
-                                modifier = Modifier.width(110.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                            )
-                        }
-                    }
-                }
-            } else if (selectedPersonalTab == 2) {
-                // INCOME & SUBSCRIPTIONS SECTION
-                item {
-                    val totalIncomeAmt = remember(incomes, viewModel.defaultCurrency) {
-                        incomes.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
-                    }
-                    val totalSubsAmt = remember(recurringExpenses, viewModel.defaultCurrency) {
-                        recurringExpenses.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
-                    }
-                    val netFlowAmt = totalIncomeAmt - totalSubsAmt
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -314,41 +246,15 @@ fun PersonalExpensesScreen(
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Monthly Cash Flow Summary", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column {
-                                    Text("Incomes Total", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(
-                                        "+$currencySymbol${String.format(Locale.US, "%.2f", totalIncomeAmt)}",
-                                        fontWeight = FontWeight.Bold,
-                                        color = EmeraldSuccess,
-                                        fontSize = 16.sp
-                                    )
-                                }
-                                Column {
-                                    Text("Subscriptions", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(
-                                        "-$currencySymbol${String.format(Locale.US, "%.2f", totalSubsAmt)}",
-                                        fontWeight = FontWeight.Bold,
-                                        color = CrimsonDanger,
-                                        fontSize = 16.sp
-                                    )
-                                }
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text("Net Surplus", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(
-                                        "${if (netFlowAmt >= 0) "+" else ""}$currencySymbol${String.format(Locale.US, "%.2f", netFlowAmt)}",
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (netFlowAmt >= 0) EmeraldSuccess else CrimsonDanger,
-                                        fontSize = 16.sp
-                                    )
-                                }
-                            }
+                            Text("Total Recorded Income", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "+$currencySymbol${String.format(Locale.US, "%.2f", totalIncomeAmt)}",
+                                fontWeight = FontWeight.Bold,
+                                color = EmeraldSuccess,
+                                fontSize = 24.sp
+                            )
                         }
                     }
                 }
@@ -359,7 +265,7 @@ fun PersonalExpensesScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Active Incomes (${incomes.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("One-Time Incomes (${incomes.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         TextButton(onClick = { showAddIncomeDialog = true }) {
                             Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -434,16 +340,17 @@ fun PersonalExpensesScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Active Subscriptions (${recurringExpenses.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        TextButton(onClick = { showAddRecurringDialog = true }) {
+                        Text("Recurring Incomes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        TextButton(onClick = { showAddIncomeDialog = true }) {
                             Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add Subscription")
+                            Text("Add Recurring Income")
                         }
                     }
                 }
 
-                if (recurringExpenses.isEmpty()) {
+                val recurringIncomes = recurringExpenses.filter { it.isIncome || it.category == ExpenseCategories.INCOME }
+                if (recurringIncomes.isEmpty()) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -451,12 +358,12 @@ fun PersonalExpensesScreen(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         ) {
                             Box(modifier = Modifier.padding(20.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("No recurring subscriptions active.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("No recurring incomes configured. Enable 'Recurring' when adding income.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                 } else {
-                    items(recurringExpenses, key = { it.id }) { recurring ->
+                    items(recurringIncomes, key = { it.id }) { recInc ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
@@ -474,35 +381,39 @@ fun PersonalExpensesScreen(
                                 ) {
                                     Surface(
                                         shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
+                                        color = EmeraldSuccess.copy(alpha = 0.15f),
                                         modifier = Modifier.size(40.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
-                                            Icon(Icons.Rounded.Autorenew, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
+                                            Icon(Icons.Rounded.Repeat, contentDescription = null, tint = EmeraldSuccess, modifier = Modifier.size(20.dp))
                                         }
                                     }
                                     Column {
-                                        Text(recurring.title, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                                        Text("${recurring.frequency} • Next: ${recurring.nextDueDate}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                        Text(recInc.title, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                        Text("${recInc.frequency} • Next: ${recInc.nextDueDate}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                     }
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(
-                                        text = "${Currencies.getSymbol(recurring.currency)}${String.format(Locale.US, "%.2f", recurring.amount)}",
+                                        text = "+${Currencies.getSymbol(recInc.currency)}${String.format(Locale.US, "%.2f", recInc.amount)}",
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = EmeraldSuccess,
                                         fontSize = 16.sp
                                     )
-                                    IconButton(onClick = { viewModel.deleteRecurringExpense(recurring.id) }) {
-                                        Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete Subscription", tint = MaterialTheme.colorScheme.error)
+                                    IconButton(onClick = { viewModel.deleteRecurringExpense(recInc.id) }) {
+                                        Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete Recurring Income", tint = MaterialTheme.colorScheme.error)
                                     }
                                 }
                             }
                         }
                     }
                 }
-            } else {
-                // EXPENSES LIST SECTION
+            }
+
+            if (selectedPersonalTab == 0) {
+                // EXPENSES & RECURRING (Combined Section)
+
+                // 1. Filters at the top
                 item {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -531,7 +442,7 @@ fun PersonalExpensesScreen(
                                 shape = RoundedCornerShape(10.dp)
                             )
                         }
-                        items(ExpenseCategories.all, key = { it }) { category ->
+                        items(ExpenseCategories.expenseCategories, key = { it }) { category ->
                             FilterChip(
                                 selected = selectedCategoryFilter == category,
                                 onClick = {
@@ -542,6 +453,56 @@ fun PersonalExpensesScreen(
                             )
                         }
                     }
+                }
+
+                // 2. Recurring Bills & Subscriptions Summary Card (Links to Subscriptions Hub)
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val recurringSubs = recurringExpenses.filter { !it.isIncome && it.category != ExpenseCategories.INCOME }
+                    val totalSubsAmt = recurringSubs.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onNavigateToSubscriptions),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.size(44.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Rounded.Subscriptions, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                                    }
+                                }
+                                Column {
+                                    Text("Recurring Bills & Subscriptions", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                    Text("${recurringSubs.size} active commitments • $currencySymbol${String.format(Locale.US, "%.2f", totalSubsAmt)}/mo", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            Icon(Icons.Rounded.ChevronRight, contentDescription = "Open Subscriptions Hub", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("One-Time Expenses", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
 
                 if (filteredExpenses.isEmpty()) {
@@ -620,10 +581,143 @@ fun PersonalExpensesScreen(
         }
     }
 
+    // Budgets Modal Bottom Sheet / Dialog
+    if (showBudgetsDialog) {
+        AlertDialog(
+            onDismissRequest = { showBudgetsDialog = false },
+            title = { Text("Manage Budgets", fontWeight = FontWeight.Bold) },
+            text = {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 450.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    item {
+                        var totalMonthlyInput by remember(budgets) { mutableStateOf(formatInputNumber(budgets.values.sum())) }
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Monthly Budget Allocation", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            OutlinedTextField(
+                                value = totalMonthlyInput,
+                                onValueChange = { totalMonthlyInput = it },
+                                label = { Text("Total Monthly Budget ($currencySymbol)") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                            Button(
+                                onClick = {
+                                    val total = totalMonthlyInput.parseAmount()
+                                    if (total > 0.0) {
+                                        val cats = ExpenseCategories.expenseCategories
+                                        val perCat = kotlin.math.round((total / cats.size) * 100) / 100.0
+                                        cats.forEachIndexed { index, cat ->
+                                            val amountToAssign = if (index == cats.size - 1) {
+                                                val runningSum = perCat * (cats.size - 1)
+                                                kotlin.math.round((total - runningSum) * 100) / 100.0
+                                            } else {
+                                                perCat
+                                            }
+                                            viewModel.updateBudget(cat, amountToAssign)
+                                        }
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Budgets auto-distributed successfully!")
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Auto-Distribute Evenly")
+                            }
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Category Monthly Limits", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    }
+
+                    items(ExpenseCategories.expenseCategories, key = { it }) { category ->
+                        val currentLimit = budgets[category] ?: 200.0
+                        var limitText by remember { mutableStateOf(formatInputNumber(currentLimit)) }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = category, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                            OutlinedTextField(
+                                value = limitText,
+                                onValueChange = { newVal ->
+                                    limitText = newVal
+                                    newVal.parseAmount().let { limit ->
+                                        viewModel.updateBudget(category, limit)
+                                    }
+                                },
+                                modifier = Modifier.width(110.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { showBudgetsDialog = false }) {
+                    Text("Done")
+                }
+            }
+        )
+    }
+
     if (showAddIncomeDialog) {
         var incTitle by remember { mutableStateOf("") }
         var incAmount by remember { mutableStateOf("") }
         var incSource by remember { mutableStateOf("Salary") }
+        var isRecurring by remember { mutableStateOf(false) }
+        var recurringFrequency by remember { mutableStateOf("Monthly") }
+
+        val todayMillis = remember {
+            java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.of("UTC")).toInstant().toEpochMilli()
+        }
+        var nextDueDateMillis by remember { mutableStateOf<Long?>(todayMillis) }
+        var showDatePicker by remember { mutableStateOf(false) }
+
+        val formattedDueDate = remember(nextDueDateMillis) {
+            nextDueDateMillis?.let { millis ->
+                java.time.Instant.ofEpochMilli(millis)
+                    .atZone(java.time.ZoneId.of("UTC"))
+                    .format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US))
+            } ?: "Today"
+        }
+
+        if (showDatePicker) {
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = nextDueDateMillis ?: todayMillis
+            )
+            DatePickerDialog(
+                onDismissRequest = { showDatePicker = false },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            nextDueDateMillis = datePickerState.selectedDateMillis ?: nextDueDateMillis
+                            showDatePicker = false
+                        }
+                    ) {
+                        Text("OK")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDatePicker = false }) {
+                        Text("Cancel")
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
 
         AlertDialog(
             onDismissRequest = { showAddIncomeDialog = false },
@@ -658,6 +752,62 @@ fun PersonalExpensesScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     )
+
+                    HorizontalDivider()
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Recurring", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Text("Auto-log this income periodically", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = isRecurring,
+                            onCheckedChange = { isRecurring = it }
+                        )
+                    }
+
+                    if (isRecurring) {
+                        Text("Frequency", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("Weekly", "Monthly", "Yearly").forEach { freq ->
+                                FilterChip(
+                                    selected = recurringFrequency == freq,
+                                    onClick = { recurringFrequency = freq },
+                                    label = { Text(freq) }
+                                )
+                            }
+                        }
+
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = formattedDueDate,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Next Expected Date") },
+                                trailingIcon = {
+                                    IconButton(onClick = { showDatePicker = true }) {
+                                        Icon(Icons.Rounded.CalendarToday, contentDescription = "Select Date")
+                                    }
+                                },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { showDatePicker = true }
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -665,6 +815,17 @@ fun PersonalExpensesScreen(
                     val amt = incAmount.parseAmount()
                     if (incTitle.isNotBlank() && amt > 0) {
                         viewModel.addIncome(incTitle, amt, incSource, viewModel.defaultCurrency)
+                        if (isRecurring) {
+                            viewModel.addRecurringExpense(
+                                title = incTitle,
+                                amount = amt,
+                                category = ExpenseCategories.INCOME,
+                                frequency = recurringFrequency,
+                                nextDueDate = formattedDueDate,
+                                currency = viewModel.defaultCurrency,
+                                isIncome = true
+                            )
+                        }
                         showAddIncomeDialog = false
                     }
                 }) {
@@ -675,17 +836,6 @@ fun PersonalExpensesScreen(
                 TextButton(onClick = { showAddIncomeDialog = false }) {
                     Text("Cancel")
                 }
-            }
-        )
-    }
-
-    if (showAddRecurringDialog) {
-        AddSubscriptionDialog(
-            defaultCurrency = viewModel.defaultCurrency,
-            onDismiss = { showAddRecurringDialog = false },
-            onConfirm = { title, amt, cat, freq, dueDate, _ ->
-                viewModel.addRecurringExpense(title, amt, cat, freq, dueDate, viewModel.defaultCurrency)
-                showAddRecurringDialog = false
             }
         )
     }

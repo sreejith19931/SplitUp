@@ -182,6 +182,7 @@ object ExpenseCategories {
     const val INCOME = "Income"
     const val SETTLEMENT = "Settlement"
 
+    val expenseCategories = listOf(FOOD, TRANSPORT, SHOPPING, BILLS, ENTERTAINMENT, OTHER)
     val all = listOf(FOOD, TRANSPORT, SHOPPING, BILLS, ENTERTAINMENT, OTHER, INCOME)
 }
 

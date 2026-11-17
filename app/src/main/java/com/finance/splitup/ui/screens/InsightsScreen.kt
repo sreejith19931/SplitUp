@@ -69,18 +69,21 @@ fun InsightsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp)
         ) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text("Monthly Overview", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                         Row(
@@ -89,11 +92,11 @@ fun InsightsScreen(
                         ) {
                             Column {
                                 Text("Total Spending", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalSpent)}", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalSpent)}", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text("Total Income", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalIncome)}", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.primary)
+                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalIncome)}", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -117,28 +120,28 @@ fun InsightsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .semantics { contentDescription = "Category $category: $currencySymbol$amount" },
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 val catColor = getCategoryColor(category)
                                 Surface(
                                     shape = CircleShape,
                                     color = catColor.copy(alpha = 0.22f),
-                                    modifier = Modifier.size(42.dp)
+                                    modifier = Modifier.size(36.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Icon(imageVector = getCategoryIcon(category), contentDescription = null, tint = catColor, modifier = Modifier.size(20.dp))
+                                        Icon(imageVector = getCategoryIcon(category), contentDescription = null, tint = catColor, modifier = Modifier.size(18.dp))
                                     }
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
@@ -146,13 +149,13 @@ fun InsightsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text(category, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                        Text("$currencySymbol${String.format(Locale.US, "%.2f", amount)}", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                        Text(category, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text("$currencySymbol${String.format(Locale.US, "%.2f", amount)}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                     }
-                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     LinearProgressIndicator(
                                         progress = { percentage },
-                                        modifier = Modifier.fillMaxWidth().height(6.dp),
+                                        modifier = Modifier.fillMaxWidth().height(5.dp),
                                         color = catColor,
                                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                                     )

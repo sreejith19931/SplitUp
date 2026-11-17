@@ -1,0 +1,4 @@
+- `[ ]` Run Gradle unit tests (`testDebugUnitTest`)
+- `[ ]` Run Gradle build check (`assembleDebug`)
+- `[ ]` Verify QA checklist items across all 7 modules
+- `[ ]` Generate final walkthrough/QA report artifact

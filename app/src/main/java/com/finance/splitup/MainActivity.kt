@@ -326,15 +326,27 @@ fun SplitUpApp(
         }
     }
 
+    var lastBackgroundTimestamp by remember { mutableLongStateOf(0L) }
+
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, viewModel.isBiometricLockEnabled) {
+    DisposableEffect(lifecycleOwner, viewModel.isBiometricLockEnabled, viewModel.biometricLockTimeoutMins) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP && viewModel.isBiometricLockEnabled) {
                 val activity = context as? FragmentActivity
                 if (activity?.isChangingConfigurations != true && !MainActivity.isExternalActionInProgress) {
-                    isAppUnlocked = false
+                    lastBackgroundTimestamp = System.currentTimeMillis()
+                    if (viewModel.biometricLockTimeoutMins == 0) {
+                        isAppUnlocked = false
+                    }
                 }
                 MainActivity.isExternalActionInProgress = false
+            } else if (event == androidx.lifecycle.Lifecycle.Event.ON_START && viewModel.isBiometricLockEnabled) {
+                if (viewModel.biometricLockTimeoutMins > 0 && lastBackgroundTimestamp > 0L) {
+                    val elapsedMins = (System.currentTimeMillis() - lastBackgroundTimestamp) / 60000L
+                    if (elapsedMins >= viewModel.biometricLockTimeoutMins) {
+                        isAppUnlocked = false
+                    }
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -461,34 +473,70 @@ fun SplitUpApp(
             backStack = backStack,
             modifier = Modifier.padding(innerPadding),
             transitionSpec = {
-                slideInHorizontally(
-                    initialOffsetX = { fullWidth -> fullWidth },
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300)) togetherWith
-                slideOutHorizontally(
-                    targetOffsetX = { fullWidth -> -fullWidth / 3 },
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300))
+                val isNavigatingToNotifications = targetState.key == NotificationsRoute || targetState.key is NotificationsRoute
+                if (isNavigatingToNotifications) {
+                    slideInVertically(
+                        initialOffsetY = { fullHeight -> fullHeight },
+                        animationSpec = tween(350)
+                    ) + fadeIn(animationSpec = tween(300)) togetherWith
+                    slideOutVertically(
+                        targetOffsetY = { fullHeight -> -fullHeight / 4 },
+                        animationSpec = tween(350)
+                    ) + fadeOut(animationSpec = tween(300))
+                } else {
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(300)
+                    ) + fadeIn(animationSpec = tween(300)) togetherWith
+                    slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> -fullWidth / 3 },
+                        animationSpec = tween(300)
+                    ) + fadeOut(animationSpec = tween(300))
+                }
             },
             popTransitionSpec = {
-                slideInHorizontally(
-                    initialOffsetX = { fullWidth -> -fullWidth / 3 },
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300)) togetherWith
-                slideOutHorizontally(
-                    targetOffsetX = { fullWidth -> fullWidth },
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300))
+                val isPoppingFromNotifications = initialState.key == NotificationsRoute || initialState.key is NotificationsRoute
+                if (isPoppingFromNotifications) {
+                    slideInVertically(
+                        initialOffsetY = { fullHeight -> -fullHeight / 4 },
+                        animationSpec = tween(350)
+                    ) + fadeIn(animationSpec = tween(300)) togetherWith
+                    slideOutVertically(
+                        targetOffsetY = { fullHeight -> fullHeight },
+                        animationSpec = tween(350)
+                    ) + fadeOut(animationSpec = tween(300))
+                } else {
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> -fullWidth / 3 },
+                        animationSpec = tween(300)
+                    ) + fadeIn(animationSpec = tween(300)) togetherWith
+                    slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(300)
+                    ) + fadeOut(animationSpec = tween(300))
+                }
             },
             predictivePopTransitionSpec = {
-                slideInHorizontally(
-                    initialOffsetX = { fullWidth -> -fullWidth / 3 },
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300)) togetherWith
-                slideOutHorizontally(
-                    targetOffsetX = { fullWidth -> fullWidth },
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300))
+                val isPoppingFromNotifications = initialState.key == NotificationsRoute || initialState.key is NotificationsRoute
+                if (isPoppingFromNotifications) {
+                    slideInVertically(
+                        initialOffsetY = { fullHeight -> -fullHeight / 4 },
+                        animationSpec = tween(350)
+                    ) + fadeIn(animationSpec = tween(300)) togetherWith
+                    slideOutVertically(
+                        targetOffsetY = { fullHeight -> fullHeight },
+                        animationSpec = tween(350)
+                    ) + fadeOut(animationSpec = tween(300))
+                } else {
+                    slideInHorizontally(
+                        initialOffsetX = { fullWidth -> -fullWidth / 3 },
+                        animationSpec = tween(300)
+                    ) + fadeIn(animationSpec = tween(300)) togetherWith
+                    slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(300)
+                    ) + fadeOut(animationSpec = tween(300))
+                }
             },
             entryProvider = { key ->
                 when (key) {
@@ -511,8 +559,8 @@ fun SplitUpApp(
                                 backStack.add(DashboardRoute)
                                 backStack.add(GroupsRoute)
                             },
-                            onNavigateToGroupDetail = { gId ->
-                                backStack.add(GroupDetailRoute(gId))
+                            onNavigateToGroupDetail = { gId, tab ->
+                                backStack.add(GroupDetailRoute(gId, initialTab = tab))
                             },
                             onNavigateToCreateGroup = {
                                 backStack.add(CreateGroupRoute)
@@ -532,6 +580,12 @@ fun SplitUpApp(
                             },
                             onNavigateToSubscriptions = {
                                 backStack.add(SubscriptionsRoute)
+                            },
+                            onNavigateToNotifications = {
+                                backStack.add(NotificationsRoute)
+                            },
+                            onNavigateToBudgets = {
+                                backStack.add(BudgetRoute)
                             }
                         )
                     }
@@ -547,6 +601,9 @@ fun SplitUpApp(
                             },
                             onNavigateToGlobalSearch = {
                                 backStack.add(GlobalSearchRoute)
+                            },
+                            onNavigateToSubscriptions = {
+                                backStack.add(SubscriptionsRoute)
                             }
                         )
                     }
@@ -571,6 +628,7 @@ fun SplitUpApp(
                         GroupDetailScreen(
                             groupId = key.groupId,
                             viewModel = viewModel,
+                            initialTab = key.initialTab,
                             onBack = {
                                 if (backStack.size > 1) {
                                     backStack.remove(key)
@@ -765,6 +823,47 @@ fun SplitUpApp(
                                     backStack.clear()
                                     backStack.add(DashboardRoute)
                                     backStack.add(SettingsRoute)
+                                }
+                            }
+                        )
+                    }
+                    is NotificationsRoute -> NavEntry(key) {
+                        NotificationsScreen(
+                            viewModel = viewModel,
+                            onBack = {
+                                if (backStack.size > 1) {
+                                    backStack.remove(key)
+                                } else {
+                                    backStack.clear()
+                                    backStack.add(DashboardRoute)
+                                }
+                            },
+                            onNavigateToGroupDetail = { gId, tab ->
+                                backStack.add(GroupDetailRoute(gId, initialTab = tab))
+                            },
+                            onNavigateToSubscriptions = {
+                                backStack.add(SubscriptionsRoute)
+                            },
+                            onNavigateToInsights = {
+                                backStack.add(InsightsRoute)
+                            },
+                            onNavigateToBudgets = {
+                                backStack.add(BudgetRoute)
+                            },
+                            onNavigateToPersonalExpenses = { cat ->
+                                backStack.add(PersonalExpensesRoute(initialCategory = cat))
+                            }
+                        )
+                    }
+                    is BudgetRoute -> NavEntry(key) {
+                        BudgetScreen(
+                            viewModel = viewModel,
+                            onBack = {
+                                if (backStack.size > 1) {
+                                    backStack.remove(key)
+                                } else {
+                                    backStack.clear()
+                                    backStack.add(DashboardRoute)
                                 }
                             }
                         )

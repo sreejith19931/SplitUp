@@ -30,18 +30,44 @@ class RecurringExpenseWorker(
                         val dueDate = LocalDate.parse(item.nextDueDate.trim(), formatter)
                         // If today is on or after the due date, auto-add expense and advance next due date
                         if (!today.isBefore(dueDate)) {
-                            val expenseEntity = com.finance.splitup.data.db.ExpenseEntity(
-                                id = UUID.randomUUID().toString(),
-                                title = item.title,
-                                amount = item.amount,
-                                category = item.category,
-                                date = item.nextDueDate,
-                                description = "Automated Recurring Expense (${item.frequency})",
-                                paidBy = "You",
-                                currency = item.currency,
-                                paymentMethod = "Auto Debit"
-                            )
-                            database.financeDao().insertExpense(expenseEntity)
+                            val isItemIncome = item.isIncome || item.category == ExpenseCategories.INCOME
+                            if (isItemIncome) {
+                                val incomeEntity = com.finance.splitup.data.db.IncomeEntity(
+                                    id = UUID.randomUUID().toString(),
+                                    title = item.title,
+                                    amount = item.amount,
+                                    source = item.title,
+                                    date = item.nextDueDate,
+                                    currency = item.currency
+                                )
+                                database.financeDao().insertIncome(incomeEntity)
+
+                                val expenseEntity = com.finance.splitup.data.db.ExpenseEntity(
+                                    id = UUID.randomUUID().toString(),
+                                    title = item.title,
+                                    amount = item.amount,
+                                    category = ExpenseCategories.INCOME,
+                                    date = item.nextDueDate,
+                                    description = "Automated Recurring Income (${item.frequency})",
+                                    paidBy = "You",
+                                    currency = item.currency,
+                                    paymentMethod = "Direct Deposit"
+                                )
+                                database.financeDao().insertExpense(expenseEntity)
+                            } else {
+                                val expenseEntity = com.finance.splitup.data.db.ExpenseEntity(
+                                    id = UUID.randomUUID().toString(),
+                                    title = item.title,
+                                    amount = item.amount,
+                                    category = item.category,
+                                    date = item.nextDueDate,
+                                    description = "Automated Recurring Expense (${item.frequency})",
+                                    paidBy = "You",
+                                    currency = item.currency,
+                                    paymentMethod = "Auto Debit"
+                                )
+                                database.financeDao().insertExpense(expenseEntity)
+                            }
 
                             // Advance next due date based on frequency
                             val nextDate = when (item.frequency.lowercase(Locale.ROOT)) {
@@ -94,9 +120,9 @@ class RecurringExpenseWorker(
                                     )
 
                                     val builder = androidx.core.app.NotificationCompat.Builder(applicationContext, "splitup_recurring_bills")
-                                        .setSmallIcon(android.R.drawable.ic_dialog_info)
-                                        .setContentTitle("Recurring Expense Logged 🔄")
-                                        .setContentText("Auto-logged '${item.title}' (${item.currency} ${item.amount}) for due date ${item.nextDueDate}.")
+                                        .setSmallIcon(com.finance.splitup.R.mipmap.ic_launcher_round)
+                                        .setContentTitle(if (isItemIncome) "Recurring Income Received 💰" else "Recurring Expense Logged 🔄")
+                                        .setContentText(if (isItemIncome) "Auto-logged income '${item.title}' (${item.currency} ${item.amount}) for ${item.nextDueDate}." else "Auto-logged '${item.title}' (${item.currency} ${item.amount}) for due date ${item.nextDueDate}.")
                                         .setAutoCancel(true)
                                         .setContentIntent(pendingIntent)
                                         .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)

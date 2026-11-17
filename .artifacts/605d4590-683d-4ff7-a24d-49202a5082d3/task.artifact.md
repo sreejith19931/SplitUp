@@ -1,0 +1,7 @@
+- `[ ]` Define `BudgetEntity` and `GroupActivityEntity` in Room database
+- `[ ]` Implement `BudgetDao` and `GroupActivityDao` in AppDatabase
+- `[ ]` Implement `BudgetScreen.kt` and budget state management in FinanceViewModel
+- `[ ]` Add Group Activity Feed tab and audit logging to `GroupDetailScreen.kt`
+- `[ ]` Implement scheduled automated cloud backups via WorkManager
+- `[ ]` Add Travel Currency mode toggle in `AddExpenseScreen.kt`
+- `[ ]` Verify build and test functionality

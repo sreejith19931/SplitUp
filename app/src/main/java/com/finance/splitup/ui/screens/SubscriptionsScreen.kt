@@ -38,8 +38,8 @@ fun SubscriptionsScreen(
     var editingSubscription by remember { mutableStateOf<RecurringExpenseEntity?>(null) }
 
     val totalMonthlyCommitment = remember(subscriptions) {
-        subscriptions.sumOf { item ->
-            when (item.frequency.lowercase()) {
+        subscriptions.filter { !it.isIncome && it.category != ExpenseCategories.INCOME }.sumOf { item ->
+            when (item.frequency.lowercase(Locale.ROOT)) {
                 "yearly", "annually" -> item.amount / 12.0
                 "weekly" -> item.amount * 4.33
                 else -> item.amount
@@ -74,22 +74,22 @@ fun SubscriptionsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 88.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(top = 10.dp, bottom = 80.dp)
         ) {
             // Summary Card
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -105,21 +105,21 @@ fun SubscriptionsScreen(
                                 Text(
                                     "${Currencies.getSymbol(viewModel.defaultCurrency)}${String.format(Locale.US, "%.2f", totalMonthlyCommitment)}/mo",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 28.sp,
+                                    fontSize = 24.sp,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
                             Surface(
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Rounded.Repeat,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
@@ -132,7 +132,7 @@ fun SubscriptionsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                "${subscriptions.size} Active Subscriptions",
+                                "${subscriptions.filter { !it.isIncome && it.category != ExpenseCategories.INCOME }.size} Active Subscriptions",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -156,7 +156,8 @@ fun SubscriptionsScreen(
                 )
             }
 
-            if (subscriptions.isEmpty()) {
+            val expenseSubscriptions = subscriptions.filter { !it.isIncome && it.category != ExpenseCategories.INCOME }
+            if (expenseSubscriptions.isEmpty()) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -177,7 +178,7 @@ fun SubscriptionsScreen(
                     }
                 }
             } else {
-                items(subscriptions, key = { it.id }) { item ->
+                items(expenseSubscriptions, key = { it.id }) { item ->
                     SubscriptionCard(
                         item = item,
                         defaultCurrency = viewModel.defaultCurrency,
@@ -218,7 +219,9 @@ fun SubscriptionsScreen(
                         amount = amount,
                         category = category,
                         frequency = frequency,
-                        nextDueDate = nextDueDate
+                        nextDueDate = nextDueDate,
+                        currency = viewModel.defaultCurrency,
+                        isIncome = false
                     )
                     Toast.makeText(context, "Updated '$title'!", Toast.LENGTH_SHORT).show()
                 } else {
@@ -227,7 +230,9 @@ fun SubscriptionsScreen(
                         amount = amount,
                         category = category,
                         frequency = frequency,
-                        nextDueDate = nextDueDate
+                        nextDueDate = nextDueDate,
+                        currency = viewModel.defaultCurrency,
+                        isIncome = false
                     )
                     Toast.makeText(context, "Added '$title' to subscriptions!", Toast.LENGTH_SHORT).show()
                 }
@@ -258,26 +263,26 @@ fun SubscriptionCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.weight(1f)
             ) {
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(46.dp)
+                    modifier = Modifier.size(38.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Rounded.Subscriptions,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -426,7 +431,7 @@ fun AddSubscriptionDialog(
                         expanded = expandedCategoryDropdown,
                         onDismissRequest = { expandedCategoryDropdown = false }
                     ) {
-                        ExpenseCategories.all.forEach { cat ->
+                        ExpenseCategories.expenseCategories.forEach { cat ->
                             DropdownMenuItem(
                                 text = { Text(cat) },
                                 onClick = {

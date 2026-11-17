@@ -448,4 +448,197 @@ class FinanceViewModelTest {
         assertEquals(2, settlementsInUsd.size)
         assertTrue(settlementsInUsd.all { it.amount == 50.0 })
     }
+
+    @Test
+    fun testGroupApprovalSettlementRecordCreation() {
+        val viewModel = FinanceViewModel()
+        viewModel.addGroup("Approval Group", "Trip", listOf("Alice", "Bob"), requireApproval = true)
+        val group = viewModel.groups.value.first { it.name == "Approval Group" }
+        assertTrue(group.requireApproval)
+
+        var pendingTriggered = false
+        viewModel.recordSettlementPayment(
+            group = group,
+            payer = "You",
+            payee = "Alice",
+            amount = 30.0,
+            currency = Currencies.EUR,
+            onResult = { isPending ->
+                pendingTriggered = isPending
+            }
+        )
+
+        assertTrue(pendingTriggered)
+    }
+
+    @Test
+    fun testApproveSettlementRecordRequest() {
+        val viewModel = FinanceViewModel()
+        viewModel.addGroup("Approval Group 2", "Trip", listOf("Alice", "Bob"), requireApproval = true)
+        val group = viewModel.groups.value.first { it.name == "Approval Group 2" }
+
+        val settlementExpense = com.finance.splitup.data.GroupExpense(
+            id = "settlement_123",
+            title = "Payment: You to Alice",
+            amount = 30.0,
+            paidBy = "You",
+            date = "Today",
+            splitAmong = listOf("Alice"),
+            currency = Currencies.EUR,
+            category = ExpenseCategories.SETTLEMENT
+        )
+        val payloadJson = kotlinx.serialization.json.Json.encodeToString(com.finance.splitup.data.GroupExpense.serializer(), settlementExpense)
+
+        val request = com.finance.splitup.data.db.GroupApprovalRequestEntity(
+            id = "req_1",
+            groupId = group.id,
+            groupName = group.name,
+            targetId = settlementExpense.id,
+            requestType = "SETTLEMENT_RECORD",
+            requestedBy = "You",
+            requestedByEmail = "you@example.com",
+            ownerName = "Alice",
+            ownerEmail = "alice@example.com",
+            payloadJson = payloadJson,
+            status = "PENDING",
+            timestamp = System.currentTimeMillis()
+        )
+
+        viewModel.approveGroupRequest(request)
+
+        val updatedGroup = viewModel.groups.value.first { it.id == group.id }
+        assertTrue(updatedGroup.expenses.any { it.id == "settlement_123" })
+        val addedExpense = updatedGroup.expenses.first { it.id == "settlement_123" }
+        assertEquals(30.0, addedExpense.amount, 0.01)
+        assertEquals("Payment: You to Alice", addedExpense.title)
+    }
+
+    @Test
+    fun testApproveExpenseEditAndDeleteRequests() {
+        val viewModel = FinanceViewModel()
+        viewModel.addGroup("Approval Group 3", "Trip", listOf("Alice"), requireApproval = true)
+        var group = viewModel.groups.value.first { it.name == "Approval Group 3" }
+
+        viewModel.addGroupExpense(
+            groupId = group.id,
+            title = "Lunch",
+            amount = 40.0,
+            paidBy = "You",
+            splitAmong = listOf("You", "Alice"),
+            date = "Today"
+        )
+        group = viewModel.groups.value.first { it.id == group.id }
+        val expenseId = group.expenses.first().id
+
+        // Test EXPENSE_EDIT approval
+        val editedExpense = group.expenses.first().copy(amount = 60.0, title = "Fancy Lunch")
+        val editPayload = kotlinx.serialization.json.Json.encodeToString(com.finance.splitup.data.GroupExpense.serializer(), editedExpense)
+        val editRequest = com.finance.splitup.data.db.GroupApprovalRequestEntity(
+            id = "req_edit",
+            groupId = group.id,
+            groupName = group.name,
+            targetId = expenseId,
+            requestType = "EXPENSE_EDIT",
+            requestedBy = "Alice",
+            requestedByEmail = "alice@example.com",
+            ownerName = "You",
+            ownerEmail = "you@example.com",
+            payloadJson = editPayload,
+            status = "PENDING",
+            timestamp = System.currentTimeMillis()
+        )
+
+        viewModel.approveGroupRequest(editRequest)
+
+        group = viewModel.groups.value.first { it.id == group.id }
+        assertEquals(60.0, group.expenses.first().amount, 0.01)
+        assertEquals("Fancy Lunch", group.expenses.first().title)
+
+        // Test EXPENSE_DELETE approval
+        val deleteRequest = com.finance.splitup.data.db.GroupApprovalRequestEntity(
+            id = "req_del",
+            groupId = group.id,
+            groupName = group.name,
+            targetId = expenseId,
+            requestType = "EXPENSE_DELETE",
+            requestedBy = "Alice",
+            requestedByEmail = "alice@example.com",
+            ownerName = "You",
+            ownerEmail = "you@example.com",
+            payloadJson = expenseId,
+            status = "PENDING",
+            timestamp = System.currentTimeMillis()
+        )
+
+        viewModel.approveGroupRequest(deleteRequest)
+
+        group = viewModel.groups.value.first { it.id == group.id }
+        assertTrue(group.expenses.none { it.id == expenseId })
+    }
+
+    @Test
+    fun testApproveMemberRemoveAndRejectRequests() {
+        val viewModel = FinanceViewModel()
+        viewModel.addGroup("Approval Group 4", "Trip", listOf("Alice", "Bob"), requireApproval = true)
+        var group = viewModel.groups.value.first { it.name == "Approval Group 4" }
+        assertTrue(group.members.contains("Bob"))
+
+        // Test MEMBER_REMOVE approval
+        val removeRequest = com.finance.splitup.data.db.GroupApprovalRequestEntity(
+            id = "req_remove",
+            groupId = group.id,
+            groupName = group.name,
+            targetId = "Bob",
+            requestType = "MEMBER_REMOVE",
+            requestedBy = "Alice",
+            requestedByEmail = "alice@example.com",
+            ownerName = "You",
+            ownerEmail = "you@example.com",
+            payloadJson = "Bob",
+            status = "PENDING",
+            timestamp = System.currentTimeMillis()
+        )
+
+        viewModel.approveGroupRequest(removeRequest)
+
+        group = viewModel.groups.value.first { it.id == group.id }
+        assertFalse(group.members.contains("Bob"))
+
+        // Test request rejection
+        val rejectRequest = com.finance.splitup.data.db.GroupApprovalRequestEntity(
+            id = "req_reject",
+            groupId = group.id,
+            groupName = group.name,
+            targetId = "Alice",
+            requestType = "MEMBER_REMOVE",
+            requestedBy = "Bob",
+            requestedByEmail = "bob@example.com",
+            ownerName = "You",
+            ownerEmail = "you@example.com",
+            payloadJson = "Alice",
+            status = "PENDING",
+            timestamp = System.currentTimeMillis()
+        )
+
+        viewModel.rejectGroupRequest(rejectRequest)
+        // Group members remain unchanged after rejection
+        group = viewModel.groups.value.first { it.id == group.id }
+        assertTrue(group.members.contains("Alice"))
+    }
+
+    @Test
+    fun testDeclineExpenseEditRequestRemovesFromPendingList() {
+        val viewModel = FinanceViewModel()
+        viewModel.sendSampleApprovalRequest(null, "EXPENSE_EDIT")
+
+        var pendingList = viewModel.pendingApprovalRequests.value
+        assertTrue(pendingList.isNotEmpty())
+        val reqToDecline = pendingList.first()
+
+        viewModel.rejectGroupRequest(reqToDecline)
+
+        pendingList = viewModel.pendingApprovalRequests.value
+        assertFalse(pendingList.any { it.id == reqToDecline.id })
+    }
 }
+

@@ -154,7 +154,7 @@ fun SpendingDonutChart(
 }
 
 @Composable
-fun SpendingVelocityInsightCard(expenses: List<Expense>, defaultCurrency: String = Currencies.EUR) {
+fun SpendingVelocityInsightCard(expenses: List<Expense>, defaultCurrency: String = Currencies.EUR, onClick: () -> Unit = {}) {
     val spendingExpenses = remember(expenses) { expenses.filter { it.category != ExpenseCategories.INCOME } }
     val totalSpent = remember(spendingExpenses, defaultCurrency) {
         spendingExpenses.sumOf { Currencies.convert(it.amount, it.currency, defaultCurrency) }
@@ -169,7 +169,9 @@ fun SpendingVelocityInsightCard(expenses: List<Expense>, defaultCurrency: String
     }
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
     ) {
@@ -202,7 +204,8 @@ fun BudgetAndCategoryAnalyticsCard(
     expenses: List<Expense>,
     budgets: Map<String, Double>,
     defaultCurrency: String = Currencies.EUR,
-    onCategoryClick: (String) -> Unit = {}
+    onCategoryClick: (String) -> Unit = {},
+    onNavigateToInsights: () -> Unit = {}
 ) {
     var isExpanded by remember { mutableStateOf(true) }
     var selectedCategoryFilter by remember { mutableStateOf<String?>(null) }
@@ -296,7 +299,7 @@ fun BudgetAndCategoryAnalyticsCard(
                     )
 
                     // Financial Velocity Insight Banner
-                    SpendingVelocityInsightCard(expenses = expenses, defaultCurrency = defaultCurrency)
+                    SpendingVelocityInsightCard(expenses = expenses, defaultCurrency = defaultCurrency, onClick = onNavigateToInsights)
 
                     // Unified Category List with Budget Progress & Expenses Accordion
                     Column(
@@ -355,22 +358,29 @@ fun BudgetAndCategoryAnalyticsCard(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(10.dp)
-                                                    .clip(CircleShape)
-                                                    .background(color)
-                                            )
-                                            Text(
-                                                text = category,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 14.sp,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(10.dp)
+                                                        .clip(CircleShape)
+                                                        .background(color)
+                                                )
+                                                Text(
+                                                    text = category,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 14.sp,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                )
+                                            }
                                             if (rawProgress >= 1.0f) {
                                                 Surface(
                                                     shape = RoundedCornerShape(4.dp),
@@ -386,11 +396,13 @@ fun BudgetAndCategoryAnalyticsCard(
                                                 }
                                             }
                                         }
+                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = "$currencySymbol${String.format(Locale.US, "%.2f", spent)} / $currencySymbol${String.format(Locale.US, "%.0f", limit)} ($percentOfTotal%)",
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (rawProgress >= 1.0f) CrimsonDanger else MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = if (rawProgress >= 1.0f) CrimsonDanger else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1
                                         )
                                     }
 

@@ -32,7 +32,14 @@ interface FinanceRepository {
     suspend fun upsertUserProfile(profile: com.finance.splitup.data.db.UserProfileEntity)
 
     fun getActivityLogsForGroup(groupId: String): Flow<List<com.finance.splitup.data.db.ActivityLogEntity>>
+    fun getAllActivityLogs(): Flow<List<com.finance.splitup.data.db.ActivityLogEntity>>
     suspend fun insertActivityLog(log: com.finance.splitup.data.db.ActivityLogEntity)
+    suspend fun markActivityLogUndone(id: String)
+
+    fun getPendingApprovalRequestsForOwner(ownerEmail: String = ""): Flow<List<com.finance.splitup.data.db.GroupApprovalRequestEntity>>
+    fun getPendingApprovalRequestsForGroup(groupId: String): Flow<List<com.finance.splitup.data.db.GroupApprovalRequestEntity>>
+    suspend fun upsertApprovalRequest(request: com.finance.splitup.data.db.GroupApprovalRequestEntity)
+    suspend fun updateApprovalRequestStatus(id: String, status: String)
 
     fun getAllIncomes(): Flow<List<IncomeEntity>>
     suspend fun getIncomeCount(): Int
@@ -124,8 +131,32 @@ class OfflineFirstFinanceRepository(private val dao: FinanceDao) : FinanceReposi
         return dao.getActivityLogsForGroup(groupId)
     }
 
+    override fun getAllActivityLogs(): Flow<List<com.finance.splitup.data.db.ActivityLogEntity>> {
+        return dao.getAllActivityLogs()
+    }
+
     override suspend fun insertActivityLog(log: com.finance.splitup.data.db.ActivityLogEntity) {
         dao.insertActivityLog(log)
+    }
+
+    override suspend fun markActivityLogUndone(id: String) {
+        dao.markActivityLogUndone(id)
+    }
+
+    override fun getPendingApprovalRequestsForOwner(ownerEmail: String): Flow<List<com.finance.splitup.data.db.GroupApprovalRequestEntity>> {
+        return dao.getPendingApprovalRequestsForOwner()
+    }
+
+    override fun getPendingApprovalRequestsForGroup(groupId: String): Flow<List<com.finance.splitup.data.db.GroupApprovalRequestEntity>> {
+        return dao.getPendingApprovalRequestsForGroup(groupId)
+    }
+
+    override suspend fun upsertApprovalRequest(request: com.finance.splitup.data.db.GroupApprovalRequestEntity) {
+        dao.upsertApprovalRequest(request)
+    }
+
+    override suspend fun updateApprovalRequestStatus(id: String, status: String) {
+        dao.updateApprovalRequestStatus(id, status)
     }
 
     override fun getAllIncomes(): Flow<List<IncomeEntity>> {

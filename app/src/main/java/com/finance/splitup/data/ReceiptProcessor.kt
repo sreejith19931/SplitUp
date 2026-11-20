@@ -61,6 +61,9 @@ object ReceiptProcessor {
                         continuation.resume(emptyResult)
                     }
                 }
+                .addOnCompleteListener {
+                    try { recognizer.close() } catch (_: Exception) {}
+                }
         } catch (_: Exception) {
             if (continuation.isActive) {
                 continuation.resume(emptyResult)
@@ -112,6 +115,9 @@ object ReceiptProcessor {
             }
             .addOnFailureListener {
                 continuation.resume(null)
+            }
+            .addOnCompleteListener {
+                try { recognizer.close() } catch (_: Exception) {}
             }
     }
 

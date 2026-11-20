@@ -63,6 +63,13 @@ fun AddExpenseScreen(
     var isRecurring by rememberSaveable { mutableStateOf(false) }
     var recurringFrequency by rememberSaveable { mutableStateOf("Monthly") }
 
+    var editableLineItems by remember(existingExpense, viewModel.currentExtractedReceipt) {
+        mutableStateOf(existingExpense?.lineItems?.ifEmpty { null } ?: viewModel.currentExtractedReceipt?.lineItems ?: emptyList())
+    }
+    var lineItemPriceStrings by remember(editableLineItems) {
+        mutableStateOf(editableLineItems.associate { it.id to formatInputNumber(it.price) })
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -444,6 +451,94 @@ fun AddExpenseScreen(
                 singleLine = true
             )
 
+            // Scanned Receipt Line Items Editor
+            if (!isIncome && (editableLineItems.isNotEmpty() || existingExpense?.receiptImagePath != null || viewModel.currentExtractedReceipt != null)) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Receipt Line Items (${editableLineItems.size})",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                            TextButton(
+                                onClick = {
+                                    val newId = java.util.UUID.randomUUID().toString()
+                                    val newItem = com.finance.splitup.data.ReceiptLineItem(
+                                        id = newId,
+                                        name = "New Item",
+                                        price = 0.0
+                                    )
+                                    editableLineItems = editableLineItems + newItem
+                                    lineItemPriceStrings = lineItemPriceStrings + (newId to "")
+                                }
+                            ) {
+                                Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Add Item", fontSize = 12.sp)
+                            }
+                        }
+
+                        editableLineItems.forEach { item ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = item.name,
+                                    onValueChange = { newName ->
+                                        editableLineItems = editableLineItems.map { if (it.id == item.id) it.copy(name = newName) else it }
+                                    },
+                                    label = { Text("Item Name") },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = lineItemPriceStrings[item.id] ?: formatInputNumber(item.price),
+                                    onValueChange = { newPriceStr ->
+                                        val filtered = filterPriceInput(newPriceStr)
+                                        lineItemPriceStrings = lineItemPriceStrings + (item.id to filtered)
+                                        val newPrice = filtered.parseAmount()
+                                        editableLineItems = editableLineItems.map { if (it.id == item.id) it.copy(price = newPrice) else it }
+                                    },
+                                    label = { Text("Price ($currencySymbol)") },
+                                    modifier = Modifier.width(110.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                                )
+                                IconButton(
+                                    onClick = {
+                                        editableLineItems = editableLineItems.filter { it.id != item.id }
+                                        lineItemPriceStrings = lineItemPriceStrings - item.id
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.DeleteOutline,
+                                        contentDescription = "Delete item",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Payment Method", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 LazyRow(
@@ -566,7 +661,8 @@ fun AddExpenseScreen(
                                     description = description,
                                     paidBy = paidBy,
                                     currency = selectedCurrency,
-                                    paymentMethod = selectedPaymentMethod
+                                    paymentMethod = selectedPaymentMethod,
+                                    lineItems = editableLineItems
                                 )
                                 viewModel.updateExpense(updated)
                             } else {
@@ -578,7 +674,8 @@ fun AddExpenseScreen(
                                     description = description,
                                     paidBy = paidBy,
                                     currency = selectedCurrency,
-                                    paymentMethod = selectedPaymentMethod
+                                    paymentMethod = selectedPaymentMethod,
+                                    lineItems = editableLineItems
                                 )
                             }
                         }

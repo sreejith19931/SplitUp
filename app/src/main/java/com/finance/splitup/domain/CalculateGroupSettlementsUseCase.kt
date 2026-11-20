@@ -20,13 +20,33 @@ class CalculateGroupSettlementsUseCase {
         currentUserName: String = "You",
         currentUserEmail: String = ""
     ): Map<String, Double> {
-        fun isSelfUser(n: String): Boolean {
-            val trimmed = n.trim().lowercase()
-            if (trimmed == "you") return true
-            if (currentUserName.isNotBlank() && trimmed == currentUserName.trim().lowercase()) return true
+        val canonicalSelf = group.allMembers.firstOrNull { member ->
+            val mTrim = member.trim()
             if (currentUserEmail.isNotBlank()) {
                 val emailLower = currentUserEmail.trim().lowercase()
-                if (trimmed == emailLower || trimmed == emailLower.substringBefore("@")) return true
+                if (mTrim.equals(emailLower, ignoreCase = true)) return@firstOrNull true
+                val memberIdx = group.members.indexOfFirst { it.equals(mTrim, ignoreCase = true) }
+                if (memberIdx >= 0) {
+                    val memberEmail = group.memberEmails.getOrNull(memberIdx)
+                    if (memberEmail != null && memberEmail.equals(currentUserEmail, ignoreCase = true)) {
+                        return@firstOrNull true
+                    }
+                }
+            }
+            if (currentUserName.isNotBlank() && !currentUserName.equals("You", ignoreCase = true)) {
+                if (mTrim.equals(currentUserName.trim(), ignoreCase = true)) return@firstOrNull true
+            }
+            false
+        } ?: group.allMembers.firstOrNull { it.trim().equals("You", ignoreCase = true) } ?: "You"
+
+        fun isSelfUser(n: String): Boolean {
+            val trimmed = n.trim()
+            if (trimmed.equals(canonicalSelf, ignoreCase = true)) return true
+            if (trimmed.equals("You", ignoreCase = true)) return true
+            if (currentUserName.isNotBlank() && trimmed.equals(currentUserName.trim(), ignoreCase = true)) return true
+            if (currentUserEmail.isNotBlank()) {
+                val emailLower = currentUserEmail.trim().lowercase()
+                if (trimmed.equals(emailLower, ignoreCase = true)) return true
                 val memberIdx = group.members.indexOfFirst { it.equals(n, ignoreCase = true) }
                 if (memberIdx >= 0) {
                     val memberEmail = group.memberEmails.getOrNull(memberIdx)
@@ -37,8 +57,6 @@ class CalculateGroupSettlementsUseCase {
             }
             return false
         }
-
-        val canonicalSelf = group.allMembers.firstOrNull { isSelfUser(it) } ?: "You"
 
         fun matchMember(name: String): String {
             if (isSelfUser(name)) {

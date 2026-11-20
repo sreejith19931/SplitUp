@@ -1,0 +1,51 @@
+=============================================================
+GOOGLE PLAY STORE LISTING COPY - SPLITUP
+=============================================================
+
+1. APP NAME (Max 30 chars):
+SplitUp: Bill & Expense Splitter
+
+2. SHORT DESCRIPTION (Max 80 chars):
+Split bills with friends, track shared group expenses, and manage budgets.
+
+3. FULL DESCRIPTION (Max 4000 chars):
+Say goodbye to awkward money conversations! SplitUp is the ultimate smart expense splitting, group bill sharing, and personal budget tracker designed to make settling up fast, transparent, and hassle-free.
+
+Whether you are living with roommates, planning a group vacation, sharing dinners, or managing monthly household expenses, SplitUp keeps everyone on the same page.
+
+🌟 KEY FEATURES:
+
+👥 Group Bill Splitting & Settlements
+• Create shared groups for trips, roommates, couples, or events.
+• Split expenses equally, by exact amounts, percentages, or custom shares.
+• Instant net balance calculation — know exactly who owes whom with a single tap.
+• Simplified debt settlement algorithm to minimize the number of repayments needed.
+
+💳 Automated Payment & Bank Notification Parsing
+• Optionally sync bank or UPI payment notifications locally on your device.
+• SplitUp automatically suggests and logs expenses from incoming transaction alerts so you never forget a shared bill.
+
+📊 Personal Expense Tracking & Budgets
+• Log one-time or recurring personal expenses and monthly bills.
+• Set category-specific spending budgets (Food, Transport, Shopping, Bills) with real-time progress indicators.
+• Visual spending analytics and financial health insights.
+
+📷 Receipt Scanner & Document OCR
+• Scan paper receipts instantly using Google ML Kit camera scanning.
+• Extract item totals and automatically allocate line items to group members.
+
+💱 Live Multi-Currency Exchange Rates
+• Travel internationally without currency friction!
+• Real-time multi-currency exchange rate conversion for multi-national group trips and expenses.
+
+🔒 Privacy & Security First
+• Secure user authentication with Google Sign-In & Email.
+• Local-first Room database architecture ensuring offline support and lightning-fast speed.
+• Optional biometric lock (Fingerprint / Face ID) to protect your financial data.
+• Biometric and encrypted preference storage.
+
+📥 CSV & PDF Export
+• Export complete expense reports, statements, and group summaries to PDF or CSV anytime.
+
+Download SplitUp today and take control of your shared finances!
+=============================================================

@@ -593,8 +593,8 @@ fun SplitUpApp(
                         PersonalExpensesScreen(
                             viewModel = viewModel,
                             initialCategory = key.initialCategory,
-                            onNavigateToAddExpense = {
-                                backStack.add(AddExpenseRoute())
+                            onNavigateToAddExpense = { expId, isIncome ->
+                                backStack.add(AddExpenseRoute(expenseId = expId, initialIsIncome = isIncome))
                             },
                             onNavigateToEditExpense = { expId ->
                                 backStack.add(AddExpenseRoute(expId))
@@ -604,6 +604,11 @@ fun SplitUpApp(
                             },
                             onNavigateToSubscriptions = {
                                 backStack.add(SubscriptionsRoute)
+                            },
+                            onNavigateToGroups = {
+                                backStack.clear()
+                                backStack.add(DashboardRoute)
+                                backStack.add(GroupsRoute)
                             }
                         )
                     }
@@ -621,6 +626,11 @@ fun SplitUpApp(
                             },
                             onNavigateToFindFriends = {
                                 backStack.add(FindFriendsRoute)
+                            },
+                            onNavigateToSettings = {
+                                backStack.clear()
+                                backStack.add(DashboardRoute)
+                                backStack.add(SettingsRoute)
                             }
                         )
                     }
@@ -768,7 +778,11 @@ fun SplitUpApp(
                             onNavigateToInsights = { backStack.add(InsightsRoute) },
                             onNavigateToAbout = { backStack.add(AboutRoute) },
                             onNavigateToSecurity = { backStack.add(SecuritySettingsRoute) },
-                            onNavigateToDataManagement = { backStack.add(DataManagementRoute) }
+                            onNavigateToDataManagement = { backStack.add(DataManagementRoute) },
+                            onNavigateToDashboard = {
+                                backStack.clear()
+                                backStack.add(DashboardRoute)
+                            }
                         )
                     }
                     is SecuritySettingsRoute -> NavEntry(key) {
@@ -1035,7 +1049,7 @@ fun BiometricLockOverlay(onUnlocked: () -> Unit) {
             var pinError by remember { mutableStateOf<String?>(null) }
             val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
             val defaultHash = hashSecurityPin("1234")
-            val savedPin = prefs.getString("security_pin", defaultHash) ?: defaultHash
+            val savedPin = prefs.getString("security_pin_hash", null) ?: prefs.getString("security_pin", defaultHash) ?: defaultHash
 
             if (isPinMode) {
                 OutlinedTextField(
@@ -1053,7 +1067,7 @@ fun BiometricLockOverlay(onUnlocked: () -> Unit) {
                             }
                         }
                     },
-                    label = { Text("Enter 4-Digit PIN (Default: 1234)") },
+                    label = { Text("Enter 4-Digit Security PIN") },
                     isError = pinError != null,
                     supportingText = { pinError?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
                     singleLine = true,

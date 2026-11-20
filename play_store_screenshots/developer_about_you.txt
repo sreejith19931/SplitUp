@@ -1,0 +1,17 @@
+=============================================================
+GOOGLE PLAY STORE - DEVELOPER "ABOUT YOU" / BIO WRITE-UPS
+=============================================================
+
+Choose the option that best fits your developer profile or studio name:
+
+OPTION 1: Professional & FinTech Focused (Recommended)
+-------------------------------------------------------------
+"Welcome to SplitUp! We are passionate developers dedicated to building intuitive, high-performance financial tools that take the friction out of shared expenses. Our mission is to make group bill splitting, budgeting, and financial tracking effortless, transparent, and secure for everyone. Built with modern Android architecture and a privacy-first approach, SplitUp empowers you to take control of your shared finances with confidence."
+
+OPTION 2: Minimal & Trust-Centric
+-------------------------------------------------------------
+"We build clean, reliable, and privacy-focused Android applications designed to simplify your everyday life. SplitUp is our flagship expense-sharing app, crafted to make managing group trips, roommates, and personal budgets fast and stress-free."
+
+OPTION 3: Mission-Driven & Engaging
+-------------------------------------------------------------
+"No more awkward money conversations! We created SplitUp because managing shared expenses with friends, family, and roommates shouldn't feel like a chore. Combining lightning-fast local performance, smart receipt scanning, and robust multi-currency support, we are here to make settling up seamless."

@@ -45,11 +45,17 @@ fun ReceiptAllocationScreen(
     var expenseDate by remember(extracted) { mutableStateOf(extracted.date.ifBlank { "Today" }) }
     var splitModeEqual by remember { mutableStateOf(true) }
     var tipPercent by remember { mutableStateOf(0) }
+    var discountPercent by remember { mutableStateOf(0) }
+    var discountAmountText by remember { mutableStateOf("") }
     var extraTaxAmount by remember { mutableStateOf("") }
 
     val baseAmount = extracted.totalAmount
     val taxValue = extraTaxAmount.parseAmount()
-    val calculatedTotal = kotlin.math.round((baseAmount * (1.0 + tipPercent / 100.0) + taxValue) * 100) / 100.0
+    val flatDiscountVal = discountAmountText.parseAmount()
+    val percentDiscountVal = baseAmount * (discountPercent / 100.0)
+    val totalDiscount = flatDiscountVal + percentDiscountVal
+    val discountedBase = kotlin.math.max(0.0, baseAmount - totalDiscount)
+    val calculatedTotal = kotlin.math.round((discountedBase * (1.0 + tipPercent / 100.0) + taxValue) * 100) / 100.0
 
     var itemAssignments by remember {
         mutableStateOf(
@@ -98,6 +104,9 @@ fun ReceiptAllocationScreen(
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(text = extracted.merchantName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     Text(text = "Base Total: $currencySymbol${String.format(Locale.US, "%.2f", extracted.totalAmount)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                    if (totalDiscount > 0.0) {
+                        Text(text = "Discount: -$currencySymbol${String.format(Locale.US, "%.2f", totalDiscount)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
                     Text(text = "Final Total: $currencySymbol${String.format(Locale.US, "%.2f", calculatedTotal)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             }
@@ -127,14 +136,16 @@ fun ReceiptAllocationScreen(
                 }
             }
 
-            // Tip & Tax Calculator Card
+            // Tip, Tax & Discount Calculator Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Tip & Tax Calculator", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Tip, Tax & Discount Calculator", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+
+                    Text("Tip", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -149,14 +160,63 @@ fun ReceiptAllocationScreen(
                             )
                         }
                     }
-                    OutlinedTextField(
-                        value = extraTaxAmount,
-                        onValueChange = { extraTaxAmount = it },
-                        label = { Text("Extra Tax / Fees ($currencySymbol)") },
+
+                    Text("Discount", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(0, 5, 10, 15, 20).forEach { pct ->
+                            FilterChip(
+                                selected = discountPercent == pct,
+                                onClick = { discountPercent = pct },
+                                label = { Text(if (pct == 0) "No Discount" else "$pct% Off") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = discountAmountText,
+                            onValueChange = { discountAmountText = filterPriceInput(it) },
+                            label = { Text("Flat Discount ($currencySymbol)") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                        )
+                        OutlinedTextField(
+                            value = extraTaxAmount,
+                            onValueChange = { extraTaxAmount = filterPriceInput(it) },
+                            label = { Text("Extra Tax/Fees ($currencySymbol)") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                        )
+                    }
+
+                    if (totalDiscount > 0.0) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Applied Discount:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Text("-$currencySymbol${String.format(Locale.US, "%.2f", totalDiscount)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -365,7 +425,7 @@ fun ReceiptAllocationScreen(
                             amount = calculatedTotal,
                             category = selectedCategory,
                             date = expenseDate.ifBlank { "Today" },
-                            description = "Scanned receipt from ${extracted.merchantName}",
+                            description = "Scanned receipt",
                             paidBy = "You",
                             currency = extracted.currency,
                             lineItems = extracted.lineItems

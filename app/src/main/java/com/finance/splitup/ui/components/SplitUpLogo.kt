@@ -7,6 +7,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +15,12 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
@@ -32,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -47,7 +52,8 @@ enum class LogoStyle {
     REFINED_CARD_SPLITUP,    // Finalized Option 19: Ultra-refined split credit card & receipt wordmark with microchip & contactless waves
     ANIMATED_LAUNCH,         // Animated card expansion sequence (panels expand from center dotted line, details fade in)
     MINIMAL,                 // Minimal card symbol
-    HEADER_WITH_TEXT         // Brand header (platinum card logo mark without text)
+    HEADER_WITH_TEXT,        // Brand header (platinum card logo mark without text)
+    CIRCULAR_NAVY_PLATINUM   // Circular navy platinum emblem badge
 }
 
 /**
@@ -72,6 +78,9 @@ fun SplitUpLogo(
         LogoStyle.HEADER_WITH_TEXT -> {
             RefinedCardSplitUpWordmark(modifier = modifier)
         }
+        LogoStyle.CIRCULAR_NAVY_PLATINUM -> {
+            CircularNavyPlatinumLogo(modifier = modifier, size = if (size == 64.dp) 256.dp else size)
+        }
     }
 }
 
@@ -85,49 +94,52 @@ fun RefinedCardSplitUpWordmark(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .semantics { contentDescription = "SplitUp Logo" }
-            .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp), clip = false),
+            .shadow(elevation = 6.dp, shape = RoundedCornerShape(10.dp), clip = false),
         contentAlignment = Alignment.Center
     ) {
         Row(
-            modifier = Modifier.height(IntrinsicSize.Min),
+            modifier = Modifier
+                .widthIn(max = 160.dp)
+                .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             // Left side: "Split" + Gold Microchip + Security Hologram (Cobalt Card Half)
             Surface(
                 color = Color(0xFF1D4ED8), // Rich Cobalt Blue
-                shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
+                shape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp),
                 modifier = Modifier
+                    .weight(1f)
                     .padding(end = 0.5.dp)
                     .fillMaxHeight()
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .padding(start = 16.dp, end = 18.dp, top = 12.dp, bottom = 12.dp),
+                        .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 6.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         // Microchip
                         Box(
                             modifier = Modifier
-                                .size(16.dp, 12.dp)
+                                .size(14.dp, 10.dp)
                                 .background(Color(0xFFFBBF24), RoundedCornerShape(2.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(10.dp, 8.dp)
+                                    .size(8.dp, 6.dp)
                                     .background(Color(0xFF92400E), RoundedCornerShape(1f))
                             )
                         }
                         // Security Hologram Square
                         Box(
                             modifier = Modifier
-                                .size(10.dp, 12.dp)
+                                .size(8.dp, 10.dp)
                                 .background(Color(0xFF93C5FD).copy(alpha = 0.8f), RoundedCornerShape(2.dp))
                         )
                     }
@@ -145,15 +157,16 @@ fun RefinedCardSplitUpWordmark(modifier: Modifier = Modifier) {
             // Right side: "Up" + Contactless Waves (Emerald Card Half)
             Surface(
                 color = Color(0xFF047857), // Deep Emerald Teal
-                shape = RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp),
+                shape = RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp),
                 modifier = Modifier
+                    .weight(1f)
                     .padding(start = 0.5.dp)
                     .fillMaxHeight()
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .padding(start = 18.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+                        .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 6.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.End
                 ) {
@@ -233,8 +246,7 @@ fun AnimatedSplitUpLaunchLogo(
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
-        ),
-        finishedListener = { onAnimationFinished() }
+        )
     )
 
     val expandProgress by animateFloatAsState(
@@ -249,6 +261,8 @@ fun AnimatedSplitUpLaunchLogo(
 
     LaunchedEffect(Unit) {
         isStarted = true
+        kotlinx.coroutines.delay(1200L)
+        onAnimationFinished()
     }
 
     Box(
@@ -260,7 +274,7 @@ fun AnimatedSplitUpLaunchLogo(
         contentAlignment = Alignment.Center
     ) {
         Row(
-            modifier = Modifier.height(IntrinsicSize.Min),
+            modifier = Modifier.height(68.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -280,7 +294,7 @@ fun AnimatedSplitUpLaunchLogo(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = 16.dp, end = 18.dp, top = 12.dp, bottom = 12.dp)
+                            .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 8.dp)
                             .graphicsLayer(alpha = contentAlpha),
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -336,7 +350,7 @@ fun AnimatedSplitUpLaunchLogo(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = 18.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+                            .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 8.dp)
                             .graphicsLayer(alpha = contentAlpha),
                         verticalArrangement = Arrangement.SpaceBetween,
                         horizontalAlignment = Alignment.End
@@ -404,6 +418,41 @@ fun PreviewPlatinumCardLogoDark() {
         Surface(color = Color(0xFF0F172A), modifier = Modifier.padding(24.dp)) {
             SplitUpLogo(style = LogoStyle.REFINED_CARD_SPLITUP)
         }
+    }
+}
+
+@Composable
+fun CircularNavyPlatinumLogo(
+    modifier: Modifier = Modifier,
+    size: Dp = 256.dp
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .background(Color(0xFF0F172A), CircleShape)
+            .border(
+                width = 3.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(Color(0xFF38BDF8), Color(0xFF93C5FD), Color(0xFF1D4ED8))
+                ),
+                shape = CircleShape
+            )
+            .padding(14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        RefinedCardSplitUpWordmark(
+            modifier = Modifier
+                .height(84.dp)
+                .width(160.dp)
+        )
+    }
+}
+
+@Preview(name = "Circular Navy Platinum Logo")
+@Composable
+fun PreviewCircularNavyPlatinumLogo() {
+    SplitUpTheme(dynamicColor = false) {
+        CircularNavyPlatinumLogo(size = 256.dp)
     }
 }
 

@@ -56,6 +56,8 @@ fun OnboardingSetupScreen(
     var enableBiometrics by remember { mutableStateOf(false) }
     var showPinDialog by remember { mutableStateOf(false) }
     var newPinInput by remember { mutableStateOf("") }
+    var confirmPinInput by remember { mutableStateOf("") }
+    var pinError by remember { mutableStateOf<String?>(null) }
 
     var expandedCurrency by remember { mutableStateOf(false) }
 
@@ -388,34 +390,60 @@ fun OnboardingSetupScreen(
 
                 if (showPinDialog) {
                     AlertDialog(
-                        onDismissRequest = { showPinDialog = false },
+                        onDismissRequest = { 
+                            showPinDialog = false
+                            newPinInput = ""
+                            confirmPinInput = ""
+                            pinError = null
+                        },
                         title = { Text("Set Fallback 4-Digit PIN", fontWeight = FontWeight.Bold) },
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Set a 4-digit numeric PIN as a fallback unlock method before enabling biometrics.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Please enter and confirm your 4-digit numeric fallback PIN:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 OutlinedTextField(
                                     value = newPinInput,
                                     onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) newPinInput = it },
                                     label = { Text("4-Digit PIN") },
                                     singleLine = true,
                                     shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth(),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                                     visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation()
                                 )
+                                OutlinedTextField(
+                                    value = confirmPinInput,
+                                    onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) confirmPinInput = it },
+                                    label = { Text("Confirm 4-Digit PIN") },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation()
+                                )
+                                if (pinError != null) {
+                                    Text(pinError!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         },
                         confirmButton = {
                             Button(
                                 onClick = {
-                                    if (newPinInput.length == 4) {
-                                        val hashed = com.finance.splitup.hashSecurityPin(newPinInput)
-                                        val sp = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                                        sp.edit().putString("security_pin_hash", hashed).apply()
-                                        enableBiometrics = true
-                                        showPinDialog = false
-                                        Toast.makeText(context, "Fallback PIN set & biometrics enabled!", Toast.LENGTH_SHORT).show()
+                                    if (newPinInput.length == 4 && confirmPinInput.length == 4) {
+                                        if (newPinInput == confirmPinInput) {
+                                            val hashed = com.finance.splitup.hashSecurityPin(newPinInput)
+                                            val sp = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                                            sp.edit().putString("security_pin_hash", hashed).apply()
+                                            enableBiometrics = true
+                                            showPinDialog = false
+                                            newPinInput = ""
+                                            confirmPinInput = ""
+                                            pinError = null
+                                            Toast.makeText(context, "Fallback PIN set & biometrics enabled!", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            pinError = "PINs do not match. Please try again."
+                                        }
                                     } else {
-                                        Toast.makeText(context, "PIN must be exactly 4 digits", Toast.LENGTH_SHORT).show()
+                                        pinError = "PIN must be exactly 4 digits."
                                     }
                                 }
                             ) {
@@ -423,7 +451,12 @@ fun OnboardingSetupScreen(
                             }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showPinDialog = false }) {
+                            TextButton(onClick = { 
+                                showPinDialog = false
+                                newPinInput = ""
+                                confirmPinInput = ""
+                                pinError = null
+                            }) {
                                 Text("Cancel")
                             }
                         }

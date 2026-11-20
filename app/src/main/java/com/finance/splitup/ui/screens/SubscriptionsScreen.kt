@@ -345,7 +345,7 @@ fun AddSubscriptionDialog(
     var expandedCategoryDropdown by remember { mutableStateOf(false) }
 
     val todayMillis = remember {
-        java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.of("UTC")).toInstant().toEpochMilli()
+        java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
     }
     var nextDueDateMillis by remember { mutableStateOf<Long?>(todayMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -353,7 +353,7 @@ fun AddSubscriptionDialog(
     val formattedDueDate = remember(nextDueDateMillis) {
         nextDueDateMillis?.let { millis ->
             java.time.Instant.ofEpochMilli(millis)
-                .atZone(java.time.ZoneId.of("UTC"))
+                .atZone(java.time.ZoneId.systemDefault())
                 .format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US))
         } ?: existingItem?.nextDueDate ?: "Select Due Date"
     }

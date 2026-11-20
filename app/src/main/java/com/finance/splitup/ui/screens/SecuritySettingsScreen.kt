@@ -37,6 +37,8 @@ fun SecuritySettingsScreen(
 
     var showPinDialog by remember { mutableStateOf(false) }
     var newPinInput by remember { mutableStateOf("") }
+    var confirmPinInput by remember { mutableStateOf("") }
+    var pinError by remember { mutableStateOf<String?>(null) }
     var pendingBiometricEnable by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -225,11 +227,14 @@ fun SecuritySettingsScreen(
             onDismissRequest = { 
                 showPinDialog = false 
                 pendingBiometricEnable = false
+                newPinInput = ""
+                confirmPinInput = ""
+                pinError = null
             },
             title = { Text(if (pendingBiometricEnable) "Set Fallback PIN to Enable Biometrics" else "Set 4-Digit Security PIN", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(if (pendingBiometricEnable) "Please enter a 4-digit numeric PIN as a fallback unlock method before biometric lock is activated:" else "Enter a 4-digit numeric PIN for fallback unlocking:")
+                    Text(if (pendingBiometricEnable) "Please enter and confirm a 4-digit numeric PIN as a fallback unlock method before biometric lock is activated:" else "Please enter and confirm a 4-digit numeric PIN for fallback unlocking:")
                     OutlinedTextField(
                         value = newPinInput,
                         onValueChange = { if (it.length <= 4 && it.all { char -> char.isDigit() }) newPinInput = it },
@@ -240,26 +245,46 @@ fun SecuritySettingsScreen(
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
                         visualTransformation = PasswordVisualTransformation()
                     )
+                    OutlinedTextField(
+                        value = confirmPinInput,
+                        onValueChange = { if (it.length <= 4 && it.all { char -> char.isDigit() }) confirmPinInput = it },
+                        label = { Text("Confirm 4-Digit PIN") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                    if (pinError != null) {
+                        Text(pinError!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (newPinInput.length == 4) {
-                            val hashed = com.finance.splitup.hashSecurityPin(newPinInput)
-                            val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                            prefs.edit().putString("security_pin_hash", hashed).apply()
-                            
-                            if (pendingBiometricEnable) {
-                                viewModel.toggleBiometricLock(true)
-                                pendingBiometricEnable = false
-                                Toast.makeText(context, "Biometric lock & fallback PIN activated successfully!", Toast.LENGTH_SHORT).show()
+                        if (newPinInput.length == 4 && confirmPinInput.length == 4) {
+                            if (newPinInput == confirmPinInput) {
+                                val hashed = com.finance.splitup.hashSecurityPin(newPinInput)
+                                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                                prefs.edit().putString("security_pin_hash", hashed).apply()
+                                
+                                if (pendingBiometricEnable) {
+                                    viewModel.toggleBiometricLock(true)
+                                    pendingBiometricEnable = false
+                                    Toast.makeText(context, "Biometric lock & fallback PIN activated successfully!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "Security PIN updated & hashed successfully!", Toast.LENGTH_SHORT).show()
+                                }
+                                showPinDialog = false
+                                newPinInput = ""
+                                confirmPinInput = ""
+                                pinError = null
                             } else {
-                                Toast.makeText(context, "Security PIN updated & hashed successfully!", Toast.LENGTH_SHORT).show()
+                                pinError = "PINs do not match. Please try again."
                             }
-                            showPinDialog = false
                         } else {
-                            Toast.makeText(context, "PIN must be exactly 4 digits", Toast.LENGTH_SHORT).show()
+                            pinError = "PIN must be exactly 4 digits."
                         }
                     }
                 ) {
@@ -271,6 +296,9 @@ fun SecuritySettingsScreen(
                     onClick = { 
                         showPinDialog = false 
                         pendingBiometricEnable = false
+                        newPinInput = ""
+                        confirmPinInput = ""
+                        pinError = null
                     }
                 ) {
                     Text("Cancel")

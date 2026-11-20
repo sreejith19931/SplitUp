@@ -63,7 +63,7 @@ import java.util.Locale
 @Composable
 fun DashboardScreen(
     viewModel: FinanceViewModel,
-    onNavigateToAddExpense: () -> Unit = {},
+    onNavigateToAddExpense: (Boolean) -> Unit = {},
     onNavigateToEditExpense: (String) -> Unit = {},
     onNavigateToPersonalExpenses: (String?) -> Unit = {},
     onNavigateToGroups: () -> Unit = {},
@@ -89,30 +89,6 @@ fun DashboardScreen(
     }
 
     var isBalanceHidden by rememberSaveable { mutableStateOf(false) }
-
-    val totalPersonalSpent by remember(expenses, viewModel.defaultCurrency) {
-        derivedStateOf {
-            expenses.filter { it.category != ExpenseCategories.INCOME }
-                .sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
-        }
-    }
-    val totalGroupSpent by remember(groups, viewModel.defaultCurrency) {
-        derivedStateOf {
-            groups.sumOf { g ->
-                g.expenses
-                    .filter { it.category != ExpenseCategories.SETTLEMENT && !it.title.contains("Settlement", ignoreCase = true) }
-                    .sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
-            }
-        }
-    }
-
-    val totalNetOwed by remember(groups, viewModel.defaultCurrency) {
-        derivedStateOf {
-            groups.sumOf { group ->
-                viewModel.getUserNetBalance(group, viewModel.defaultCurrency)
-            }
-        }
-    }
 
     var selectedDashboardCategory by remember { mutableStateOf("All") }
     val groupedExpenseEntries = remember(expenses, selectedDashboardCategory) {
@@ -144,10 +120,18 @@ fun DashboardScreen(
     var isFabExpanded by remember { mutableStateOf(false) }
     var showGroupPickerForExpense by remember { mutableStateOf(false) }
     var showNotificationsSheet by remember { mutableStateOf(false) }
-    var showLogIncomeDialog by remember { mutableStateOf(false) }
-    var incomeTitle by remember { mutableStateOf("") }
-    var incomeAmount by remember { mutableStateOf("") }
-    var incomeSource by remember { mutableStateOf("Salary") }
+    var showDemoTour by remember { mutableStateOf(false) }
+    var currentTourStep by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+        val seenTour = prefs.getBoolean("has_seen_demo_tour", false)
+        val step = prefs.getInt("demo_tour_step", 0)
+        if (!seenTour && step <= 1) {
+            currentTourStep = step
+            showDemoTour = true
+        }
+    }
 
     val dismissedNotifications by viewModel.dismissedNotifications.collectAsState()
 
@@ -165,7 +149,7 @@ fun DashboardScreen(
                 if (!dismissedNotifications.contains(key)) list.add(key to msg)
             }
         }
-        recurringExpenses.forEach { r ->
+        recurringExpenses.filter { !it.isIncome && it.category != com.finance.splitup.data.ExpenseCategories.INCOME }.forEach { r ->
             val key = "recurring_${r.id}"
             val msg = "Upcoming Subscription: '${r.title}' (${Currencies.getSymbol(r.currency)}${r.amount}) due on ${r.nextDueDate}."
             if (!dismissedNotifications.contains(key)) list.add(key to msg)
@@ -229,7 +213,7 @@ fun DashboardScreen(
                             modifier = Modifier.padding(bottom = 6.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                SplitUpLogo(size = 24.dp, style = LogoStyle.REFINED_CARD_SPLITUP)
+                                SplitUpLogo(size = 24.dp, style = LogoStyle.REFINED_CARD_SPLITUP, modifier = Modifier.width(135.dp))
                                 if (!isOnline) {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
@@ -333,7 +317,33 @@ fun DashboardScreen(
                         }
                     }
 
+                    // Date Range Selector
                     item {
+                        val selectedDateRange by viewModel.selectedDashboardDateRange.collectAsState()
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(vertical = 2.dp)
+                        ) {
+                            items(listOf("This Month", "Last 30 Days", "This Year", "All")) { range ->
+                                FilterChip(
+                                    selected = selectedDateRange == range,
+                                    onClick = { viewModel.updateDashboardDateRange(range) },
+                                    label = { Text(range, fontSize = 12.sp, fontWeight = if (selectedDateRange == range) FontWeight.Bold else FontWeight.Medium) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+
+
+                    item {
+                        val dashboardState by viewModel.dashboardUiState.collectAsState()
+                        val dashboardData = (dashboardState as? com.finance.splitup.ui.state.DashboardUiState.Success)?.data ?: com.finance.splitup.ui.state.DashboardUiData()
                         val pagerState = rememberPagerState(pageCount = { 3 })
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -360,7 +370,7 @@ fun DashboardScreen(
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("Spending & Balances", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                            Text("Spending & Balances (${dashboardData.selectedDateRange})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                             IconButton(onClick = { isBalanceHidden = !isBalanceHidden }, modifier = Modifier.size(28.dp)) {
                                                 Icon(
                                                     imageVector = if (isBalanceHidden) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
@@ -378,13 +388,13 @@ fun DashboardScreen(
                                             Column(
                                                 modifier = Modifier.clickable { onNavigateToPersonalExpenses(null) }
                                             ) {
-                                                Text("Personal Spent", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
+                                                Text("Total Spent", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
                                                 Spacer(modifier = Modifier.height(2.dp))
                                                 if (isBalanceHidden) {
                                                     Text("••••••", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                                 } else {
                                                     AnimatedAmountText(
-                                                        targetAmount = totalPersonalSpent,
+                                                        targetAmount = dashboardData.totalSpent,
                                                         currencySymbol = currencySymbol,
                                                         fontSize = 22.sp,
                                                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -392,18 +402,19 @@ fun DashboardScreen(
                                                 }
                                             }
                                             Column(
-                                                modifier = Modifier.clickable { onNavigateToGroups() }
+                                                modifier = Modifier.clickable { onNavigateToPersonalExpenses("INCOME") }
                                             ) {
-                                                Text("Group Spent", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
+                                                Text("Net Cash Flow", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
                                                 Spacer(modifier = Modifier.height(2.dp))
                                                 if (isBalanceHidden) {
                                                     Text("••••••", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                                 } else {
                                                     AnimatedAmountText(
-                                                        targetAmount = totalGroupSpent,
+                                                        targetAmount = if (dashboardData.netCashFlow >= 0) dashboardData.netCashFlow else -dashboardData.netCashFlow,
                                                         currencySymbol = currencySymbol,
+                                                        prefix = if (dashboardData.netCashFlow > 0.001) "+" else if (dashboardData.netCashFlow < -0.001) "-" else "",
                                                         fontSize = 22.sp,
-                                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                        color = if (dashboardData.netCashFlow > 0.001) EmeraldSuccess else if (dashboardData.netCashFlow < -0.001) CrimsonDanger else MaterialTheme.colorScheme.onPrimaryContainer
                                                     )
                                                 }
                                             }
@@ -419,49 +430,47 @@ fun DashboardScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Column {
-                                                Text("Net Group Balance", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
+                                                Text("Net Group Balances", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
                                                 Spacer(modifier = Modifier.height(2.dp))
                                                 if (isBalanceHidden) {
-                                                    Text("••••••", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                                } else if (totalNetOwed >= 0.01 || totalNetOwed < -0.01) {
-                                                    AnimatedAmountText(
-                                                        targetAmount = if (totalNetOwed >= 0) totalNetOwed else -totalNetOwed,
-                                                        currencySymbol = currencySymbol,
-                                                        prefix = if (totalNetOwed >= 0.01) "Owed: +" else "Owe: -",
-                                                        fontSize = 18.sp,
-                                                        color = if (totalNetOwed >= 0.01) EmeraldSuccess else CrimsonDanger
-                                                    )
+                                                    Text("••••••", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                                 } else {
-                                                    Text(
-                                                        text = "Settled Up",
-                                                        fontSize = 18.sp,
-                                                        fontWeight = FontWeight.ExtraBold,
-                                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                                    )
+                                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                                        Text(
+                                                            text = "Owed: +$currencySymbol${String.format(Locale.US, "%.2f", dashboardData.netGroupOwed)}",
+                                                            fontSize = 15.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = EmeraldSuccess
+                                                        )
+                                                        Text(
+                                                            text = "Owe: -$currencySymbol${String.format(Locale.US, "%.2f", dashboardData.netGroupOwes)}",
+                                                            fontSize = 15.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = CrimsonDanger
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
                                 1 -> {
-                                    val totalInc = remember(viewModel.totalIncome, viewModel.defaultCurrency) { Currencies.convert(viewModel.totalIncome, Currencies.EUR, viewModel.defaultCurrency) }
-                                    val netFlow = remember(viewModel.netCashFlow, viewModel.defaultCurrency) { Currencies.convert(viewModel.netCashFlow, Currencies.EUR, viewModel.defaultCurrency) }
                                     Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable { onNavigateToPersonalExpenses("INCOME") }
                                     ) {
-                                        Text("Income & Cash Flow", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                        Text("Income & Cash Flow (${dashboardData.selectedDateRange})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                         Spacer(modifier = Modifier.height(12.dp))
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
                                             Column {
-                                                Text("Total Monthly Income", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
+                                                Text("Total Income", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
                                                 Spacer(modifier = Modifier.height(2.dp))
                                                 AnimatedAmountText(
-                                                    targetAmount = totalInc,
+                                                    targetAmount = dashboardData.totalIncome,
                                                     currencySymbol = currencySymbol,
                                                     fontSize = 22.sp,
                                                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -471,11 +480,11 @@ fun DashboardScreen(
                                                 Text("Net Cash Flow", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
                                                 Spacer(modifier = Modifier.height(2.dp))
                                                 AnimatedAmountText(
-                                                    targetAmount = if (netFlow >= 0) netFlow else -netFlow,
+                                                    targetAmount = if (dashboardData.netCashFlow >= 0) dashboardData.netCashFlow else -dashboardData.netCashFlow,
                                                     currencySymbol = currencySymbol,
-                                                    prefix = if (netFlow >= 0) "+" else "-",
+                                                    prefix = if (dashboardData.netCashFlow > 0.001) "+" else if (dashboardData.netCashFlow < -0.001) "-" else "",
                                                     fontSize = 22.sp,
-                                                    color = if (netFlow >= 0) EmeraldSuccess else CrimsonDanger
+                                                    color = if (dashboardData.netCashFlow > 0.001) EmeraldSuccess else if (dashboardData.netCashFlow < -0.001) CrimsonDanger else MaterialTheme.colorScheme.onPrimaryContainer
                                                 )
                                             }
                                         }
@@ -483,10 +492,6 @@ fun DashboardScreen(
                                     }
                                 }
                                 2 -> {
-                                    val totalSpent = remember(expenses, viewModel.defaultCurrency) {
-                                        expenses.filter { it.category != ExpenseCategories.INCOME }
-                                            .sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
-                                    }
                                     val totalLimit = budgets.values.sum()
                                     Column(
                                         modifier = Modifier
@@ -500,11 +505,11 @@ fun DashboardScreen(
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
                                             Column {
-                                                Text("Total Budget Spent", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
+                                                Text("Period Budget Spent", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
                                                 Spacer(modifier = Modifier.height(2.dp))
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     AnimatedAmountText(
-                                                        targetAmount = totalSpent,
+                                                        targetAmount = dashboardData.totalSpent,
                                                         currencySymbol = currencySymbol,
                                                         fontSize = 20.sp,
                                                         fontWeight = FontWeight.ExtraBold,
@@ -563,8 +568,10 @@ fun DashboardScreen(
                         spent >= limit
                     }
                 }
-                val recurringCount = remember(recurringExpenses) { recurringExpenses.size }
-                val isPositiveCashFlow = remember(viewModel.netCashFlow) { viewModel.netCashFlow >= 0 }
+                val recurringCount = remember(recurringExpenses) {
+                    recurringExpenses.count { !it.isIncome && it.category != com.finance.splitup.data.ExpenseCategories.INCOME }
+                }
+
 
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -581,16 +588,30 @@ fun DashboardScreen(
                             )
                         }
                     }
-                    item {
-                        SuggestionChip(
-                            onClick = onNavigateToInsights,
-                            label = { Text(if (isPositiveCashFlow) "💡 Positive cash flow" else "⚠️ Negative cash flow", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = if (isPositiveCashFlow) EmeraldSuccess.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = if (isPositiveCashFlow) EmeraldSuccess else CrimsonDanger
-                            ),
-                            border = BorderStroke(1.dp, if (isPositiveCashFlow) EmeraldSuccess.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outline)
-                        )
+                    if (viewModel.netCashFlow > 0.001) {
+                        item {
+                            SuggestionChip(
+                                onClick = onNavigateToInsights,
+                                label = { Text("💡 Positive cash flow", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
+                                colors = SuggestionChipDefaults.suggestionChipColors(
+                                    containerColor = EmeraldSuccess.copy(alpha = 0.15f),
+                                    labelColor = EmeraldSuccess
+                                ),
+                                border = BorderStroke(1.dp, EmeraldSuccess.copy(alpha = 0.3f))
+                            )
+                        }
+                    } else if (viewModel.netCashFlow < -0.001) {
+                        item {
+                            SuggestionChip(
+                                onClick = onNavigateToInsights,
+                                label = { Text("⚠️ Negative cash flow", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
+                                colors = SuggestionChipDefaults.suggestionChipColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    labelColor = CrimsonDanger
+                                ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                            )
+                        }
                     }
                     if (recurringCount > 0) {
                         item {
@@ -652,7 +673,7 @@ fun DashboardScreen(
                         title = emptyTitle,
                         description = emptyDesc,
                         primaryActionText = "Add Expense",
-                        onPrimaryAction = onNavigateToAddExpense,
+                        onPrimaryAction = { onNavigateToAddExpense(false) },
                         secondaryActionText = "Scan Receipt",
                         onSecondaryAction = onNavigateToScanner
                     )
@@ -767,67 +788,11 @@ fun DashboardScreen(
                   }
               },
               onNavigateToScanner = onNavigateToScanner,
-              onNavigateToCreateGroup = onNavigateToCreateGroup,
-              onNavigateToLogIncome = { showLogIncomeDialog = true }
+              onNavigateToCreateGroup = onNavigateToCreateGroup
           )
       }
     }
 }
-
-    if (showLogIncomeDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogIncomeDialog = false },
-            title = { Text("Log Monthly Income", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = incomeTitle,
-                        onValueChange = { incomeTitle = it },
-                        label = { Text("Income Title") },
-                        placeholder = { Text("e.g. Monthly Salary") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = incomeAmount,
-                        onValueChange = { incomeAmount = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("Amount (${Currencies.getSymbol(viewModel.defaultCurrency)})") },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val amt = incomeAmount.toDoubleOrNull() ?: 0.0
-                        if (amt > 0) {
-                            viewModel.addIncome(
-                                title = incomeTitle.ifBlank { "Income" },
-                                amount = amt,
-                                source = incomeSource,
-                                currency = viewModel.defaultCurrency
-                            )
-                            android.widget.Toast.makeText(context, "Income logged!", android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                        showLogIncomeDialog = false
-                        incomeTitle = ""
-                        incomeAmount = ""
-                    }
-                ) {
-                    Text("Save Income", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogIncomeDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
 
     if (showGroupPickerForExpense) {
         AlertDialog(
@@ -853,7 +818,7 @@ fun DashboardScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(group.name, fontWeight = FontWeight.SemiBold)
-                                    Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                                    Icon(Icons.Rounded.ChevronRight, contentDescription = "View group details")
                                 }
                             }
                         }
@@ -866,7 +831,7 @@ fun DashboardScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Rounded.GroupAdd, contentDescription = null)
+                        Icon(Icons.Rounded.GroupAdd, contentDescription = "Create new group")
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("+ Add a New Group", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
@@ -892,6 +857,36 @@ fun DashboardScreen(
             onDismiss = { showNotificationsSheet = false }
         )
     }
+
+    if (showDemoTour) {
+        com.finance.splitup.ui.components.DemoTourOverlay(
+            currentStep = currentTourStep,
+            totalSteps = 5,
+            onNext = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                if (currentTourStep == 0) {
+                    currentTourStep = 1
+                    prefs.edit().putInt("demo_tour_step", 1).apply()
+                } else if (currentTourStep == 1) {
+                    prefs.edit().putInt("demo_tour_step", 2).apply()
+                    showDemoTour = false
+                    onNavigateToPersonalExpenses(null)
+                }
+            },
+            onBack = {
+                if (currentTourStep > 0) {
+                    currentTourStep--
+                    val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                    prefs.edit().putInt("demo_tour_step", currentTourStep).apply()
+                }
+            },
+            onSkip = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putBoolean("has_seen_demo_tour", true).apply()
+                showDemoTour = false
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -905,7 +900,6 @@ fun NotificationTraySheet(
     val dismissedNotifications by viewModel.dismissedNotifications.collectAsState()
     val pendingApprovalRequests by viewModel.pendingApprovalRequests.collectAsState()
     val groups by viewModel.groups.collectAsState()
-    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
@@ -945,27 +939,13 @@ fun NotificationTraySheet(
 
             HorizontalDivider()
 
-            Button(
-                onClick = {
-                    viewModel.sendSampleApprovalRequest(null, "EXPENSE_EDIT")
-                    Toast.makeText(context, "Sample expense edit request sent from Alice! ✉️", Toast.LENGTH_SHORT).show()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
-            ) {
-                Icon(Icons.Rounded.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Test: Send Sample Approval Request ✋", fontWeight = FontWeight.Bold)
-            }
-
             if (activeNotifications.isEmpty() && pendingApprovalRequests.isEmpty()) {
                 Column(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = EmeraldSuccess, modifier = Modifier.size(56.dp))
+                    Icon(Icons.Rounded.CheckCircle, contentDescription = "All caught up", tint = EmeraldSuccess, modifier = Modifier.size(56.dp))
                     Spacer(modifier = Modifier.height(12.dp))
                     Text("All caught up! No active notifications.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (dismissedNotifications.isNotEmpty()) {
@@ -974,7 +954,7 @@ fun NotificationTraySheet(
                             onClick = { viewModel.clearDismissedNotifications() },
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Rounded.Refresh, contentDescription = "Reset cleared alerts", modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Reset Cleared Alerts", fontSize = 13.sp)
                         }
@@ -1022,7 +1002,7 @@ fun NotificationTraySheet(
                                             shape = RoundedCornerShape(10.dp),
                                             colors = ButtonDefaults.buttonColors(containerColor = EmeraldSuccess, contentColor = androidx.compose.ui.graphics.Color.White)
                                         ) {
-                                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Rounded.Check, contentDescription = "Approve request", modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text("Approve", fontWeight = FontWeight.Bold)
                                         }
@@ -1032,7 +1012,7 @@ fun NotificationTraySheet(
                                             shape = RoundedCornerShape(10.dp),
                                             colors = ButtonDefaults.outlinedButtonColors(contentColor = CrimsonDanger)
                                         ) {
-                                            Icon(Icons.Rounded.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Rounded.Close, contentDescription = "Decline request", modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text("Decline", fontWeight = FontWeight.Bold)
                                         }
@@ -1098,11 +1078,10 @@ fun NotificationTraySheet(
 fun SpeedDialFabMenu(
     isExpanded: Boolean,
     onToggle: () -> Unit,
-    onNavigateToAddExpense: () -> Unit,
+    onNavigateToAddExpense: (Boolean) -> Unit,
     onNavigateToGroupExpense: () -> Unit,
     onNavigateToScanner: () -> Unit,
-    onNavigateToCreateGroup: () -> Unit,
-    onNavigateToLogIncome: () -> Unit
+    onNavigateToCreateGroup: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val rotation by animateFloatAsState(
@@ -1133,7 +1112,7 @@ fun SpeedDialFabMenu(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onToggle()
-                            onNavigateToLogIncome()
+                            onNavigateToAddExpense(true)
                         }
                     )
                     SpeedDialActionItem(
@@ -1169,7 +1148,7 @@ fun SpeedDialFabMenu(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onToggle()
-                            onNavigateToAddExpense()
+                            onNavigateToAddExpense(false)
                         }
                     )
                 }

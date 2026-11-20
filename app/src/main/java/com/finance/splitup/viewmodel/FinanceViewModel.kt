@@ -106,7 +106,9 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             if (repository != null) {
                 try {
                     repository.getPendingApprovalRequestsForOwner().collect { list ->
-                        _pendingApprovalRequestsFallback.value = list
+                        _pendingApprovalRequestsFallback.value = list.filter { req ->
+                            req.status == "PENDING" && !isUserMatch(req.requestedBy, currentUserName, currentUserEmail)
+                        }
                     }
                 } catch (_: Exception) {}
             }
@@ -419,6 +421,11 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     private val _pendingApprovalRequestsFallback = MutableStateFlow<List<com.finance.splitup.data.db.GroupApprovalRequestEntity>>(emptyList())
     val pendingApprovalRequests: StateFlow<List<com.finance.splitup.data.db.GroupApprovalRequestEntity>> = if (repository != null) {
         repository.getPendingApprovalRequestsForOwner()
+            .map { list ->
+                list.filter { req ->
+                    req.status == "PENDING" && !isUserMatch(req.requestedBy, currentUserName, currentUserEmail)
+                }
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _pendingApprovalRequestsFallback.value)
     } else {
         _pendingApprovalRequestsFallback.asStateFlow()
@@ -859,28 +866,95 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     }
 
+    private val _selectedDashboardDateRange = MutableStateFlow("This Month")
+    val selectedDashboardDateRange: StateFlow<String> = _selectedDashboardDateRange.asStateFlow()
+
+    fun updateDashboardDateRange(range: String) {
+        _selectedDashboardDateRange.value = range
+    }
+
     val dashboardUiState: StateFlow<DashboardUiState> = combine(
         expenses,
         groups,
-        dismissedNotifications
-    ) { expensesList, groupsList, _ ->
-        val totalPersonalSpent = expensesList
+        budgets,
+        incomes,
+        recurringExpenses,
+        _selectedDashboardDateRange
+    ) { flows ->
+        @Suppress("UNCHECKED_CAST")
+        val expList = flows[0] as List<Expense>
+        @Suppress("UNCHECKED_CAST")
+        val grpList = flows[1] as List<Group>
+        @Suppress("UNCHECKED_CAST")
+        val budgetMap = flows[2] as Map<String, Double>
+        val range = flows[5] as String
+
+        val selfName = currentUserName
+        val selfEmail = currentUserEmail
+        val targetCurr = defaultCurrency
+
+        val filteredExp = expList.filter { com.finance.splitup.data.DateUtils.matchesDateRange(it.date, it.updatedAt, range) }
+        val filteredInc = (flows[3] as List<com.finance.splitup.data.db.IncomeEntity>).filter { com.finance.splitup.data.DateUtils.matchesDateRange(it.date, it.updatedAt, range) }
+
+        val spent = filteredExp
             .filter { it.category != ExpenseCategories.INCOME }
-            .sumOf { Currencies.convert(it.amount, it.currency, defaultCurrency) }
-        val totalGroupSpent = groupsList.sumOf { g ->
-            calculateGroupMetricsUseCase.calculateTotalGroupSpent(g, defaultCurrency)
+            .sumOf { Currencies.convert(it.amount, it.currency, targetCurr) }
+
+        val income = filteredInc
+            .sumOf { Currencies.convert(it.amount, it.currency, targetCurr) }
+
+        val cashFlow = income - spent
+
+        var owedToUser = 0.0
+        var userOwes = 0.0
+        for (g in grpList) {
+            val bal = calculateGroupMetricsUseCase.calculateUserNetBalance(g, selfName, targetCurr, selfEmail)
+            if (bal > 0.01) {
+                owedToUser += bal
+            } else if (bal < -0.01) {
+                userOwes += -bal
+            }
         }
-        val totalNetOwed = groupsList.sumOf { g ->
-            calculateGroupMetricsUseCase.calculateUserNetBalance(g, currentUserName, defaultCurrency)
+        val totalGroupBal = owedToUser - userOwes
+
+        val nonIncomeExp = filteredExp.filter { it.category != ExpenseCategories.INCOME }
+        val categoryTotals = nonIncomeExp.groupBy { it.category }.mapValues { entry ->
+            entry.value.sumOf { Currencies.convert(it.amount, it.currency, targetCurr) }
         }
+        val categoryBreakdownList = categoryTotals.map { (cat, amt) ->
+            com.finance.splitup.ui.state.CategorySpend(
+                category = cat,
+                amount = amt,
+                percentage = if (spent > 0.0) (amt / spent) * 100.0 else 0.0
+            )
+        }.sortedByDescending { it.amount }
+
+        val recurringList = flows[4] as List<com.finance.splitup.data.db.RecurringExpenseEntity>
+        val subsCount = recurringList.count { !it.isIncome && it.category != ExpenseCategories.INCOME }
+
+        val exceededCount = budgetMap.count { (cat, limit) ->
+            val catSpent = expList.filter { it.category == cat && com.finance.splitup.data.DateUtils.matchesDateRange(it.date, it.updatedAt, range) }
+                .sumOf { Currencies.convert(it.amount, it.currency, targetCurr) }
+            limit > 0.0 && catSpent >= limit
+        }
+
         DashboardUiState.Success(
-            expenses = expensesList,
-            groups = groupsList,
-            totalPersonalSpent = totalPersonalSpent,
-            totalGroupSpent = totalGroupSpent,
-            totalNetOwed = totalNetOwed,
-            defaultCurrency = defaultCurrency,
-            notificationCount = 0
+            data = com.finance.splitup.ui.state.DashboardUiData(
+                selectedDateRange = range,
+                totalSpent = spent,
+                totalIncome = income,
+                netCashFlow = cashFlow,
+                netGroupOwed = owedToUser,
+                netGroupOwes = userOwes,
+                totalGroupBalance = totalGroupBal,
+                categoryBreakdown = categoryBreakdownList,
+                activeSubscriptionsCount = subsCount,
+                exceededBudgetsCount = exceededCount,
+                defaultCurrency = targetCurr,
+                filteredExpenses = filteredExp,
+                groups = grpList,
+                isLoading = false
+            )
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardUiState.Loading)
 
@@ -1097,8 +1171,15 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         val sNameLower = selfName.lowercase().trim()
         val sEmailLower = selfEmail.lowercase().trim()
 
-        if (mLower == "you" || (sNameLower.isNotBlank() && mLower == sNameLower)) return true
-        if (sEmailLower.isNotBlank() && (mLower == sEmailLower || mLower == sEmailLower.substringBefore("@"))) return true
+        if (mLower == "you") return true
+        if (sNameLower.isNotBlank()) {
+            if (mLower == sNameLower) return true
+            if (mLower == sNameLower.substringBefore(" ")) return true
+        }
+        if (sEmailLower.isNotBlank()) {
+            if (mLower == sEmailLower) return true
+            if (mLower == sEmailLower.substringBefore("@") && (sNameLower.isBlank() || sNameLower.contains(mLower))) return true
+        }
         return false
     }
 
@@ -1108,8 +1189,14 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         val tNameLower = targetName.lowercase().trim()
         val tEmailLower = targetEmail.lowercase().trim()
 
-        if (tNameLower.isNotBlank() && mLower == tNameLower) return true
-        if (tEmailLower.isNotBlank() && (mLower == tEmailLower || mLower == tEmailLower.substringBefore("@"))) return true
+        if (tNameLower.isNotBlank()) {
+            if (mLower == tNameLower) return true
+            if (mLower == tNameLower.substringBefore(" ")) return true
+        }
+        if (tEmailLower.isNotBlank()) {
+            if (mLower == tEmailLower) return true
+            if (mLower == tEmailLower.substringBefore("@") && (tNameLower.isBlank() || tNameLower.contains(mLower))) return true
+        }
         return false
     }
 
@@ -1155,7 +1242,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             val updatedPending = group.pendingMembers.filter { !isUserMatch(it, selfName, selfEmail) }
             val updatedEmails = group.memberEmails.filter { e ->
                 val eLower = e.lowercase().trim()
-                eLower != selfEmail && (selfEmail.isBlank() || eLower != selfEmail.substringBefore("@"))
+                eLower != selfEmail
             }
             val updatedUids = group.memberUids.filter { it != currentUid }
             val updatedGroup = group.copy(members = updatedMembers, pendingMembers = updatedPending, memberEmails = updatedEmails, memberUids = updatedUids)
@@ -1425,10 +1512,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 
                 val matchesName = targetClean.isNotBlank() && (
                     emailLower == targetNameLower ||
-                    emailPrefix == targetClean ||
-                    (targetClean.length >= 3 && emailPrefix.contains(targetClean)) ||
-                    (emailPrefix.length >= 3 && targetClean.contains(emailPrefix)) ||
-                    targetNameLower.split(" ").any { part -> part.length >= 3 && emailPrefix.contains(part) }
+                    emailPrefix == targetClean
                 )
                 val matchesEmail = resolvedEmail.isNotBlank() && emailLower == resolvedEmail
 
@@ -1612,7 +1696,9 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
 
             if (requiresApproval) {
                 val ownerName = group.createdBy.ifBlank { group.members.firstOrNull() ?: "Owner" }
-                val ownerEmail = group.memberEmails.firstOrNull() ?: ownerName
+                val ownerEmail = group.memberEmails.find { e ->
+                    e.isNotBlank() && !isUserMatch(e, currentUserName, currentUserEmail)
+                } ?: group.memberEmails.firstOrNull() ?: ownerName
                 createApprovalRequest(
                     group = group,
                     targetId = expenseId,
@@ -1652,7 +1738,9 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
 
             if (requiresApproval) {
                 val ownerName = group.createdBy.ifBlank { group.members.firstOrNull() ?: "Owner" }
-                val ownerEmail = group.memberEmails.firstOrNull() ?: ownerName
+                val ownerEmail = group.memberEmails.find { e ->
+                    e.isNotBlank() && !isUserMatch(e, currentUserName, currentUserEmail)
+                } ?: group.memberEmails.firstOrNull() ?: ownerName
                 val payload = kotlinx.serialization.json.Json.encodeToString(GroupExpense.serializer(), normalizedExpense)
                 createApprovalRequest(
                     group = group,
@@ -1778,7 +1866,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     fun isGroupOwner(group: Group): Boolean {
         val selfName = currentUserName
         val selfEmail = currentUserEmail.lowercase()
-        if (group.createdBy.isBlank()) return true
+        if (group.createdBy.isBlank() || group.createdBy.equals("You", ignoreCase = true)) return true
         return isUserMatch(group.createdBy, selfName, selfEmail)
     }
 
@@ -1867,10 +1955,25 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             if (repository != null) {
                 repository.upsertApprovalRequest(req)
             }
-            _pendingApprovalRequestsFallback.update { current -> listOf(req) + current.filter { it.id != req.id } }
             com.finance.splitup.data.CloudSyncManager.syncApprovalRequestToCloud(req)
+            com.finance.splitup.data.CloudSyncManager.sendGroupActivityNotification(
+                group = group,
+                title = "Approval Needed ✋ • ${group.name}",
+                body = "${currentUserName} requested to ${if (requestType == "EXPENSE_EDIT") "edit an expense" else if (requestType == "EXPENSE_DELETE") "delete an expense" else "record a settlement"} in '${group.name}'",
+                requestId = req.id,
+                targetEmail = ownerEmail,
+                targetName = ownerName,
+                requestType = requestType,
+                targetId = targetId,
+                payloadJson = payloadJson
+            )
             val msgTitle = if (requestType == "SETTLEMENT_RECORD") "Settlement Approval Requested ✉️" else "Approval Request Sent ✉️"
-            val msgBody = if (requestType == "SETTLEMENT_RECORD") "Your recorded settlement payment in '${group.name}' was sent to $ownerName for approval." else "Your proposed $requestType in '${group.name}' was sent to $ownerName for approval."
+            val msgBody = when (requestType) {
+                "SETTLEMENT_RECORD" -> "Your recorded settlement payment in '${group.name}' was sent to $ownerName for approval."
+                "EXPENSE_EDIT" -> "Your edited expense in '${group.name}' was sent to $ownerName for approval."
+                "EXPENSE_DELETE" -> "Your request to delete expense in '${group.name}' was sent to $ownerName for approval."
+                else -> "Your request in '${group.name}' was sent to $ownerName for approval."
+            }
             postSystemNotification(msgTitle, msgBody, CHANNEL_GROUP_ACTIVITY)
         }
     }
@@ -1920,12 +2023,16 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                         com.finance.splitup.data.CloudSyncManager.deleteGroupExpenseFromCloud(request.groupId, request.targetId)
                     }
                 }
-                "EXPENSE_EDIT" -> {
+                "EXPENSE_EDIT", "EXPENSE_ADD" -> {
                     try {
                         val editedExpense = kotlinx.serialization.json.Json.decodeFromString(GroupExpense.serializer(), request.payloadJson)
                         val group = groups.value.find { it.id == request.groupId }
                         if (group != null) {
-                            val updatedExpenses = group.expenses.map { if (it.id == editedExpense.id) editedExpense else it }
+                            val updatedExpenses = if (group.expenses.any { it.id == editedExpense.id }) {
+                                group.expenses.map { if (it.id == editedExpense.id) editedExpense else it }
+                            } else {
+                                listOf(editedExpense) + group.expenses
+                            }
                             val updatedGroup = group.copy(
                                 expenses = updatedExpenses,
                                 updatedAt = System.currentTimeMillis()
@@ -1969,7 +2076,15 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             com.finance.splitup.data.CloudSyncManager.updateApprovalRequestStatusInCloud(request.id, "APPROVED")
             val notifTitle = if (request.requestType == "SETTLEMENT_RECORD") "Settlement Approved! 🎉" else "Request Approved! ✅"
             val notifMsg = if (request.requestType == "SETTLEMENT_RECORD") "Approved settlement payment from ${request.requestedBy} in '${request.groupName}'" else "Approved ${request.requestedBy}'s request in '${request.groupName}'"
-            postSystemNotification(notifTitle, notifMsg, CHANNEL_GROUP_ACTIVITY)
+            postSystemNotification(notifTitle, notifMsg, CHANNEL_GROUP_ACTIVITY, groupId = request.groupId)
+            val group = groups.value.find { it.id == request.groupId }
+            if (group != null) {
+                com.finance.splitup.data.CloudSyncManager.sendGroupActivityNotification(
+                    group,
+                    "Request Approved! ✅",
+                    "${request.ownerName} approved ${request.requestedBy}'s ${request.requestType} request in '${request.groupName}'."
+                )
+            }
         }
     }
 
@@ -1982,7 +2097,33 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             com.finance.splitup.data.CloudSyncManager.updateApprovalRequestStatusInCloud(request.id, "REJECTED")
             val notifTitle = if (request.requestType == "SETTLEMENT_RECORD") "Settlement Declined ❌" else "Request Declined ❌"
             val notifMsg = if (request.requestType == "SETTLEMENT_RECORD") "Declined settlement payment from ${request.requestedBy} in '${request.groupName}'" else "Declined ${request.requestedBy}'s request in '${request.groupName}'"
-            postSystemNotification(notifTitle, notifMsg, CHANNEL_GROUP_ACTIVITY)
+            postSystemNotification(notifTitle, notifMsg, CHANNEL_GROUP_ACTIVITY, groupId = request.groupId)
+            val group = groups.value.find { it.id == request.groupId }
+            if (group != null) {
+                com.finance.splitup.data.CloudSyncManager.sendGroupActivityNotification(
+                    group,
+                    "Request Declined ❌",
+                    "${request.ownerName} declined ${request.requestedBy}'s ${request.requestType} request in '${request.groupName}'."
+                )
+            }
+        }
+    }
+
+    fun approveGroupRequestById(requestId: String) {
+        viewModelScope.launch {
+            val req = pendingApprovalRequests.value.find { it.id == requestId }
+            if (req != null) {
+                approveGroupRequest(req)
+            }
+        }
+    }
+
+    fun rejectGroupRequestById(requestId: String) {
+        viewModelScope.launch {
+            val req = pendingApprovalRequests.value.find { it.id == requestId }
+            if (req != null) {
+                rejectGroupRequest(req)
+            }
         }
     }
 
@@ -2043,7 +2184,9 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             postSystemNotification(
                 "Approval Needed ✋ • ${targetGroup.name}",
                 "Alice requested to edit expense '${sampleExpense.title}' to €${String.format(java.util.Locale.US, "%.2f", editedExpense.amount)}",
-                CHANNEL_GROUP_ACTIVITY
+                CHANNEL_GROUP_ACTIVITY,
+                groupId = targetGroup.id,
+                requestId = req.id
             )
         }
     }
@@ -2167,7 +2310,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         targetScreen: String? = null,
         groupId: String? = null,
         category: String? = null,
-        pendingIntent: android.app.PendingIntent? = null
+        pendingIntent: android.app.PendingIntent? = null,
+        requestId: String? = null
     ) {
         val app = getApplication<Application>()
         if (app is DummyApplication) return
@@ -2213,7 +2357,8 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             )
 
             val builder = androidx.core.app.NotificationCompat.Builder(app, channelId)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(com.finance.splitup.R.mipmap.ic_launcher_round)
+                .setLargeIcon(android.graphics.BitmapFactory.decodeResource(app.resources, com.finance.splitup.R.mipmap.ic_launcher_round))
                 .setContentTitle(title)
                 .setContentText(message)
                 .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))
@@ -2223,6 +2368,49 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_ALL)
 
             val notificationId = System.currentTimeMillis().toInt() + (0..1000).random()
+
+            if ((channelId == CHANNEL_GROUP_ACTIVITY || title.contains("Approval Needed", ignoreCase = true)) && !requestId.isNullOrBlank()) {
+                val approveIntent = android.content.Intent(app, com.finance.splitup.data.NotificationActionReceiver::class.java).apply {
+                    action = "ACTION_APPROVE_REQUEST"
+                    putExtra("request_id", requestId)
+                    if (!groupId.isNullOrBlank()) putExtra("group_id", groupId)
+                    putExtra("notification_id", notificationId)
+                }
+                val approvePendingIntent = android.app.PendingIntent.getBroadcast(
+                    app,
+                    (System.currentTimeMillis() + 1).toInt(),
+                    approveIntent,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                )
+                builder.addAction(
+                    androidx.core.app.NotificationCompat.Action(
+                        android.R.drawable.ic_input_add,
+                        "Approve",
+                        approvePendingIntent
+                    )
+                )
+
+                val declineIntent = android.content.Intent(app, com.finance.splitup.data.NotificationActionReceiver::class.java).apply {
+                    action = "ACTION_DECLINE_REQUEST"
+                    putExtra("request_id", requestId)
+                    if (!groupId.isNullOrBlank()) putExtra("group_id", groupId)
+                    putExtra("notification_id", notificationId)
+                }
+                val declinePendingIntent = android.app.PendingIntent.getBroadcast(
+                    app,
+                    (System.currentTimeMillis() + 2).toInt(),
+                    declineIntent,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                )
+                builder.addAction(
+                    androidx.core.app.NotificationCompat.Action(
+                        android.R.drawable.ic_delete,
+                        "Decline",
+                        declinePendingIntent
+                    )
+                )
+            }
+
             androidx.core.app.NotificationManagerCompat.from(app).notify(notificationId, builder.build())
         } catch (e: Exception) {
             e.printStackTrace()

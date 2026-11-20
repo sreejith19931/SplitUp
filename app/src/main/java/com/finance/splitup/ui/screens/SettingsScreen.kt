@@ -36,23 +36,37 @@ fun SettingsScreen(
     onNavigateToInsights: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToSecurity: () -> Unit = {},
-    onNavigateToDataManagement: () -> Unit = {}
+    onNavigateToDataManagement: () -> Unit = {},
+    onNavigateToDashboard: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val authState by authViewModel.authState.collectAsState()
     val currentUser = try {
         com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
     } catch (_: Exception) {
         null
     }
-    val userEmail = currentUser?.email ?: "user@splitup.app"
-    val userName = currentUser?.displayName ?: userEmail.substringBefore("@")
+    val isGuest = currentUser == null || authState is com.finance.splitup.viewmodel.AuthState.LocalDemo
+    val firebaseEmail = currentUser?.email
+    val userEmail = if (isGuest || firebaseEmail.isNullOrBlank()) "user@splitupfin.vercel.app" else firebaseEmail
+    val userName = if (isGuest && currentUser?.displayName.isNullOrBlank()) "Guest User" else (currentUser?.displayName ?: userEmail.substringBefore("@"))
     val userInitials = remember(userName) { getInitials(userName) }
 
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showProfileQrDialog by remember { mutableStateOf(false) }
     var hasUnsyncedChanges by remember { mutableStateOf(false) }
     var isCheckingUnsynced by remember { mutableStateOf(false) }
+    var showDemoTour by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+        val seenTour = prefs.getBoolean("has_seen_demo_tour", false)
+        val step = prefs.getInt("demo_tour_step", 0)
+        if (!seenTour && step == 4) {
+            showDemoTour = true
+        }
+    }
 
     LaunchedEffect(showSignOutDialog) {
         if (showSignOutDialog) {
@@ -125,6 +139,7 @@ fun SettingsScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                                     Button(
                                         onClick = onNavigateToEditProfile,
+                                        enabled = !isGuest,
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
@@ -574,5 +589,29 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+
+    if (showDemoTour) {
+        com.finance.splitup.ui.components.DemoTourOverlay(
+            currentStep = 4,
+            totalSteps = 5,
+            onNext = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putBoolean("has_seen_demo_tour", true).remove("demo_tour_step").apply()
+                showDemoTour = false
+                onNavigateToDashboard()
+            },
+            onBack = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putInt("demo_tour_step", 3).apply()
+                showDemoTour = false
+            },
+            onSkip = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putBoolean("has_seen_demo_tour", true).remove("demo_tour_step").apply()
+                showDemoTour = false
+                onNavigateToDashboard()
+            }
+        )
     }
 }

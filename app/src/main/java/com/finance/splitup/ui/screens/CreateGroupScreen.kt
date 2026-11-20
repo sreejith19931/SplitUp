@@ -325,7 +325,7 @@ fun CreateGroupScreen(
                                         }
                                     }
                                 }
-                                val sub = if (isCreator) "Group Creator" else if (contact.isSplitUpMember) "SplitUp Member • Directly Added" else "${contact.email} • Not on SplitUp"
+                                val sub = if (isCreator) "Group Creator" else if (contact.isSplitUpMember) "SplitUp Member" else "${contact.email} • Not on SplitUp"
                                 Text(sub, style = MaterialTheme.typography.bodySmall, color = if (contact.isSplitUpMember && !isAlreadyAdded) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             IconButton(onClick = {

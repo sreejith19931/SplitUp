@@ -8,10 +8,13 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 import java.text.SimpleDateFormat
@@ -474,6 +477,8 @@ object CloudSyncManager {
                     }
                 }
 
+                fetchApprovalRequestsFromCloud(repository, context)
+
                 // Update lastSyncedAt preference
                 prefs?.edit()?.putLong(KEY_LAST_SYNCED_AT, System.currentTimeMillis())?.apply()
 
@@ -492,6 +497,13 @@ object CloudSyncManager {
         if (user == null) {
             _syncStatus.value = SyncStatus.IDLE
             return
+        }
+        if (context != null) {
+            try {
+                startListeningForIncomingNotifications(context)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed starting incoming notification listener during cloud sync", e)
+            }
         }
         val db = firestore
         if (db == null) {
@@ -654,6 +666,49 @@ object CloudSyncManager {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed updateApprovalRequestStatusInCloud $requestId", e)
+        }
+    }
+
+    suspend fun fetchApprovalRequestsFromCloud(repository: FinanceRepository, context: Context? = null) {
+        val db = firestore ?: return
+        val user = auth?.currentUser ?: return
+        val email = (user.email ?: "").lowercase().trim()
+        val name = (user.displayName ?: "").lowercase().trim()
+        try {
+            withTimeout(SYNC_TIMEOUT_MS) {
+                val snapshot = db.collection("approval_requests")
+                    .whereEqualTo("status", "PENDING")
+                    .get()
+                    .await()
+                for (doc in snapshot.documents) {
+                    val req = doc.toObject(com.finance.splitup.data.db.GroupApprovalRequestEntity::class.java)
+                    if (req != null) {
+                        val reqOwnerEmail = req.ownerEmail.lowercase().trim()
+                        val reqOwnerName = req.ownerName.lowercase().trim()
+                        val reqSenderEmail = req.requestedByEmail.lowercase().trim()
+                        val reqSenderName = req.requestedBy.lowercase().trim()
+
+                        val isForMe = (reqOwnerEmail.isNotBlank() && reqOwnerEmail == email) ||
+                                (reqOwnerName.isNotBlank() && reqOwnerName == name) ||
+                                reqOwnerName == "you"
+                        val isFromMe = (reqSenderEmail.isNotBlank() && reqSenderEmail == email) ||
+                                (reqSenderName.isNotBlank() && reqSenderName == name)
+
+                        if (isForMe && !isFromMe) {
+                            val existing = repository.getApprovalRequestById(req.id)
+                            repository.upsertApprovalRequest(req)
+
+                            if (existing == null && context != null) {
+                                val title = "Approval Needed ✋ • ${req.groupName}"
+                                val body = "${req.requestedBy} requested to ${if (req.requestType == "EXPENSE_EDIT") "edit an expense" else if (req.requestType == "EXPENSE_DELETE") "delete an expense" else "record a settlement"} in '${req.groupName}'"
+                                showSystemNotification(context, title, body, req.id)
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed fetchApprovalRequestsFromCloud", e)
         }
     }
 
@@ -947,18 +1002,82 @@ object CloudSyncManager {
     suspend fun sendGroupActivityNotification(
         group: Group,
         title: String,
-        body: String
+        body: String,
+        requestId: String? = null,
+        targetEmail: String? = null,
+        targetName: String? = null,
+        requestType: String? = null,
+        targetId: String? = null,
+        payloadJson: String? = null
     ) {
         val user = auth?.currentUser ?: return
         val db = firestore ?: return
         val senderUid = user.uid
 
-        val recipientUids = group.memberUids.filter { it != senderUid }.distinct()
+        val recipientUids = group.memberUids.filter { it != senderUid }.distinct().toMutableSet()
+
+        // 1. Fetch group from cloud to get updated memberUids if local is empty
+        try {
+            val globalGroupDoc = db.collection("groups").document(group.id).get().await()
+            if (globalGroupDoc.exists()) {
+                val cloudGroup = globalGroupDoc.toObject(Group::class.java)
+                if (cloudGroup != null) {
+                    recipientUids.addAll(cloudGroup.memberUids.filter { it != senderUid })
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed fetching cloud group for member UIDs", e)
+        }
+
+        // 2. Resolve UIDs by member emails or targetEmail
+        val candidateEmails = (group.memberEmails + listOfNotNull(targetEmail))
+            .filter { it.isNotBlank() && !it.equals(user.email, ignoreCase = true) }
+            .distinct()
+
+        for (email in candidateEmails) {
+            try {
+                val userDocs = db.collection("users")
+                    .whereEqualTo("email", email.lowercase().trim())
+                    .get()
+                    .await()
+                for (uDoc in userDocs.documents) {
+                    if (uDoc.id != senderUid) {
+                        recipientUids.add(uDoc.id)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed resolving user by email: $email", e)
+            }
+        }
+
+        // 3. Resolve UIDs by displayName if still empty
+        val candidateNames = (group.members + listOfNotNull(targetName, group.createdBy))
+            .filter { it.isNotBlank() && !it.equals("You", ignoreCase = true) && !it.equals(user.displayName, ignoreCase = true) }
+            .distinct()
+
+        if (recipientUids.isEmpty()) {
+            for (name in candidateNames) {
+                try {
+                    val userDocs = db.collection("users")
+                        .whereEqualTo("displayName", name)
+                        .get()
+                        .await()
+                    for (uDoc in userDocs.documents) {
+                        if (uDoc.id != senderUid) {
+                            recipientUids.add(uDoc.id)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed resolving user by name: $name", e)
+                }
+            }
+        }
+
         if (recipientUids.isEmpty()) return
 
         for (targetUid in recipientUids) {
             try {
-                val notificationData = mapOf(
+                val notificationData = mutableMapOf<String, Any>(
                     "title" to title,
                     "body" to body,
                     "senderUid" to senderUid,
@@ -967,6 +1086,14 @@ object CloudSyncManager {
                     "groupName" to group.name,
                     "timestamp" to System.currentTimeMillis()
                 )
+                if (!requestId.isNullOrBlank()) {
+                    notificationData["requestId"] = requestId
+                    if (!requestType.isNullOrBlank()) notificationData["requestType"] = requestType
+                    if (!targetId.isNullOrBlank()) notificationData["targetId"] = targetId
+                    if (!payloadJson.isNullOrBlank()) notificationData["payloadJson"] = payloadJson
+                    if (!targetName.isNullOrBlank()) notificationData["ownerName"] = targetName
+                    if (!targetEmail.isNullOrBlank()) notificationData["ownerEmail"] = targetEmail
+                }
                 db.collection("users")
                     .document(targetUid)
                     .collection("incoming_notifications")
@@ -987,6 +1114,9 @@ object CloudSyncManager {
         val user = auth?.currentUser ?: return
         val db = firestore ?: return
 
+        val dao = com.finance.splitup.data.db.AppDatabase.getDatabase(context).financeDao()
+        val repository = com.finance.splitup.data.repository.OfflineFirstFinanceRepository(dao)
+
         notificationListenerRegistration?.remove()
         notificationListenerRegistration = db.collection("users")
             .document(user.uid)
@@ -998,9 +1128,44 @@ object CloudSyncManager {
                     val title = doc.getString("title") ?: "Group Update 💸"
                     val body = doc.getString("body") ?: "A new update was made in your group."
                     val senderUid = doc.getString("senderUid")
+                    val requestId = doc.getString("requestId")
 
                     if (senderUid != user.uid) {
-                        showSystemNotification(context, title, body)
+                        if (!requestId.isNullOrBlank()) {
+                            val groupId = doc.getString("groupId") ?: ""
+                            val groupName = doc.getString("groupName") ?: ""
+                            val requestType = doc.getString("requestType") ?: "EXPENSE_EDIT"
+                            val targetId = doc.getString("targetId") ?: ""
+                            val payloadJson = doc.getString("payloadJson") ?: ""
+                            val requestedBy = doc.getString("senderName") ?: "A group member"
+                            val ownerName = doc.getString("ownerName") ?: (user.displayName ?: "You")
+                            val ownerEmail = doc.getString("ownerEmail") ?: (user.email ?: "")
+
+                            val req = com.finance.splitup.data.db.GroupApprovalRequestEntity(
+                                id = requestId,
+                                groupId = groupId,
+                                groupName = groupName,
+                                targetId = targetId,
+                                requestType = requestType,
+                                requestedBy = requestedBy,
+                                requestedByEmail = "",
+                                ownerName = ownerName,
+                                ownerEmail = ownerEmail,
+                                payloadJson = payloadJson,
+                                status = "PENDING",
+                                timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
+                            )
+
+                            CoroutineScope(Dispatchers.IO).launch {
+                                try {
+                                    repository.upsertApprovalRequest(req)
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Failed saving incoming approval request to local DB", e)
+                                }
+                            }
+                        }
+
+                        showSystemNotification(context, title, body, requestId)
                     }
 
                     doc.reference.delete()
@@ -1008,7 +1173,7 @@ object CloudSyncManager {
             }
     }
 
-    private fun showSystemNotification(context: Context, title: String, body: String) {
+    private fun showSystemNotification(context: Context, title: String, body: String, requestId: String? = null) {
         val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             androidx.core.content.ContextCompat.checkSelfPermission(
                 context,
@@ -1038,17 +1203,48 @@ object CloudSyncManager {
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
 
+        val notificationId = (System.currentTimeMillis() % 10000).toInt()
+
         val builder = androidx.core.app.NotificationCompat.Builder(context, SplitUpMessagingService.CHANNEL_ID)
             .setSmallIcon(com.finance.splitup.R.mipmap.ic_launcher_round)
+            .setLargeIcon(android.graphics.BitmapFactory.decodeResource(context.resources, com.finance.splitup.R.mipmap.ic_launcher_round))
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
-            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+
+        if (!requestId.isNullOrBlank()) {
+            val approveIntent = android.content.Intent(context, NotificationActionReceiver::class.java).apply {
+                action = "ACTION_APPROVE_REQUEST"
+                putExtra("request_id", requestId)
+                putExtra("notification_id", notificationId)
+            }
+            val approvePendingIntent = android.app.PendingIntent.getBroadcast(
+                context,
+                (System.currentTimeMillis() + 1).toInt(),
+                approveIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(android.R.drawable.ic_input_add, "Approve", approvePendingIntent)
+
+            val declineIntent = android.content.Intent(context, NotificationActionReceiver::class.java).apply {
+                action = "ACTION_DECLINE_REQUEST"
+                putExtra("request_id", requestId)
+                putExtra("notification_id", notificationId)
+            }
+            val declinePendingIntent = android.app.PendingIntent.getBroadcast(
+                context,
+                (System.currentTimeMillis() + 2).toInt(),
+                declineIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(android.R.drawable.ic_delete, "Decline", declinePendingIntent)
+        }
 
         try {
             @android.annotation.SuppressLint("MissingPermission")
-            androidx.core.app.NotificationManagerCompat.from(context).notify((System.currentTimeMillis() % 10000).toInt(), builder.build())
+            androidx.core.app.NotificationManagerCompat.from(context).notify(notificationId, builder.build())
         } catch (e: Exception) {
             Log.e(TAG, "Failed to show system notification", e)
         }

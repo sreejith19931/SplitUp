@@ -164,6 +164,7 @@ class PaymentNotificationListenerService : NotificationListenerService() {
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(com.finance.splitup.R.mipmap.ic_launcher_round)
+            .setLargeIcon(android.graphics.BitmapFactory.decodeResource(context.resources, com.finance.splitup.R.mipmap.ic_launcher_round))
             .setContentTitle("Payment Detected: $merchantTitle")
             .setContentText("Detected $typeText of $$formattedAmount. Tap to review and add to SplitUp.")
             .setStyle(NotificationCompat.BigTextStyle().bigText("Detected $typeText of $$formattedAmount ($merchantTitle). Tap to review and pre-fill into SplitUp."))

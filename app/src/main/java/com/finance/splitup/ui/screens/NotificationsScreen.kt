@@ -94,7 +94,6 @@ fun NotificationsScreen(
     val expenses by viewModel.expenses.collectAsState()
     val dismissedNotifications by viewModel.dismissedNotifications.collectAsState()
     val pendingApprovalRequests by viewModel.pendingApprovalRequests.collectAsState()
-    val context = androidx.compose.ui.platform.LocalContext.current
 
     var isClearingAll by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf(NotificationFilter.ALL) }
@@ -194,9 +193,12 @@ fun NotificationsScreen(
         }
     }
 
-    val filteredApprovalRequests = remember(pendingApprovalRequests, selectedFilter) {
+    val filteredApprovalRequests = remember(pendingApprovalRequests, selectedFilter, viewModel.currentUserName, viewModel.currentUserEmail) {
+        val nonSelf = pendingApprovalRequests.filter { req ->
+            !viewModel.isUserMatch(req.requestedBy, viewModel.currentUserName, viewModel.currentUserEmail)
+        }
         if (selectedFilter == NotificationFilter.ALL || selectedFilter == NotificationFilter.APPROVALS) {
-            pendingApprovalRequests
+            nonSelf
         } else {
             emptyList()
         }
@@ -348,23 +350,7 @@ fun NotificationsScreen(
                 }
             }
 
-            // Test trigger sample request button
-            item {
-                OutlinedButton(
-                    onClick = {
-                        viewModel.sendSampleApprovalRequest(null, "EXPENSE_EDIT")
-                        android.widget.Toast.makeText(context, "Sample expense edit request created! ✉️", android.widget.Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
-                ) {
-                    Icon(Icons.Rounded.AddAlert, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Test: Send Sample Expense Edit Request ✋", fontWeight = FontWeight.Bold)
-                }
-            }
+
 
             // Category Filter Chips
             if (hasAnyAlerts) {

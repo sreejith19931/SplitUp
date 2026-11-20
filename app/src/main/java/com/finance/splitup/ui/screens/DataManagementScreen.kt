@@ -47,7 +47,8 @@ fun DataManagementScreen(
     } catch (_: Exception) {
         null
     }
-    val userEmail = currentUser?.email ?: "user@splitup.app"
+    val firebaseEmail = currentUser?.email
+    val userEmail = if (firebaseEmail.isNullOrBlank()) "user@splitupfin.vercel.app" else firebaseEmail
 
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var showClearDataDialog by remember { mutableStateOf(false) }

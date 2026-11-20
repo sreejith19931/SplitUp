@@ -1,9 +1,9 @@
 package com.finance.splitup.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
@@ -56,6 +56,7 @@ fun ReceiptExtractionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .imePadding()
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -121,6 +122,56 @@ fun ReceiptExtractionScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                         )
                     }
+
+                    // Total Matching & Recalculate helper
+                    val parsedTotal = totalAmount.parseAmount()
+                    val parsedTax = taxAmount.parseAmount()
+                    val parsedTip = tipAmount.parseAmount()
+                    val itemsSum = lineItems.sumOf { (itemPriceStrings[it.id] ?: formatInputNumber(it.price)).parseAmount() }
+                    val expectedTotal = itemsSum + parsedTax + parsedTip
+                    val diff = kotlin.math.abs(parsedTotal - expectedTotal)
+                    val isTotalMatched = diff <= 0.01
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isTotalMatched) MaterialTheme.colorScheme.surface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (isTotalMatched) "✅ Total matches item prices" else "⚠️ Discrepancy: $currencySymbol${String.format(java.util.Locale.US, "%.2f", diff)}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = if (isTotalMatched) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = "Items Sum: $currencySymbol${String.format(java.util.Locale.US, "%.2f", itemsSum)}" + (if (parsedTax > 0 || parsedTip > 0) " (+ Tax/Tip: $currencySymbol${String.format(java.util.Locale.US, "%.2f", parsedTax + parsedTip)})" else ""),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (!isTotalMatched || parsedTotal == 0.0) {
+                                FilledTonalButton(
+                                    onClick = {
+                                        totalAmount = formatInputNumber(expectedTotal)
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(Icons.Rounded.Calculate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Match Total", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -153,13 +204,11 @@ fun ReceiptExtractionScreen(
                 }
             }
 
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+            Column(
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(lineItems, key = { it.id }) { item ->
+                lineItems.forEach { item ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),

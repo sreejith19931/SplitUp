@@ -38,6 +38,7 @@ interface FinanceRepository {
 
     fun getPendingApprovalRequestsForOwner(ownerEmail: String = ""): Flow<List<com.finance.splitup.data.db.GroupApprovalRequestEntity>>
     fun getPendingApprovalRequestsForGroup(groupId: String): Flow<List<com.finance.splitup.data.db.GroupApprovalRequestEntity>>
+    suspend fun getApprovalRequestById(id: String): com.finance.splitup.data.db.GroupApprovalRequestEntity?
     suspend fun upsertApprovalRequest(request: com.finance.splitup.data.db.GroupApprovalRequestEntity)
     suspend fun updateApprovalRequestStatus(id: String, status: String)
 
@@ -151,6 +152,10 @@ class OfflineFirstFinanceRepository(private val dao: FinanceDao) : FinanceReposi
         return dao.getPendingApprovalRequestsForGroup(groupId)
     }
 
+    override suspend fun getApprovalRequestById(id: String): com.finance.splitup.data.db.GroupApprovalRequestEntity? {
+        return dao.getApprovalRequestById(id)
+    }
+
     override suspend fun upsertApprovalRequest(request: com.finance.splitup.data.db.GroupApprovalRequestEntity) {
         dao.upsertApprovalRequest(request)
     }
@@ -188,19 +193,29 @@ class OfflineFirstFinanceRepository(private val dao: FinanceDao) : FinanceReposi
     }
 
     override suspend fun getDirtyExpenses(): List<ExpenseEntity> = dao.getDirtyExpenses()
-    override suspend fun markExpensesClean(ids: List<String>) = dao.markExpensesClean(ids)
+    override suspend fun markExpensesClean(ids: List<String>) {
+        if (ids.isNotEmpty()) dao.markExpensesClean(ids)
+    }
 
     override suspend fun getDirtyGroups(): List<GroupEntity> = dao.getDirtyGroups()
-    override suspend fun markGroupsClean(ids: List<String>) = dao.markGroupsClean(ids)
+    override suspend fun markGroupsClean(ids: List<String>) {
+        if (ids.isNotEmpty()) dao.markGroupsClean(ids)
+    }
 
     override suspend fun getDirtyIncomes(): List<IncomeEntity> = dao.getDirtyIncomes()
-    override suspend fun markIncomesClean(ids: List<String>) = dao.markIncomesClean(ids)
+    override suspend fun markIncomesClean(ids: List<String>) {
+        if (ids.isNotEmpty()) dao.markIncomesClean(ids)
+    }
 
     override suspend fun getDirtyRecurringExpenses(): List<RecurringExpenseEntity> = dao.getDirtyRecurringExpenses()
-    override suspend fun markRecurringExpensesClean(ids: List<String>) = dao.markRecurringExpensesClean(ids)
+    override suspend fun markRecurringExpensesClean(ids: List<String>) {
+        if (ids.isNotEmpty()) dao.markRecurringExpensesClean(ids)
+    }
 
     override suspend fun getDirtyBudgets(): List<BudgetEntity> = dao.getDirtyBudgets()
-    override suspend fun markBudgetsClean(categories: List<String>) = dao.markBudgetsClean(categories)
+    override suspend fun markBudgetsClean(categories: List<String>) {
+        if (categories.isNotEmpty()) dao.markBudgetsClean(categories)
+    }
 
     override suspend fun hasUnsyncedChanges(): Boolean {
         return getDirtyExpenses().isNotEmpty() ||

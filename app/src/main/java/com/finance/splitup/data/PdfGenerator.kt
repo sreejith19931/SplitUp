@@ -158,7 +158,9 @@ object PdfGenerator {
             pdfDocument.finishPage(page)
 
             val file = File(context.cacheDir, "splitup_report.pdf")
-            pdfDocument.writeTo(FileOutputStream(file))
+            FileOutputStream(file).use { out ->
+                pdfDocument.writeTo(out)
+            }
             pdfDocument.close()
             file
         } catch (_: Exception) {
@@ -340,7 +342,9 @@ object PdfGenerator {
             pdfDocument.finishPage(page)
 
             val file = File(context.cacheDir, "splitup_full_app_report.pdf")
-            pdfDocument.writeTo(FileOutputStream(file))
+            FileOutputStream(file).use { out ->
+                pdfDocument.writeTo(out)
+            }
             pdfDocument.close()
             file
         } catch (_: Exception) {
@@ -513,7 +517,9 @@ object PdfGenerator {
             pdfDocument.finishPage(page)
 
             val file = File(context.cacheDir, "group_${group.id}_statement.pdf")
-            pdfDocument.writeTo(FileOutputStream(file))
+            FileOutputStream(file).use { out ->
+                pdfDocument.writeTo(out)
+            }
             pdfDocument.close()
             file
         } catch (_: Exception) {
@@ -653,7 +659,9 @@ object PdfGenerator {
             pdfDocument.finishPage(page)
 
             val file = File(context.cacheDir, "splitup_testing_checklist.pdf")
-            pdfDocument.writeTo(FileOutputStream(file))
+            FileOutputStream(file).use { out ->
+                pdfDocument.writeTo(out)
+            }
             pdfDocument.close()
             file
         } catch (_: Exception) {

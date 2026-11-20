@@ -5,13 +5,7 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Subtle Circular Guideline/Backing Ring for Perfect Launcher Masking -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#38BDF8"
-        android:strokeWidth="1.2"
-        android:strokeAlpha="0.4"
-        android:pathData="M54,21 C72.22,21 87,35.78 87,54 C87,72.22 72.22,87 54,87 C35.78,87 21,72.22 21,54 C21,35.78 35.78,21 54,21 Z" />
+
 
     <!-- Left Card Half (Cobalt Blue) - Scaled for 66dp Circular Safe Zone -->
     <path

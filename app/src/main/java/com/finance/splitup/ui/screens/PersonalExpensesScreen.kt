@@ -37,11 +37,13 @@ import java.util.Locale
 fun PersonalExpensesScreen(
     viewModel: FinanceViewModel,
     initialCategory: String? = null,
-    onNavigateToAddExpense: () -> Unit = {},
+    onNavigateToAddExpense: (expenseId: String?, isIncome: Boolean) -> Unit = { _, _ -> },
     onNavigateToEditExpense: (String) -> Unit = {},
     onNavigateToGlobalSearch: () -> Unit = {},
-    onNavigateToSubscriptions: () -> Unit = {}
+    onNavigateToSubscriptions: () -> Unit = {},
+    onNavigateToGroups: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val expenses by viewModel.expenses.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
     val incomes by viewModel.incomes.collectAsState()
@@ -51,8 +53,18 @@ fun PersonalExpensesScreen(
     var selectedDateRange by remember { mutableStateOf("All") }
     var selectedPersonalTab by remember { mutableIntStateOf(if (initialCategory == "INCOME" || initialCategory == ExpenseCategories.INCOME) 1 else 0) } // 0 = Expenses, 1 = Incomes
 
-    var showAddIncomeDialog by remember { mutableStateOf(false) }
     var showBudgetsDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+    var showDemoTour by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+        val seenTour = prefs.getBoolean("has_seen_demo_tour", false)
+        val step = prefs.getInt("demo_tour_step", 0)
+        if (!seenTour && step == 2) {
+            showDemoTour = true
+        }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -66,11 +78,10 @@ fun PersonalExpensesScreen(
     }
 
     val totalPersonalSpent = remember(filteredExpenses, viewModel.defaultCurrency) {
-        filteredExpenses.filter { it.category != ExpenseCategories.INCOME }
+        filteredExpenses.filter { exp -> exp.category != ExpenseCategories.INCOME }
             .sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
     }
     val currencySymbol = Currencies.getSymbol(viewModel.defaultCurrency)
-    val context = LocalContext.current
     val groups by viewModel.groups.collectAsState()
 
     Scaffold(
@@ -83,51 +94,67 @@ fun PersonalExpensesScreen(
                     IconButton(onClick = { showBudgetsDialog = true }) {
                         Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = "Manage Budgets", tint = MaterialTheme.colorScheme.primary)
                     }
-                    IconButton(onClick = {
-                        try {
-                            val pdfFile = com.finance.splitup.data.PdfGenerator.generateFullAppSummaryPdf(context, expenses, groups)
-                            if (pdfFile != null) {
-                                viewModel.postSystemNotification(
-                                    "Statement PDF Generated 📄",
-                                    "Your summary PDF report is ready to share.",
-                                    FinanceViewModel.CHANNEL_EXPORTS_INSIGHTS
-                                )
-                                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", pdfFile)
-                                val intent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "application/pdf"
-                                    putExtra(Intent.EXTRA_SUBJECT, "Personal Expenses Report")
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                context.startActivity(Intent.createChooser(intent, "Export Expense Report PDF"))
-                            } else {
-                                Toast.makeText(context, "Failed to generate report", Toast.LENGTH_SHORT).show()
-                            }
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "Export error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                        }
-                    }) {
-                        Icon(Icons.Rounded.PictureAsPdf, contentDescription = "Export PDF Report", tint = MaterialTheme.colorScheme.primary)
-                    }
-                    IconButton(onClick = {
-                        try {
-                            val csvFile = com.finance.splitup.data.CsvExportImporter.exportExpensesToCsv(context, expenses)
-                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", csvFile)
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/csv"
-                                putExtra(Intent.EXTRA_SUBJECT, "Personal Expenses CSV")
-                                putExtra(Intent.EXTRA_STREAM, uri)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(Intent.createChooser(intent, "Export Personal Expenses CSV"))
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "CSV export error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                        }
-                    }) {
-                        Icon(Icons.Rounded.TableChart, contentDescription = "Export CSV", tint = MaterialTheme.colorScheme.primary)
-                    }
                     IconButton(onClick = onNavigateToGlobalSearch) {
                         Icon(Icons.Rounded.Search, contentDescription = "Global Search", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Rounded.MoreVert, contentDescription = "More Options", tint = MaterialTheme.colorScheme.onSurface)
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Export PDF Report") },
+                                onClick = {
+                                    showMenu = false
+                                    try {
+                                        val pdfFile = com.finance.splitup.data.PdfGenerator.generateFullAppSummaryPdf(context, expenses, groups)
+                                        if (pdfFile != null) {
+                                            viewModel.postSystemNotification(
+                                                "Statement PDF Generated 📄",
+                                                "Your summary PDF report is ready to share.",
+                                                FinanceViewModel.CHANNEL_EXPORTS_INSIGHTS
+                                            )
+                                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", pdfFile)
+                                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "application/pdf"
+                                                putExtra(Intent.EXTRA_SUBJECT, "Personal Expenses Report")
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            context.startActivity(Intent.createChooser(intent, "Export Expense Report PDF"))
+                                        } else {
+                                            Toast.makeText(context, "Failed to generate report", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Export error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                leadingIcon = { Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Export CSV Report") },
+                                onClick = {
+                                    showMenu = false
+                                    try {
+                                        val csvFile = com.finance.splitup.data.CsvExportImporter.exportExpensesToCsv(context, expenses)
+                                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", csvFile)
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/csv"
+                                            putExtra(Intent.EXTRA_SUBJECT, "Personal Expenses CSV")
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(Intent.createChooser(intent, "Export Personal Expenses CSV"))
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "CSV export error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                leadingIcon = { Icon(Icons.Rounded.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -135,12 +162,12 @@ fun PersonalExpensesScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToAddExpense,
+                onClick = { onNavigateToAddExpense(null, selectedPersonalTab == 1) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.Rounded.Add, contentDescription = "Add Personal Expense")
+                Icon(Icons.Rounded.Add, contentDescription = if (selectedPersonalTab == 1) "Add Income" else "Add Personal Expense")
             }
         }
     ) { innerPadding ->
@@ -266,7 +293,7 @@ fun PersonalExpensesScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("One-Time Incomes (${incomes.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        TextButton(onClick = { showAddIncomeDialog = true }) {
+                        TextButton(onClick = { onNavigateToAddExpense(null, true) }) {
                             Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Add Income")
@@ -341,7 +368,7 @@ fun PersonalExpensesScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Recurring Incomes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        TextButton(onClick = { showAddIncomeDialog = true }) {
+                        TextButton(onClick = { onNavigateToAddExpense(null, true) }) {
                             Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Add Recurring Income")
@@ -672,170 +699,25 @@ fun PersonalExpensesScreen(
         )
     }
 
-    if (showAddIncomeDialog) {
-        var incTitle by remember { mutableStateOf("") }
-        var incAmount by remember { mutableStateOf("") }
-        var incSource by remember { mutableStateOf("Salary") }
-        var isRecurring by remember { mutableStateOf(false) }
-        var recurringFrequency by remember { mutableStateOf("Monthly") }
-
-        val todayMillis = remember {
-            java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.of("UTC")).toInstant().toEpochMilli()
-        }
-        var nextDueDateMillis by remember { mutableStateOf<Long?>(todayMillis) }
-        var showDatePicker by remember { mutableStateOf(false) }
-
-        val formattedDueDate = remember(nextDueDateMillis) {
-            nextDueDateMillis?.let { millis ->
-                java.time.Instant.ofEpochMilli(millis)
-                    .atZone(java.time.ZoneId.of("UTC"))
-                    .format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US))
-            } ?: "Today"
-        }
-
-        if (showDatePicker) {
-            val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = nextDueDateMillis ?: todayMillis
-            )
-            DatePickerDialog(
-                onDismissRequest = { showDatePicker = false },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            nextDueDateMillis = datePickerState.selectedDateMillis ?: nextDueDateMillis
-                            showDatePicker = false
-                        }
-                    ) {
-                        Text("OK")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDatePicker = false }) {
-                        Text("Cancel")
-                    }
-                }
-            ) {
-                DatePicker(state = datePickerState)
-            }
-        }
-
-        AlertDialog(
-            onDismissRequest = { showAddIncomeDialog = false },
-            title = { Text("Record Direct Income", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth().imePadding(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OutlinedTextField(
-                        value = incTitle,
-                        onValueChange = { incTitle = it },
-                        label = { Text("Income Title (e.g. Monthly Salary)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    OutlinedTextField(
-                        value = incAmount,
-                        onValueChange = { incAmount = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("Amount ($currencySymbol)") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    OutlinedTextField(
-                        value = incSource,
-                        onValueChange = { incSource = it },
-                        label = { Text("Source (e.g. Employer, Client)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    HorizontalDivider()
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("Recurring", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                            Text("Auto-log this income periodically", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(
-                            checked = isRecurring,
-                            onCheckedChange = { isRecurring = it }
-                        )
-                    }
-
-                    if (isRecurring) {
-                        Text("Frequency", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            listOf("Weekly", "Monthly", "Yearly").forEach { freq ->
-                                FilterChip(
-                                    selected = recurringFrequency == freq,
-                                    onClick = { recurringFrequency = freq },
-                                    label = { Text(freq) }
-                                )
-                            }
-                        }
-
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            OutlinedTextField(
-                                value = formattedDueDate,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Next Expected Date") },
-                                trailingIcon = {
-                                    IconButton(onClick = { showDatePicker = true }) {
-                                        Icon(Icons.Rounded.CalendarToday, contentDescription = "Select Date")
-                                    }
-                                },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .clickable { showDatePicker = true }
-                            )
-                        }
-                    }
-                }
+    if (showDemoTour) {
+        com.finance.splitup.ui.components.DemoTourOverlay(
+            currentStep = 2,
+            totalSteps = 5,
+            onNext = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putInt("demo_tour_step", 3).apply()
+                showDemoTour = false
+                onNavigateToGroups()
             },
-            confirmButton = {
-                Button(onClick = {
-                    val amt = incAmount.parseAmount()
-                    if (incTitle.isNotBlank() && amt > 0) {
-                        viewModel.addIncome(incTitle, amt, incSource, viewModel.defaultCurrency)
-                        if (isRecurring) {
-                            viewModel.addRecurringExpense(
-                                title = incTitle,
-                                amount = amt,
-                                category = ExpenseCategories.INCOME,
-                                frequency = recurringFrequency,
-                                nextDueDate = formattedDueDate,
-                                currency = viewModel.defaultCurrency,
-                                isIncome = true
-                            )
-                        }
-                        showAddIncomeDialog = false
-                    }
-                }) {
-                    Text("Add Income")
-                }
+            onBack = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putInt("demo_tour_step", 1).apply()
+                showDemoTour = false
             },
-            dismissButton = {
-                TextButton(onClick = { showAddIncomeDialog = false }) {
-                    Text("Cancel")
-                }
+            onSkip = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putBoolean("has_seen_demo_tour", true).apply()
+                showDemoTour = false
             }
         )
     }

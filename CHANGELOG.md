@@ -8,49 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.spec/v1.0.0.htm
 ## [1.4] - 2026-11-15
 
 ### Added
-- **Dedicated Full-Screen Notifications Hub & Vertical Transitions:**
-  - Replaced notification bottom sheet with a full-screen `NotificationsScreen` opening with a smooth vertical bottom-to-top slide-in transition.
-  - Wired active notification alerts (group balances, budget warnings/exceeded, subscriptions) to navigate directly to their relevant pages (`BudgetScreen`, group detail, subscriptions).
-  - Fixed approval request rejection bug so declining an expense edit request instantly removes it from the pending approvals queue.
-  - Removed redundant action text links ("Manage Budget", "View Group") from notification cards.
-- **Default Group Activity Sorting:**
-  - Configured group list streams (`groups` StateFlow) to sort groups by default according to latest activity (`updatedAt` and expense timestamps).
-  - Automatically updated group activity timestamps on expense additions, edits, deletions, and settlements.
-- **Dashboard Budget Exceeded Banner Navigation:**
-  - Updated the `"⚠️ X budget exceeded"` suggestion chip on the Dashboard to navigate directly to the **Monthly Category Budgets** screen (`BudgetScreen`).
-- **Unowned Group Changes Approval System & Creator Settings:**
-  - Added pending approval request workflow (`GroupApprovalRequestEntity`) for unowned group expense edits, deletions, and member removals.
-  - Added creator-only `requireApproval` group setting toggleable in `CreateGroupScreen` and `GroupDetailScreen`.
-  - Added approval notifications and inline review cards with **Approve** and **Decline** options.
-- **Universal Activity Log & Multi-Level Undo Engine:**
-  - Extended activity logs with serialized JSON payload state for personal expenses, personal incomes, group expenses, settlements, and member removals.
-  - Integrated one-tap **Undo** actions across activity feed items and 10-second action popups.
-- **Member Identity, Contact Resolution & Name Sync:**
-  - Added `autoMergeGuestMembersOnJoin` and email-anchor matching (`group.memberEmails`) to link pre-joining guest expenses and custom phone nicknames (*"Ali Bro"*) to registered profiles (*"Alice Johnson"*).
-  - Synchronized Edit Profile display name updates across all shared groups without breaking member identity or pending debt calculations.
-- **Group Details UI/UX & Settlement Refinements:**
-  - Consolidated TopAppBar action buttons into a three-dot overflow menu with icons and titles.
-  - Simplified member balance status display and added smooth scroll with 3-times blinking animation on **"Who Owes Whom?"** when tapping member balance rows.
-  - Integrated Android system chooser sheet for sharing group invite links and codes.
-  - Added partial settlement payment recording with remaining debt tracking.
-  - Added real-time foreign currency conversion display (e.g., `≈ €92.50`) using `CurrencyApiService`.
-- **CSV Export & Smart Budget Forecasting:**
-  - Added **Export to CSV** for personal and group expenses via `CsvExportImporter`.
-  - Added mid-month daily spending rate forecasting (*"Pacing Alert: On track to reach $X by month end"*) in `BudgetScreen`.
-- **Security Lock Timeout & Offline Sync Badge:**
+- **Actionable Push Notifications & Dedicated Channels:**
+  - Implemented background `NotificationActionReceiver` for inline **Approve** and **Decline** quick actions directly in the notification shade without opening the app.
+  - Configured 4 dedicated Android notification channels with distinct importance levels (Budget alerts, Group approvals, Payments, Subscriptions).
+  - Added precise deep-linking routing straight to target screens and groups.
+- **Group Governance & Owner Approvals:**
+  - Added creator-only `requireApproval` settings and approval workflow (`GroupApprovalRequestEntity`) for unowned group expense edits and deletions.
+  - Configured default group sorting by latest activity (`updatedAt` and expense timestamps).
+- **Full-Screen Notifications Hub:**
+  - Replaced legacy notification sheets with a full-screen `NotificationsScreen` featuring smooth vertical slide-in transitions and direct alert navigation.
+- **Smart Budgets & AI OCR Enhancements:**
+  - Integrated category spending limits, mid-month pacing rate forecasting, and ML Kit receipt scanning for discounts and coupons.
+- **Security & Offline Sync:**
   - Added configurable **Biometric Lock Timeout Delay** (*Immediately, 1m, 5m, 15m*) in Security Settings.
-  - Added real-time **Offline Sync Badge** on Dashboard using `NetworkConnectivityObserver`.
-- **Smart Budgets & OCR Enhancements:**
-  - Added ML Kit OCR detection for receipt discounts and coupons.
-  - Added category spending limits and real-time budget tracking (`BudgetScreen`).
-- **Recurring Income & Subscription Flow:**
-  - Integrated recurring income options into Add Income dialog and unified recurring bills into the Subscriptions Hub.
-- **UI & UX Polish:**
-  - Replaced notification bottom sheet with a full-screen compact sheet with instant "Clear All" dismissal and fly-out animations.
-  - Redirected dashboard budget & cash flow banners directly to relevant pages (Personal Expenses & Insights).
-  - Standardized app-wide typography scale (`15.sp` titles, `20.sp` headers) and compact layout padding with single-line tab font scale safeguards.
-- **Group Activity Feed & Cloud Sync:**
-  - Added group audit logs and scheduled background cloud backups via WorkManager.
+  - Added real-time **Offline Sync Badge** and robust multi-user Cloud Firestore persistence.
+- **Interactive Product Demo Tour:**
+  - Implemented a window-level guided product walkthrough (`DemoTourOverlay`) that automatically navigates users through Dashboard, Quick Actions, Personal Expenses, Groups, and Settings with full system-bar scrim protection.
+- **Security PIN Enhancements:**
+  - Upgraded Fallback PIN setup during onboarding and security settings to require double-entry confirmation (`Confirm 4-Digit PIN`).
+- **3-Dot Overflow Menus:**
+  - Added clean `MoreVert` 3-dot overflow menus to the top app bars for Personal Expenses and Groups screens.
+- **JIT Onboarding & Compact UI:**
+  - Streamlined onboarding by replacing upfront permission walls with Just-In-Time (JIT) requests and optimized compact group cards.
 
 ### Fixed
 - Fixed auto-distribute exact split residual distribution bug.
@@ -58,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.spec/v1.0.0.htm
 - Fixed notification clear persistence bug by adding `dismissedNotifications` to `remember` keys.
 - Fixed group "Settled up" status calculation to verify pending member transfers.
 - Fixed archived group tab selection lock in `GroupsScreen`.
+- Fixed fallback PIN recognition bug by aligning custom hash storage with `"security_pin_hash"`.
+- Suppressed positive cash flow banner when net cash flow is exactly zero.
+- Configured guest fallback email to `user@splitupfin.vercel.app` and deactivated profile editing in guest mode.
 
 ## [1.3] - 2026-11-13
 

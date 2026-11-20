@@ -26,18 +26,24 @@ class CalculateGroupMetricsUseCase {
         currentUserEmail: String = ""
     ): Double {
         val balances = settlementsUseCase.calculateNetBalances(group, targetCurrency, currentUserName, currentUserEmail)
-        val canonicalSelf = group.allMembers.firstOrNull { it == "You" || it.equals("You", ignoreCase = true) }
-            ?: group.allMembers.firstOrNull { currentUserName.isNotBlank() && it.equals(currentUserName, ignoreCase = true) }
-            ?: group.allMembers.firstOrNull { member ->
-                if (currentUserEmail.isNotBlank()) {
-                    val idx = group.members.indexOfFirst { it.equals(member, ignoreCase = true) }
-                    if (idx >= 0) {
-                        val email = group.memberEmails.getOrNull(idx)
-                        email != null && email.equals(currentUserEmail, ignoreCase = true)
-                    } else false
-                } else false
+        val canonicalSelf = group.allMembers.firstOrNull { member ->
+            val mTrim = member.trim()
+            if (currentUserEmail.isNotBlank()) {
+                val emailLower = currentUserEmail.trim().lowercase()
+                if (mTrim.equals(emailLower, ignoreCase = true)) return@firstOrNull true
+                val memberIdx = group.members.indexOfFirst { it.equals(mTrim, ignoreCase = true) }
+                if (memberIdx >= 0) {
+                    val memberEmail = group.memberEmails.getOrNull(memberIdx)
+                    if (memberEmail != null && memberEmail.equals(currentUserEmail, ignoreCase = true)) {
+                        return@firstOrNull true
+                    }
+                }
             }
-            ?: "You"
+            if (currentUserName.isNotBlank() && !currentUserName.equals("You", ignoreCase = true)) {
+                if (mTrim.equals(currentUserName.trim(), ignoreCase = true)) return@firstOrNull true
+            }
+            false
+        } ?: group.allMembers.firstOrNull { it.trim().equals("You", ignoreCase = true) } ?: "You"
         return balances[canonicalSelf] ?: balances["You"] ?: 0.0
     }
 }

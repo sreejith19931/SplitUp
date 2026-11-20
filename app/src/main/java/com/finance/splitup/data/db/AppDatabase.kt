@@ -136,6 +136,9 @@ interface FinanceDao {
     @Query("SELECT * FROM group_approval_requests WHERE status = 'PENDING' ORDER BY timestamp DESC")
     fun getPendingApprovalRequestsForOwner(): Flow<List<GroupApprovalRequestEntity>>
 
+    @Query("SELECT * FROM group_approval_requests WHERE id = :id LIMIT 1")
+    suspend fun getApprovalRequestById(id: String): GroupApprovalRequestEntity?
+
     @Query("SELECT * FROM group_approval_requests WHERE groupId = :groupId ORDER BY timestamp DESC")
     fun getPendingApprovalRequestsForGroup(groupId: String): Flow<List<GroupApprovalRequestEntity>>
 

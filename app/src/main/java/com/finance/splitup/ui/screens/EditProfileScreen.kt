@@ -35,7 +35,10 @@ fun EditProfileScreen(
     } catch (_: Exception) {
         null
     }
-    val userEmail = currentUser?.email ?: "user@splitup.app"
+    val authState by authViewModel.authState.collectAsState()
+    val isGuest = currentUser == null || authState is com.finance.splitup.viewmodel.AuthState.LocalDemo
+    val firebaseEmail = currentUser?.email
+    val userEmail = if (isGuest || firebaseEmail.isNullOrBlank()) "user@splitupfin.vercel.app" else firebaseEmail
     var displayName by remember { mutableStateOf(currentUser?.displayName ?: userEmail.substringBefore("@")) }
 
     val isGoogleUser = remember(currentUser) {

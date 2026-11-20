@@ -110,20 +110,25 @@ object CsvExportImporter {
         val tokens = mutableListOf<String>()
         val sb = StringBuilder()
         var inQuotes = false
+        var i = 0
+        val len = line.length
 
-        for (ch in line) {
-            when (ch) {
-                '"' -> inQuotes = !inQuotes
-                ',' -> {
-                    if (inQuotes) {
-                        sb.append(ch)
-                    } else {
-                        tokens.add(sb.toString().trim())
-                        sb.clear()
-                    }
+        while (i < len) {
+            val ch = line[i]
+            if (ch == '"') {
+                if (inQuotes && i + 1 < len && line[i + 1] == '"') {
+                    sb.append('"')
+                    i++
+                } else {
+                    inQuotes = !inQuotes
                 }
-                else -> sb.append(ch)
+            } else if (ch == ',' && !inQuotes) {
+                tokens.add(sb.toString().trim())
+                sb.clear()
+            } else {
+                sb.append(ch)
             }
+            i++
         }
         tokens.add(sb.toString().trim())
         return tokens

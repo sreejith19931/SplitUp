@@ -43,12 +43,24 @@ fun GroupsScreen(
     onNavigateToGroupDetail: (String) -> Unit,
     onNavigateToCreateGroup: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit = {},
-    onNavigateToFindFriends: () -> Unit = {}
+    onNavigateToFindFriends: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val groups by viewModel.groups.collectAsState()
     var selectedGroupId by remember { mutableStateOf<String?>(groups.firstOrNull()?.id) }
     var selectedGroupTypeFilter by remember { mutableStateOf<String?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
+    var showDemoTour by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+        val seenTour = prefs.getBoolean("has_seen_demo_tour", false)
+        val step = prefs.getInt("demo_tour_step", 0)
+        if (!seenTour && step == 3) {
+            showDemoTour = true
+        }
+    }
 
     val filteredGroups = remember(groups, selectedGroupTypeFilter) {
         groups.filter { group ->
@@ -63,7 +75,7 @@ fun GroupsScreen(
     val navigator = rememberListDetailPaneScaffoldNavigator<String>()
     val coroutineScope = rememberCoroutineScope()
     var showJoinDialog by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    var showMenu by remember { mutableStateOf(false) }
 
 
 
@@ -77,17 +89,34 @@ fun GroupsScreen(
                         TopAppBar(
                             title = { Text("Groups", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
                             actions = {
-                                IconButton(onClick = onNavigateToFindFriends) {
-                                    Icon(Icons.Rounded.People, contentDescription = "Find Friends", tint = MaterialTheme.colorScheme.primary)
-                                }
-                                IconButton(onClick = { showJoinDialog = true }) {
-                                    Icon(Icons.Rounded.Link, contentDescription = "Join Group by ID", tint = MaterialTheme.colorScheme.primary)
-                                }
                                 IconButton(onClick = onNavigateToGlobalSearch) {
                                     Icon(Icons.Rounded.Search, contentDescription = "Global Search", tint = MaterialTheme.colorScheme.onSurface)
                                 }
-                                IconButton(onClick = onNavigateToCreateGroup) {
-                                    Icon(Icons.Rounded.GroupAdd, contentDescription = "Create Group", tint = MaterialTheme.colorScheme.primary)
+                                Box {
+                                    IconButton(onClick = { showMenu = true }) {
+                                        Icon(Icons.Rounded.MoreVert, contentDescription = "More Options", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    DropdownMenu(
+                                        expanded = showMenu,
+                                        onDismissRequest = { showMenu = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Find Friends") },
+                                            onClick = {
+                                                showMenu = false
+                                                onNavigateToFindFriends()
+                                            },
+                                            leadingIcon = { Icon(Icons.Rounded.People, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Join Group by ID") },
+                                            onClick = {
+                                                showMenu = false
+                                                showJoinDialog = true
+                                            },
+                                            leadingIcon = { Icon(Icons.Rounded.Link, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                                        )
+                                    }
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -142,8 +171,8 @@ fun GroupsScreen(
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                             contentPadding = PaddingValues(bottom = 32.dp)
                         ) {
                             item {
@@ -341,6 +370,29 @@ fun GroupsScreen(
             }
         }
     )
+
+    if (showDemoTour) {
+        com.finance.splitup.ui.components.DemoTourOverlay(
+            currentStep = 3,
+            totalSteps = 5,
+            onNext = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putInt("demo_tour_step", 4).apply()
+                showDemoTour = false
+                onNavigateToSettings()
+            },
+            onBack = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putInt("demo_tour_step", 2).apply()
+                showDemoTour = false
+            },
+            onSkip = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putBoolean("has_seen_demo_tour", true).apply()
+                showDemoTour = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -371,7 +423,7 @@ fun GroupCard(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .graphicsLayer(alpha = if (group.isArchived) 0.7f else 1.0f),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (group.isArchived) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface
         )
@@ -379,13 +431,13 @@ fun GroupCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
                 shape = CircleShape,
                 color = if (group.isArchived) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(52.dp)
+                modifier = Modifier.size(44.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -397,14 +449,14 @@ fun GroupCard(
                         },
                         contentDescription = null,
                         tint = if (group.isArchived) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(text = group.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Text(text = group.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     if (group.isArchived) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
@@ -421,10 +473,10 @@ fun GroupCard(
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Rounded.Person, contentDescription = "Members", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(text = "${group.members.size} • Total: $currencySymbol${String.format(Locale.US, "%.2f", totalBalance)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Rounded.Person, contentDescription = "Members", modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "${group.members.size} • Total: $currencySymbol${String.format(Locale.US, "%.2f", totalBalance)}", style = MaterialTheme.typography.bodySmall, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
@@ -436,8 +488,9 @@ fun GroupCard(
                     ) {
                         Text(
                             text = statusText,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall,
+                            fontSize = 11.sp,
                             color = when {
                                 userBalance > 0.01 -> EmeraldSuccess
                                 userBalance < -0.01 -> CrimsonDanger
@@ -453,18 +506,18 @@ fun GroupCard(
                             modifier = Modifier.clickable(onClick = onClick)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
-                                Icon(Icons.Rounded.Payments, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color.White)
-                                Text("Settle Up", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Rounded.Payments, contentDescription = null, modifier = Modifier.size(11.dp), tint = Color.White)
+                                Text("Settle Up", style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             }
-            Icon(Icons.Rounded.ChevronRight, contentDescription = "View", tint = MaterialTheme.colorScheme.outline)
+            Icon(Icons.Rounded.ChevronRight, contentDescription = "View", tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
         }
     }
 }

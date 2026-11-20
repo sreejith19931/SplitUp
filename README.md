@@ -5,18 +5,17 @@
 [![Android](https://img.shields.io/badge/Platform-Android-3DDC84?style=flat&logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7f52ff?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-UI-4285F4?style=flat&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Version](https://img.shields.io/badge/Version-1.4-blue.svg)](https://github.com/sreejith19931/SplitUp/releases)
+[![Version](https://img.shields.io/badge/Version-1.3-blue.svg)](https://github.com/sreejith19931/SplitUp/releases)
 [![Website](https://img.shields.io/badge/Website-splitupfin.vercel.app-000000?style=flat&logo=vercel)](https://splitupfin.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## ⚡ What's New in v1.4
+## ⚡ What's New in v1.3
 
-- **Smart Budgets & OCR Enhancements:**
-- **Recurring Income & Subscription Flow:**
-- **UI & UX Polish:**
-- **Group Activity Feed & Cloud Sync:**
+- **Spending Insights & Trends:** Added `InsightsScreen` with monthly overview and category breakdown.
+- **App-Wide UI Polish:** Pulsing loading animation, celebratory settlement dialog, and Navigation 3 transitions.
+- **Universal App Links & Vercel Domain:** Upgraded to `splitupfin.vercel.app` with Android App Links verification.
 ---
 
 ## ✨ Key Features

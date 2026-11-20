@@ -274,15 +274,7 @@ fun GroupDetailContent(
                                     leadingIcon = { Icon(Icons.Rounded.Archive, contentDescription = null) }
                                 )
                             }
-                            DropdownMenuItem(
-                                text = { Text("Send Sample Approval ✋") },
-                                onClick = {
-                                    showMenu = false
-                                    viewModel.sendSampleApprovalRequest(group.id, "EXPENSE_EDIT")
-                                    android.widget.Toast.makeText(context, "Sample expense edit approval request sent from Alice! ✉️", android.widget.Toast.LENGTH_LONG).show()
-                                },
-                                leadingIcon = { Icon(Icons.Rounded.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
-                            )
+
                             DropdownMenuItem(
                                 text = { Text("Delete Group", color = MaterialTheme.colorScheme.error) },
                                 onClick = {
@@ -519,10 +511,11 @@ fun GroupDetailContent(
                                 else -> member
                             }
                             val memberEmail = group.memberEmails.find { email ->
-                                val prefix = email.substringBefore("@").replace(".", "").lowercase()
+                                val emailLower = email.lowercase().trim()
+                                val prefix = emailLower.substringBefore("@").replace(".", "")
                                 val nameClean = member.lowercase().replace(" ", "").replace(".", "")
-                                prefix == nameClean || nameClean.contains(prefix)
-                            } ?: group.memberEmails.getOrNull(index) ?: ""
+                                emailLower == nameClean || prefix == nameClean
+                            } ?: if (group.memberEmails.size == group.members.size + group.pendingMembers.size) group.memberEmails.getOrNull(index) ?: "" else group.memberEmails.getOrNull(index) ?: ""
 
                             AssistChip(
                                 onClick = {
@@ -553,10 +546,11 @@ fun GroupDetailContent(
                         }
                         group.pendingMembers.forEachIndexed { index, member ->
                             val pendingEmail = group.memberEmails.find { email ->
-                                val prefix = email.substringBefore("@").replace(".", "").lowercase()
+                                val emailLower = email.lowercase().trim()
+                                val prefix = emailLower.substringBefore("@").replace(".", "")
                                 val nameClean = member.lowercase().replace(" ", "").replace(".", "")
-                                prefix == nameClean || nameClean.contains(prefix)
-                            } ?: group.memberEmails.getOrNull(group.members.size + index) ?: ""
+                                emailLower == nameClean || prefix == nameClean
+                            } ?: if (group.memberEmails.size == group.members.size + group.pendingMembers.size) group.memberEmails.getOrNull(group.members.size + index) ?: "" else ""
 
                             AssistChip(
                                 onClick = {

@@ -22,12 +22,12 @@ class RecurringExpenseWorker(
             val recurringList = database.financeDao().getAllRecurringExpenses().firstOrNull() ?: emptyList()
 
             val today = LocalDate.now()
-            val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US)
+            val outputFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US)
 
             for (item in recurringList) {
                 if (item.autoAdd && item.nextDueDate.isNotBlank()) {
                     try {
-                        val dueDate = LocalDate.parse(item.nextDueDate.trim(), formatter)
+                        val dueDate = DateUtils.parseExpenseDate(item.nextDueDate.trim())
                         // If today is on or after the due date, auto-add expense and advance next due date
                         if (!today.isBefore(dueDate)) {
                             val isItemIncome = item.isIncome || item.category == ExpenseCategories.INCOME
@@ -38,7 +38,8 @@ class RecurringExpenseWorker(
                                     amount = item.amount,
                                     source = item.title,
                                     date = item.nextDueDate,
-                                    currency = item.currency
+                                    currency = item.currency,
+                                    isDirty = true
                                 )
                                 database.financeDao().insertIncome(incomeEntity)
 
@@ -51,7 +52,8 @@ class RecurringExpenseWorker(
                                     description = "Automated Recurring Income (${item.frequency})",
                                     paidBy = "You",
                                     currency = item.currency,
-                                    paymentMethod = "Direct Deposit"
+                                    paymentMethod = "Direct Deposit",
+                                    isDirty = true
                                 )
                                 database.financeDao().insertExpense(expenseEntity)
                             } else {
@@ -64,7 +66,8 @@ class RecurringExpenseWorker(
                                     description = "Automated Recurring Expense (${item.frequency})",
                                     paidBy = "You",
                                     currency = item.currency,
-                                    paymentMethod = "Auto Debit"
+                                    paymentMethod = "Auto Debit",
+                                    isDirty = true
                                 )
                                 database.financeDao().insertExpense(expenseEntity)
                             }
@@ -77,7 +80,7 @@ class RecurringExpenseWorker(
                             }
 
                             val updatedItem = item.copy(
-                                nextDueDate = nextDate.format(formatter),
+                                nextDueDate = nextDate.format(outputFormatter),
                                 updatedAt = System.currentTimeMillis(),
                                 isDirty = true
                             )
@@ -121,6 +124,7 @@ class RecurringExpenseWorker(
 
                                     val builder = androidx.core.app.NotificationCompat.Builder(applicationContext, "splitup_recurring_bills")
                                         .setSmallIcon(com.finance.splitup.R.mipmap.ic_launcher_round)
+                                        .setLargeIcon(android.graphics.BitmapFactory.decodeResource(applicationContext.resources, com.finance.splitup.R.mipmap.ic_launcher_round))
                                         .setContentTitle(if (isItemIncome) "Recurring Income Received 💰" else "Recurring Expense Logged 🔄")
                                         .setContentText(if (isItemIncome) "Auto-logged income '${item.title}' (${item.currency} ${item.amount}) for ${item.nextDueDate}." else "Auto-logged '${item.title}' (${item.currency} ${item.amount}) for due date ${item.nextDueDate}.")
                                         .setAutoCancel(true)

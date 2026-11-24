@@ -4,6 +4,9 @@
     "namespace": "android_app",
     "package_name": "com.finance.splitup",
     "sha256_cert_fingerprints": [
+      "7C:4A:6F:45:E7:24:94:87:9B:1A:64:2F:5E:60:E3:D9:38:58:FE:F8:DE:FA:E3:51:1F:17:12:B3:24:72:EC:19",
+      "62:0E:A6:DC:B6:A5:90:98:F2:B7:25:0E:B2:9D:3F:32:DC:81:CD:63:9B:F3:5A:27:11:61:26:A8:19:47:FE:E4",
+      "A3:CC:27:52:79:47:F4:30:DB:06:D8:60:B3:6B:6B:20:33:A1:F7:B6:22:EC:F8:A6:CC:4A:AD:E7:9C:E9:79:E4",
       "20:DF:F4:97:2F:91:10:3B:99:7A:49:BB:79:C7:E8:97:62:39:DF:40:03:FB:96:86:10:FA:E0:23:B5:E1:B0:77"
     ]
   }

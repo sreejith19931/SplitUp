@@ -1,7 +1,19 @@
 {
+  "headers": [
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    }
+  ],
   "rewrites": [
+    { "source": "/.well-known/assetlinks.json", "destination": "/landing/.well-known/assetlinks.json" },
     { "source": "/invite*", "destination": "/landing/index.html" },
+    { "source": "/group*", "destination": "/landing/index.html" },
     { "source": "/user*", "destination": "/landing/index.html" },
+    { "source": "/join*", "destination": "/landing/index.html" },
     { "source": "/(.*)", "destination": "/landing/$1" }
   ]
 }

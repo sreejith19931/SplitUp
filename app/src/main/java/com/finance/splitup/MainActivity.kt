@@ -32,6 +32,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import com.finance.splitup.ui.navigation.*
 import com.finance.splitup.ui.screens.*
 import com.finance.splitup.ui.theme.SplitUpTheme
@@ -68,6 +73,9 @@ class MainActivity : FragmentActivity() {
                 when (authState) {
                     is com.finance.splitup.viewmodel.AuthState.Authenticated -> {
                         viewModel.triggerCloudSync()
+                    }
+                    is com.finance.splitup.viewmodel.AuthState.Unauthenticated -> {
+                        viewModel.clearLocalDataOnSignOut()
                     }
                     else -> {}
                 }
@@ -126,7 +134,6 @@ fun SplitUpApp(
     currentIntent: android.content.Intent? = null
 ) {
     var isAppUnlocked by rememberSaveable { mutableStateOf(false) }
-    var updateDialogInfo by remember { mutableStateOf<Pair<String, String>?>(null) }
     val backStack = rememberNavBackStack(DashboardRoute)
     val currentRoute = backStack.lastOrNull()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -181,51 +188,6 @@ fun SplitUpApp(
         )
 
         com.finance.splitup.data.CloudSyncManager.startListeningForIncomingNotifications(context)
-
-        // Automatic GitHub Release Update Check on App Launch
-        com.finance.splitup.data.UpdateChecker.checkLatestRelease(
-            onUpdateAvailable = { version, url ->
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                val dismissedVersion = prefs.getString("dismissed_update_version", null)
-                if (dismissedVersion != version) {
-                    updateDialogInfo = Pair(version, url)
-                }
-            },
-            onUpToDate = {}
-        )
-    }
-
-    if (updateDialogInfo != null) {
-        val (newVersion, updateUrl) = updateDialogInfo!!
-        AlertDialog(
-            onDismissRequest = { updateDialogInfo = null },
-            icon = { Icon(Icons.Rounded.SystemUpdate, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("New Version v$newVersion Available!", fontWeight = FontWeight.Bold) },
-            text = { Text("A new version of SplitUp (v$newVersion) is available on GitHub with bug fixes and improvements. Would you like to update now?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        updateDialogInfo = null
-                        com.finance.splitup.data.UpdateChecker.openReleaseUrl(context, updateUrl)
-                    },
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Update Now")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                        prefs.edit().putString("dismissed_update_version", newVersion).apply()
-                        updateDialogInfo = null
-                    }
-                ) {
-                    Text("Remind Me Later")
-                }
-            },
-            shape = RoundedCornerShape(20.dp)
-        )
     }
 
     LaunchedEffect(currentIntent) {
@@ -233,12 +195,14 @@ fun SplitUpApp(
         val intent = currentIntent ?: activity?.intent ?: return@LaunchedEffect
         val data = intent.data
 
-        if (data != null && ((data.scheme == "splitup") || (data.scheme == "https" && (data.host == "splitupfin.vercel.app" || data.host == "splitup.finance" || data.host == "splitup.app")))) {
-            val groupId = data.getQueryParameter("id") ?: data.getQueryParameter("groupId") ?: if (data.path?.startsWith("/group") == true || data.path?.startsWith("/invite") == true) data.lastPathSegment else null
+        if (data != null && (data.scheme == "splitup" || ((data.scheme == "https" || data.scheme == "http") && (data.host == "splitupfin.vercel.app" || data.host == "splitup.finance" || data.host == "splitup.app")))) {
+            val groupId = data.getQueryParameter("id")
+                ?: data.getQueryParameter("groupId")
+                ?: if (data.path?.startsWith("/group") == true || data.path?.startsWith("/invite") == true || data.path?.startsWith("/join") == true) data.lastPathSegment else null
             val userEmail = data.getQueryParameter("email")
             val userName = data.getQueryParameter("name") ?: userEmail?.substringBefore("@") ?: ""
 
-            if (!groupId.isNullOrBlank() && groupId != "invite" && groupId != "group" && groupId != "user") {
+            if (!groupId.isNullOrBlank() && groupId != "invite" && groupId != "group" && groupId != "user" && groupId != "join") {
                 viewModel.joinGroupViaInvite(
                     groupId = groupId,
                     onJoined = {
@@ -384,91 +348,94 @@ fun SplitUpApp(
             currentRoute is GroupsRoute ||
             currentRoute is SettingsRoute
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
+    val navItemColors = NavigationSuiteDefaults.itemColors(
+        navigationBarItemColors = NavigationBarItemDefaults.colors(
+            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedIconColor = MaterialTheme.colorScheme.primary,
+            selectedTextColor = MaterialTheme.colorScheme.primary,
+            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        navigationRailItemColors = NavigationRailItemDefaults.colors(
+            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedIconColor = MaterialTheme.colorScheme.primary,
+            selectedTextColor = MaterialTheme.colorScheme.primary,
+            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    )
+
+    val navLayoutType = if (isTopLevelRoute) {
+        NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
+    } else {
+        NavigationSuiteType.None
+    }
+
+    NavigationSuiteScaffold(
+        layoutType = navLayoutType,
+        navigationSuiteItems = {
             if (isTopLevelRoute) {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ) {
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Rounded.Home, contentDescription = "Dashboard") },
-                        label = { Text("Dashboard", fontWeight = FontWeight.Bold) },
-                        selected = currentRoute is DashboardRoute,
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.surfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        onClick = {
-                            if (currentRoute !is DashboardRoute) {
-                                backStack.clear()
-                                backStack.add(DashboardRoute)
-                            }
+                item(
+                    icon = { Icon(Icons.Rounded.Home, contentDescription = "Dashboard") },
+                    label = { Text("Dashboard", fontWeight = FontWeight.Bold) },
+                    selected = currentRoute is DashboardRoute,
+                    onClick = {
+                        if (currentRoute !is DashboardRoute) {
+                            backStack.clear()
+                            backStack.add(DashboardRoute)
                         }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Rounded.Person, contentDescription = "Personal") },
-                        label = { Text("Personal", fontWeight = FontWeight.Bold) },
-                        selected = currentRoute is PersonalExpensesRoute,
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.surfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        onClick = {
-                            if (currentRoute !is PersonalExpensesRoute) {
-                                backStack.clear()
-                                backStack.add(PersonalExpensesRoute(initialCategory = null))
-                            }
+                    },
+                    colors = navItemColors
+                )
+                item(
+                    icon = { Icon(Icons.Rounded.Person, contentDescription = "Personal") },
+                    label = { Text("Personal", fontWeight = FontWeight.Bold) },
+                    selected = currentRoute is PersonalExpensesRoute,
+                    onClick = {
+                        if (currentRoute !is PersonalExpensesRoute) {
+                            backStack.clear()
+                            backStack.add(PersonalExpensesRoute(initialCategory = null))
                         }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Rounded.Groups, contentDescription = "Groups") },
-                        label = { Text("Groups", fontWeight = FontWeight.Bold) },
-                        selected = currentRoute is GroupsRoute,
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.surfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        onClick = {
-                            if (currentRoute !is GroupsRoute) {
-                                backStack.clear()
-                                backStack.add(GroupsRoute)
-                            }
+                    },
+                    colors = navItemColors
+                )
+                item(
+                    icon = { Icon(Icons.Rounded.Groups, contentDescription = "Groups") },
+                    label = { Text("Groups", fontWeight = FontWeight.Bold) },
+                    selected = currentRoute is GroupsRoute,
+                    onClick = {
+                        if (currentRoute !is GroupsRoute) {
+                            backStack.clear()
+                            backStack.add(GroupsRoute)
                         }
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Rounded.Settings, contentDescription = "Settings") },
-                        label = { Text("Settings", fontWeight = FontWeight.Bold) },
-                        selected = currentRoute is SettingsRoute,
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.surfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        onClick = {
-                            if (currentRoute !is SettingsRoute) {
-                                backStack.clear()
-                                backStack.add(SettingsRoute)
-                            }
+                    },
+                    colors = navItemColors
+                )
+                item(
+                    icon = { Icon(Icons.Rounded.Settings, contentDescription = "Settings") },
+                    label = { Text("Settings", fontWeight = FontWeight.Bold) },
+                    selected = currentRoute is SettingsRoute,
+                    onClick = {
+                        if (currentRoute !is SettingsRoute) {
+                            backStack.clear()
+                            backStack.add(SettingsRoute)
                         }
-                    )
-                }
+                    },
+                    colors = navItemColors
+                )
             }
-        }
-    ) { innerPadding ->
+        },
+        navigationSuiteColors = NavigationSuiteDefaults.colors(
+            navigationBarContainerColor = MaterialTheme.colorScheme.surface,
+            navigationRailContainerColor = MaterialTheme.colorScheme.surface
+        ),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { innerPadding ->
         NavDisplay(
             backStack = backStack,
             modifier = Modifier.padding(innerPadding),
@@ -543,8 +510,8 @@ fun SplitUpApp(
                     is DashboardRoute -> NavEntry(key) {
                         DashboardScreen(
                             viewModel = viewModel,
-                            onNavigateToAddExpense = {
-                                backStack.add(AddExpenseRoute())
+                            onNavigateToAddExpense = { isIncome ->
+                                backStack.add(AddExpenseRoute(initialIsIncome = isIncome))
                             },
                             onNavigateToEditExpense = { expId ->
                                 backStack.add(AddExpenseRoute(expId))
@@ -941,6 +908,7 @@ fun SplitUpApp(
                 }
             }
         )
+      }
     }
 }
 

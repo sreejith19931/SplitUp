@@ -1,0 +1,49 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function userEmail() {
+      return isSignedIn() && request.auth.token.email != null
+        ? request.auth.token.email.lower()
+        : '';
+    }
+
+    // Membership check against the group doc in Firestore (cross-service lookup).
+    // Fails closed when the group doc doesn't exist.
+    function groupData(groupId) {
+      return firestore.get(/databases/(default)/documents/groups/$(groupId)).data;
+    }
+
+    function isGroupMember(groupId) {
+      return isSignedIn()
+        && firestore.exists(/databases/(default)/documents/groups/$(groupId))
+        && (
+          ('memberUids' in groupData(groupId) && uid() in groupData(groupId).memberUids)
+          || (userEmail() != '' && 'memberEmails' in groupData(groupId) && userEmail() in groupData(groupId).memberEmails)
+        );
+    }
+
+    // Personal receipt images: receipts/{uid}/{expenseId}.jpg — owner-only.
+    match /receipts/{userId}/{fileName} {
+      allow read, write: if isSignedIn() && uid() == userId;
+    }
+
+    // Group receipt images: group_receipts/{groupId}/{expenseId}.jpg — members only.
+    match /group_receipts/{groupId}/{fileName} {
+      allow read, write: if isGroupMember(groupId);
+    }
+
+    // Everything else: deny by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

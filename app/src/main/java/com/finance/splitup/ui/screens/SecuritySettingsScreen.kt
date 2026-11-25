@@ -20,6 +20,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.finance.splitup.data.PaymentNotificationListenerService
+import com.finance.splitup.ui.components.DisclosureType
+import com.finance.splitup.ui.components.ProminentDisclosureDialog
 import com.finance.splitup.viewmodel.FinanceViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,6 +42,7 @@ fun SecuritySettingsScreen(
     var confirmPinInput by remember { mutableStateOf("") }
     var pinError by remember { mutableStateOf<String?>(null) }
     var pendingBiometricEnable by remember { mutableStateOf(false) }
+    var showNotificationDisclosure by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -206,11 +209,10 @@ fun SecuritySettingsScreen(
 
                     Button(
                         onClick = {
-                            try {
-                                context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                            } catch (_: Exception) {
-                                Toast.makeText(context, "Unable to open Notification Access settings", Toast.LENGTH_SHORT).show()
-                            }
+                            // Prominent disclosure with explicit consent must be shown
+                            // BEFORE the user is sent to grant Notification Listener
+                            // access (Google Play policy requirement).
+                            showNotificationDisclosure = true
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp)
@@ -220,6 +222,21 @@ fun SecuritySettingsScreen(
                 }
             }
         }
+    }
+
+    if (showNotificationDisclosure) {
+        ProminentDisclosureDialog(
+            type = DisclosureType.NotificationAccess,
+            onConfirm = {
+                showNotificationDisclosure = false
+                try {
+                    context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                } catch (_: Exception) {
+                    Toast.makeText(context, "Unable to open Notification Access settings", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onDismiss = { showNotificationDisclosure = false }
+        )
     }
 
     if (showPinDialog) {

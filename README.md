@@ -5,17 +5,20 @@
 [![Android](https://img.shields.io/badge/Platform-Android-3DDC84?style=flat&logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7f52ff?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-UI-4285F4?style=flat&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Version](https://img.shields.io/badge/Version-1.3-blue.svg)](https://github.com/sreejith19931/SplitUp/releases)
+[![Version](https://img.shields.io/badge/Version-1.4--alpha-blue.svg)](https://github.com/sreejith19931/SplitUp/releases)
 [![Website](https://img.shields.io/badge/Website-splitupfin.vercel.app-000000?style=flat&logo=vercel)](https://splitupfin.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## ⚡ What's New in v1.3
+## ⚡ What's New in v1.4 (Alpha)
 
-- **Spending Insights & Trends:** Added `InsightsScreen` with monthly overview and category breakdown.
-- **App-Wide UI Polish:** Pulsing loading animation, celebratory settlement dialog, and Navigation 3 transitions.
-- **Universal App Links & Vercel Domain:** Upgraded to `splitupfin.vercel.app` with Android App Links verification.
+- **Actionable Push Notifications:** Inline Approve/Decline actions, 4 dedicated notification channels, and deep-link routing straight to target screens.
+- **Group Governance & Owner Approvals:** Creator-only approval workflow for unowned group expense edits and deletions.
+- **Full-Screen Notifications Hub:** Replaced legacy notification sheets with a dedicated screen and smooth transitions.
+- **Smart Budgets & AI OCR Enhancements:** Category spending limits, mid-month pacing forecasts, and receipt scanning for discounts/coupons.
+- **Security & Offline Sync:** Configurable biometric lock timeout, real-time offline sync badge, and multi-user cloud persistence.
+- **Interactive Demo Tour:** Guided walkthrough across Dashboard, Quick Actions, Personal Expenses, Groups, and Settings.
 ---
 
 ## ✨ Key Features

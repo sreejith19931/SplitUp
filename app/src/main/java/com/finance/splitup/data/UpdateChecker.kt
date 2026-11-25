@@ -3,6 +3,7 @@ package com.finance.splitup.data
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import com.finance.splitup.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -12,7 +13,39 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object UpdateChecker {
-    suspend fun checkLatestRelease(onUpdateAvailable: (version: String, url: String) -> Unit, onUpToDate: () -> Unit = {}) {
+    private const val PLAY_STORE_PACKAGE = "com.android.vending"
+
+    /**
+     * True when the app was installed or is currently updated by Google Play.
+     * GitHub-release self-updates must never run for Play-distributed installs
+     * (Google Play policy: apps may not alter or replace themselves outside Play).
+     */
+    fun isInstalledFromPlayStore(context: Context): Boolean {
+        return try {
+            val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                context.packageManager.getInstallSourceInfo(context.packageName).installingPackageName
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getInstallerPackageName(context.packageName)
+            }
+            installer == PLAY_STORE_PACKAGE
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun checkLatestRelease(
+        context: Context,
+        onUpdateAvailable: (version: String, url: String) -> Unit,
+        onUpToDate: () -> Unit = {}
+    ) {
+        // Never self-update a Play Store install; point users at the Play listing instead.
+        if (isInstalledFromPlayStore(context)) {
+            withContext(Dispatchers.Main) {
+                onUpdateAvailable("play", "https://play.google.com/store/apps/details?id=${context.packageName}")
+            }
+            return
+        }
         withContext(Dispatchers.IO) {
             try {
                 val url = URL("https://api.github.com/repos/sreejith19931/SplitUp/releases/latest")

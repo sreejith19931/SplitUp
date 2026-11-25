@@ -6,8 +6,16 @@
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="splitup_prefs.xml" />
+        <exclude domain="sharedpref" path="splitup_sync_prefs.xml" />
+        <exclude domain="database" path="splitup_database" />
+        <exclude domain="database" path="splitup_database-wal" />
+        <exclude domain="database" path="splitup_database-shm" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="splitup_prefs.xml" />
+        <exclude domain="sharedpref" path="splitup_sync_prefs.xml" />
+        <exclude domain="database" path="splitup_database" />
+        <exclude domain="database" path="splitup_database-wal" />
+        <exclude domain="database" path="splitup_database-shm" />
     </device-transfer>
 </data-extraction-rules>

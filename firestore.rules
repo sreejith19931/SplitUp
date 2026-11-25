@@ -1,33 +1,80 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
-    // Helper function to check if a group is deleted
-    function isGroupDeleted(groupId) {
-      return exists(/databases/$(database)/documents/deleted_groups/$(groupId));
+  match /databases/$(database)/documents {
+
+    // ---------- Helper functions ----------
+
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // User profiles (allow authenticated users to read emails for contact matching)
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // memberEmails values are stored lowercase + trimmed by the client.
+    function userEmail() {
+      return isSignedIn() && request.auth.token.email != null
+        ? request.auth.token.email.lower()
+        : '';
+    }
+
+    // Membership check against a group document map (resource.data or request.resource.data).
+    // Guards with 'in' so missing memberUids/memberEmails fields fail safely instead of erroring.
+    function isMemberIn(d) {
+      return isSignedIn() && (
+        ('memberUids' in d && uid() in d.memberUids) ||
+        (userEmail() != '' && 'memberEmails' in d && userEmail() in d.memberEmails)
+      );
+    }
+
+    // Membership check against a group document that is not in scope of this rule
+    // (e.g. subcollection documents). Fails closed when the group doc doesn't exist.
+    function isGroupMember(groupId) {
+      return isSignedIn() && isMemberIn(get(/databases/$(database)/documents/groups/$(groupId)).data);
+    }
+
+    // ---------- User profiles & private data ----------
+
+    // Profiles are readable by any signed-in user for contact matching / Find Friends.
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && uid() == userId;
     }
-    // User private data subcollections (prevent writing groups if deleted via tombstones)
-    match /users/{userId}/groups/{groupId} {
-      allow read, delete: if request.auth != null && request.auth.uid == userId;
-      allow create, update: if request.auth != null && request.auth.uid == userId && !isGroupDeleted(groupId);
-    }
+
+    // All private subcollections (expenses, incomes, budgets, recurring_expenses,
+    // groups, groups/{id}/expenses copies, etc.) are strictly owner-only.
     match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isSignedIn() && uid() == userId;
     }
-    // Shared groups (accessible by authenticated members, blocked if deleted)
+
+    // ---------- Shared groups ----------
+
     match /groups/{groupId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null && !isGroupDeleted(groupId);
-      allow delete: if request.auth != null;
+      // Only members (by uid or verified lowercase email) may read.
+      allow read: if isMemberIn(resource.data);
+      // Creator must include themselves as a member of the new group.
+      allow create: if isMemberIn(request.resource.data);
+      // Updates must come from an existing member (checked on the pre-write state,
+      // so members can also remove themselves from the member list).
+      allow update: if isMemberIn(resource.data) || isMemberIn(request.resource.data);
+      allow delete: if isMemberIn(resource.data);
+
+      // Group expense subcollection: same membership gate via the parent group.
+      match /expenses/{expenseId} {
+        allow read, write: if isGroupMember(groupId);
+      }
     }
+
+    // ---------- Deleted-group tombstones ----------
+
     match /deleted_groups/{groupId} {
-      allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null;
+      allow read: if isSignedIn();
+      // Only a current member of the group may tombstone it (fails closed if the
+      // group doc is already gone). Prevents arbitrary tombstone spam.
+      allow create: if isGroupMember(groupId);
+      // Only the user recorded as the deleter may alter or remove a tombstone.
+      allow update, delete: if isSignedIn() && 'deletedBy' in resource.data && resource.data.deletedBy == uid();
     }
   }
 }

@@ -7,4 +7,8 @@
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="splitup_prefs.xml" />
+    <exclude domain="sharedpref" path="splitup_sync_prefs.xml" />
+    <exclude domain="database" path="splitup_database" />
+    <exclude domain="database" path="splitup_database-wal" />
+    <exclude domain="database" path="splitup_database-shm" />
 </full-backup-content>

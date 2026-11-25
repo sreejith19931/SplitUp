@@ -83,6 +83,12 @@ android {
     }
 }
 
+ksp {
+    // Export Room schemas to app/schemas/ so migrations can be reviewed,
+    // diffed in VCS, and tested with MigrationTestHelper.
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 androidComponents {
     onVariants { variant ->
         variant.outputs.forEach { output ->

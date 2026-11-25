@@ -1,5 +1,6 @@
 package com.finance.splitup.data
 
+import android.content.Context
 import android.util.Log
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
@@ -21,12 +22,20 @@ data class ExchangeRatesResponse(
 )
 
 interface CurrencyApi {
-    @GET("latest")
-    suspend fun getLatestRates(@Query("from") from: String = "EUR"): ExchangeRatesResponse
+    @GET("v1/latest")
+    suspend fun getLatestRates(@Query("base") from: String = "EUR"): ExchangeRatesResponse
 }
 
 object CurrencyApiService {
     private const val TAG = "CurrencyApiService"
+
+    // Persisted-rate storage: keeps the freshest known FX rates across process
+    // restarts so balance/settlement math doesn't fall back to static defaults.
+    // Stored in the plain sync-prefs file (non-sensitive numeric data).
+    private const val FX_PREFS = "splitup_sync_prefs"
+    private const val FX_KEY_PREFIX = "fx_rate_"
+    private const val FX_UPDATED_KEY = "fx_rates_updated_at"
+    private val FX_CODES = listOf("USD", "GBP", "INR", "CAD", "AUD", "JPY", "CHF", "SGD", "AED", "CNY")
 
     private val _lastUpdatedTime = MutableStateFlow<Long>(System.currentTimeMillis())
     val lastUpdatedTime: StateFlow<Long> = _lastUpdatedTime.asStateFlow()
@@ -36,7 +45,7 @@ object CurrencyApiService {
         .build()
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl("https://api.frankfurter.app/")
+        .baseUrl("https://api.frankfurter.dev/")
         .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
 
@@ -62,6 +71,74 @@ object CurrencyApiService {
         }
     }
 
+    /** Loads the last persisted rate snapshot into [Currencies]. */
+    fun restorePersistedRates() {
+        val ctx = com.finance.splitup.SplitUpApplication.appContext ?: return
+        try {
+            val prefs = ctx.getSharedPreferences(FX_PREFS, Context.MODE_PRIVATE)
+            var restored = 0
+            for (code in FX_CODES) {
+                val value = prefs.getString(FX_KEY_PREFIX + code, null)?.toDoubleOrNull()
+                if (value != null && value > 0.0) {
+                    setRate(code, value)
+                    restored++
+                }
+            }
+            if (restored > 0) {
+                _lastUpdatedTime.value = prefs.getLong(FX_UPDATED_KEY, System.currentTimeMillis())
+                Log.d(TAG, "Restored $restored persisted FX rates from previous session")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to restore persisted FX rates", e)
+        }
+    }
+
+    private fun setRate(code: String, value: Double) {
+        when (code) {
+            "USD" -> Currencies.liveUsdRate = value
+            "GBP" -> Currencies.liveGbpRate = value
+            "INR" -> Currencies.liveInrRate = value
+            "CAD" -> Currencies.liveCadRate = value
+            "AUD" -> Currencies.liveAudRate = value
+            "JPY" -> Currencies.liveJpyRate = value
+            "CHF" -> Currencies.liveChfRate = value
+            "SGD" -> Currencies.liveSgdRate = value
+            "AED" -> Currencies.liveAedRate = value
+            "CNY" -> Currencies.liveCnyRate = value
+        }
+    }
+
+    private fun persistRates() {
+        val ctx = com.finance.splitup.SplitUpApplication.appContext ?: return
+        try {
+            val prefs = ctx.getSharedPreferences(FX_PREFS, Context.MODE_PRIVATE).edit()
+            prefs.putLong(FX_UPDATED_KEY, System.currentTimeMillis())
+            for (code in FX_CODES) {
+                val value = setRateGetter(code) ?: continue
+                if (value > 0.0) prefs.putString(FX_KEY_PREFIX + code, value.toString())
+            }
+            prefs.apply()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to persist FX rates", e)
+        }
+    }
+
+    private fun setRateGetter(code: String): Double? {
+        return when (code) {
+            "USD" -> Currencies.liveUsdRate
+            "GBP" -> Currencies.liveGbpRate
+            "INR" -> Currencies.liveInrRate
+            "CAD" -> Currencies.liveCadRate
+            "AUD" -> Currencies.liveAudRate
+            "JPY" -> Currencies.liveJpyRate
+            "CHF" -> Currencies.liveChfRate
+            "SGD" -> Currencies.liveSgdRate
+            "AED" -> Currencies.liveAedRate
+            "CNY" -> Currencies.liveCnyRate
+            else -> null
+        }
+    }
+
     private fun applyRates(rates: Map<String, Double>) {
         rates["USD"]?.let { if (it > 0) Currencies.liveUsdRate = it }
         rates["GBP"]?.let { if (it > 0) Currencies.liveGbpRate = it }
@@ -75,6 +152,7 @@ object CurrencyApiService {
         if (Currencies.liveUsdRate > 0) {
             Currencies.liveAedRate = Currencies.liveUsdRate * 3.6725
         }
+        persistRates()
         _lastUpdatedTime.value = System.currentTimeMillis()
     }
 

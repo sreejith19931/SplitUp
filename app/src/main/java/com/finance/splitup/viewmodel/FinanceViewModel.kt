@@ -670,6 +670,10 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             val handleSnapshotUpdates = {
                 viewModelScope.launch {
                     try {
+                        // Cap the seen-id sets so long sessions don't grow them unbounded.
+                        if (notifiedGroupIds.size > 1000) notifiedGroupIds.clear()
+                        if (notifiedExpenseIds.size > 1000) notifiedExpenseIds.clear()
+
                         val snap1 = lastSnapshot1
                         val snap2 = lastSnapshot2
                         val context = getApplication<Application>()

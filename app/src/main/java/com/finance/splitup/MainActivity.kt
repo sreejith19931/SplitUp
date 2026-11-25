@@ -982,6 +982,51 @@ fun SplitUpApp(
       }
     }
 
+    val onTourBack: () -> Unit = {
+        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+        when (currentTourStep) {
+            1 -> {
+                currentTourStep = 0
+                prefs.edit().putInt("demo_tour_step", 0).apply()
+            }
+            2 -> {
+                currentTourStep = 1
+                prefs.edit().putInt("demo_tour_step", 1).apply()
+                backStack.clear()
+                backStack.add(DashboardRoute)
+            }
+            3 -> {
+                currentTourStep = 2
+                prefs.edit().putInt("demo_tour_step", 2).apply()
+                backStack.clear()
+                backStack.add(DashboardRoute)
+                backStack.add(PersonalExpensesRoute(null))
+            }
+            4 -> {
+                currentTourStep = 3
+                prefs.edit().putInt("demo_tour_step", 3).apply()
+                backStack.clear()
+                backStack.add(DashboardRoute)
+                backStack.add(GroupsRoute)
+            }
+        }
+    }
+
+    val onTourSkip: () -> Unit = {
+        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+        prefs.edit().putBoolean("has_seen_demo_tour", true).remove("demo_tour_step").apply()
+        showDemoTour = false
+        backStack.clear()
+        backStack.add(DashboardRoute)
+    }
+
+    // The tour owns the system back button: on step 0 back dismisses the tour,
+    // otherwise it rewinds one step instead of popping the nav stack out from
+    // under the spotlight.
+    BackHandler(enabled = showDemoTour) {
+        if (currentTourStep > 0) onTourBack() else onTourSkip()
+    }
+
     if (showDemoTour) {
         com.finance.splitup.ui.components.DemoTourOverlay(
             currentStep = currentTourStep,
@@ -1022,42 +1067,8 @@ fun SplitUpApp(
                     }
                 }
             },
-            onBack = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                when (currentTourStep) {
-                    1 -> {
-                        currentTourStep = 0
-                        prefs.edit().putInt("demo_tour_step", 0).apply()
-                    }
-                    2 -> {
-                        currentTourStep = 1
-                        prefs.edit().putInt("demo_tour_step", 1).apply()
-                        backStack.clear()
-                        backStack.add(DashboardRoute)
-                    }
-                    3 -> {
-                        currentTourStep = 2
-                        prefs.edit().putInt("demo_tour_step", 2).apply()
-                        backStack.clear()
-                        backStack.add(DashboardRoute)
-                        backStack.add(PersonalExpensesRoute(null))
-                    }
-                    4 -> {
-                        currentTourStep = 3
-                        prefs.edit().putInt("demo_tour_step", 3).apply()
-                        backStack.clear()
-                        backStack.add(DashboardRoute)
-                        backStack.add(GroupsRoute)
-                    }
-                }
-            },
-            onSkip = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putBoolean("has_seen_demo_tour", true).remove("demo_tour_step").apply()
-                showDemoTour = false
-                backStack.clear()
-                backStack.add(DashboardRoute)
-            }
+            onBack = onTourBack,
+            onSkip = onTourSkip
         )
     }
 }

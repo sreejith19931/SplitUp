@@ -3,6 +3,7 @@ package com.finance.splitup.ui.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,10 +25,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 enum class TourHighlightArea {
     TOP_SUMMARY_CARD,
@@ -151,9 +156,7 @@ fun DemoTourOverlay(
     val density = LocalDensity.current
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clickable(enabled = false) {}
+        modifier = Modifier.fillMaxSize()
     ) {
         val measuredBounds = TourManager.getBounds(step.highlightArea)
 
@@ -161,6 +164,12 @@ fun DemoTourOverlay(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
+                // Consume every tap on the scrim so the dimmed app content and the
+                // bottom navigation bar stay inert while the tour is active.
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {}
                 .graphicsLayer { alpha = 0.99f }
         ) {
             drawRect(color = Color.Black.copy(alpha = 0.72f))
@@ -210,16 +219,22 @@ fun DemoTourOverlay(
             }
         }
 
-        // 2. Dynamic Badge Indicator Label positioned above measured target
+        // 2. Dynamic Badge Indicator Label centered above measured target
+        var badgeWidthPx by remember { mutableIntStateOf(0) }
         if (measuredBounds != null) {
             with(density) {
-                val badgeTop = (measuredBounds.top - 42.dp.toPx()).coerceAtLeast(16.dp.toPx())
+                val badgeTopPx = (measuredBounds.top - 42.dp.toPx()).coerceAtLeast(16.dp.toPx())
+                val screenWidthPx = LocalConfiguration.current.screenWidthDp.dp.toPx()
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = primaryColor,
                     modifier = Modifier
-                        .padding(start = 24.dp)
-                        .offset(y = badgeTop.toDp())
+                        .onSizeChanged { badgeWidthPx = it.width }
+                        .offset {
+                            val x = (measuredBounds.center.x - badgeWidthPx / 2f)
+                                .coerceIn(16.dp.toPx(), (screenWidthPx - badgeWidthPx - 16.dp.toPx()).coerceAtLeast(16.dp.toPx()))
+                            IntOffset(x.roundToInt(), badgeTopPx.roundToInt())
+                        }
                 ) {
                     Text(
                         text = step.badgeLabel,

@@ -1,4 +1,0 @@
-- `[x]` Add `NotificationsRoute` to AppScreens.kt
-- `[x]` Implement professional `NotificationsScreen.kt`
-- `[x]` Wire navigation in MainActivity.kt and DashboardScreen.kt
-- `[x]` Build and verify with gradle build (`app:assembleDebug`)

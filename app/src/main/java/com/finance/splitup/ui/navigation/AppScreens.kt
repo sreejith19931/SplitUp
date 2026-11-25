@@ -42,7 +42,8 @@ data class AddExpenseRoute(
     val initialAmount: Double? = null,
     val initialTitle: String? = null,
     val initialCategory: String? = null,
-    val initialIsIncome: Boolean = false
+    val initialIsIncome: Boolean = false,
+    val initialCurrency: String? = null
 ) : NavKey
 
 @Serializable

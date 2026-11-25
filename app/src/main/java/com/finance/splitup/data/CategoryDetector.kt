@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 data class CategoryResult(
     val category: String,
+    val subCategory: String? = null,
     val secondaryCategory: String? = null,
     val confidence: Float = 0f,
     val isLearned: Boolean = false,
@@ -45,6 +46,10 @@ object CategoryDetector {
             }
             isInitialized = true
         }
+    }
+
+    fun clearLearnedMappingsForTesting() {
+        learnedUserMappings.clear()
     }
 
     fun learnCategory(title: String, category: String, context: Context? = null) {
@@ -119,6 +124,8 @@ object CategoryDetector {
         learnedUserMappings[normalizedInput]?.let { learnedCat ->
             return CategoryResult(
                 category = learnedCat,
+                subCategory = inferSubCategory(learnedCat, normalizedInput),
+                secondaryCategory = null,
                 confidence = 1.0f,
                 isLearned = true,
                 matchedKeyword = normalizedInput
@@ -129,6 +136,8 @@ object CategoryDetector {
             if (learnedPhrase.length >= 3 && normalizedInput.contains(learnedPhrase)) {
                 return CategoryResult(
                     category = cat,
+                    subCategory = inferSubCategory(cat, normalizedInput),
+                    secondaryCategory = null,
                     confidence = 0.95f,
                     isLearned = true,
                     matchedKeyword = learnedPhrase
@@ -184,8 +193,7 @@ object CategoryDetector {
                             scores[category] = (scores[category] ?: 0f) + 12f
                             if (!matchedKeywords.containsKey(category)) matchedKeywords[category] = keyword
                         }
-                        token.length >= 5 && keyword.length >= 5 && levenshteinDistance(token, keyword) <= 2 -> {
-                            // Fuzzy matching for typos (e.g., "starbux" vs "starbucks")
+                        token.length >= 6 && keyword.length >= 6 && levenshteinDistance(token, keyword) <= 1 -> {
                             scores[category] = (scores[category] ?: 0f) + 10f
                             if (!matchedKeywords.containsKey(category)) matchedKeywords[category] = keyword
                         }
@@ -199,10 +207,9 @@ object CategoryDetector {
             val calendar = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
             val hour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
             if (hour in 6..10) {
-                // Morning hours -> slight boost to Food (coffee/breakfast)
                 scores[ExpenseCategories.FOOD] = (scores[ExpenseCategories.FOOD] ?: 0f) + 4f
+                scores[ExpenseCategories.GROCERIES] = (scores[ExpenseCategories.GROCERIES] ?: 0f) + 2f
             } else if (hour in 18..22) {
-                // Evening hours -> slight boost to Food (dinner/dining) or Entertainment
                 scores[ExpenseCategories.FOOD] = (scores[ExpenseCategories.FOOD] ?: 0f) + 3f
                 scores[ExpenseCategories.ENTERTAINMENT] = (scores[ExpenseCategories.ENTERTAINMENT] ?: 0f) + 3f
             }
@@ -224,18 +231,19 @@ object CategoryDetector {
         val primaryScore = primaryEntry.value
         val primaryKeyword = matchedKeywords[primaryCat]
 
-        var secondaryCat: String? = null
-        if (sortedCategories.size > 1) {
+        val secondaryCat: String? = if (sortedCategories.size > 1) {
             val runnerUp = sortedCategories[1]
             if (runnerUp.value >= 15f && runnerUp.value >= primaryScore * 0.4f && runnerUp.key != primaryCat) {
-                secondaryCat = runnerUp.key
-            }
-        }
+                runnerUp.key
+            } else null
+        } else null
 
         val confidence = (primaryScore / 50f).coerceIn(0.1f, 0.99f)
+        val subCategory = inferSubCategory(primaryCat, normalizedInput)
 
         return CategoryResult(
             category = primaryCat,
+            subCategory = subCategory,
             secondaryCategory = secondaryCat,
             confidence = confidence,
             isLearned = false,
@@ -249,6 +257,17 @@ object CategoryDetector {
 
     fun detectCategoryFromTitle(title: String, context: Context? = null): String {
         return detectCategory(title, context).category
+    }
+
+    private fun inferSubCategory(category: String, text: String): String? {
+        val subList = ExpenseCategories.subCategoriesMap[category] ?: return null
+        for (sub in subList) {
+            val subKeywords = sub.lowercase(Locale.ROOT).split(Regex("[\\s&/]+"))
+            if (subKeywords.any { it.length > 2 && text.contains(it) }) {
+                return sub
+            }
+        }
+        return subList.firstOrNull()
     }
 
     private fun levenshteinDistance(s1: String, s2: String): Int {
@@ -279,7 +298,7 @@ object CategoryDetector {
     }
 
     private fun tokenize(text: String): List<String> {
-        return normalizeTitle(text).split(" ").filter { it.isNotBlank() }
+        return normalizeTitle(text).split(" ").filter { it.isNotBlank() && it.length > 1 }
     }
 
     private val STOP_WORDS = setOf(
@@ -287,19 +306,25 @@ object CategoryDetector {
         "my", "our", "your", "his", "her", "their", "is", "was", "be", "been", "paid", "spent",
         "buy", "bought", "got", "get", "cost", "fee", "total", "payment", "amount", "charge",
         "card", "rs", "usd", "eur", "gbp", "inr", "thanks", "thank", "you", "item", "purchase",
-        "order", "no", "id", "ref", "txn", "receipt"
+        "order", "no", "id", "ref", "txn", "receipt", "s", "t", "d", "m", "re", "ll", "ve"
     )
 
     private val PHRASE_DICTIONARY = mapOf(
         ExpenseCategories.FOOD to listOf(
-            "whole foods", "trader joe", "trader joes", "taco bell", "burger king", "dairy queen",
+            "taco bell", "burger king", "dairy queen",
             "panda express", "jack in the box", "in n out", "chick fil a", "krispy kreme",
             "costa coffee", "peet s coffee", "peets coffee", "dunkin donuts", "dunkin donut",
             "domino s pizza", "dominos pizza", "pizza hut", "papa johns", "papa john", "five guys",
             "shake shack", "uber eats", "ubereats", "door dash", "doordash", "grub hub", "grubhub",
             "just eat", "justeat", "food panda", "foodpanda", "swiggy", "zomato", "deliveroo",
             "instacart", "gopuff", "blinkit", "zepto", "food truck", "ice cream", "boba tea",
-            "bubble tea", "hot pot", "bbq grill", "coffee shop", "grocery store", "super market"
+            "bubble tea", "hot pot", "bbq grill", "coffee shop"
+        ),
+        ExpenseCategories.GROCERIES to listOf(
+            "trader joe", "trader joes", "whole foods", "grocery store", "super market", "farmers market", "organic market", "produce stand",
+            "costco wholesale", "sam s club", "sams club", "aldi supermarket", "lidl grocery",
+            "kroger market", "safeway store", "publix supermarket", "heb grocery", "wegmans food",
+            "sprouts farmers", "fresh market", "whole foods market"
         ),
         ExpenseCategories.TRANSPORT to listOf(
             "uber ride", "lyft ride", "gas station", "petrol pump", "car wash", "parking meter",
@@ -327,6 +352,18 @@ object CategoryDetector {
             "nintendo eshop", "youtube premium", "spotify premium", "apple music", "prime video",
             "disney plus", "hbo max", "golf course", "bowling alley", "night club", "comedy club"
         ),
+        ExpenseCategories.HEALTH to listOf(
+            "cvs pharmacy", "walgreens pharmacy", "rite aid", "hospital visit", "doctor appointment",
+            "dental clinic", "eye doctor", "optometrist clinic", "urgent care", "physical therapy"
+        ),
+        ExpenseCategories.TRAVEL to listOf(
+            "flight booking", "hotel booking", "airbnb stay", "booking com", "expedia travel",
+            "agoda booking", "tripadvisor tour", "car rental", "cruise booking"
+        ),
+        ExpenseCategories.EDUCATION to listOf(
+            "tuition fee", "school tuition", "university fee", "college tuition", "online course",
+            "udemy course", "coursera subscription", "textbook purchase"
+        ),
         ExpenseCategories.INCOME to listOf(
             "monthly salary", "pay day", "payday", "pay check", "paycheck", "direct deposit",
             "interest income", "tax refund", "cash back", "cashback", "side hustle", "freelance work"
@@ -335,19 +372,21 @@ object CategoryDetector {
 
     private val TOKEN_DICTIONARY = mapOf(
         ExpenseCategories.FOOD to listOf(
-            "mcdonalds", "mcdonald", "starbucks", "subway", "kfc", "dominos", "chipotle", "walmart",
-            "target", "grocery", "groceries", "supermarket", "bakery", "butcher", "deli", "bistro",
-            "restaurant", "cafe", "coffee", "latte", "espresso", "cappuccino", "dinner", "lunch",
-            "breakfast", "brunch", "snack", "snacks", "pizza", "burger", "burgers", "sushi", "ramen",
-            "tacos", "taco", "burrito", "noodle", "noodles", "pasta", "buffet", "bar", "pub",
-            "brewery", "winery", "beer", "wine", "cocktail", "cocktails", "drinks", "liquor",
-            "food", "eats", "dining", "eatery", "steakhouse", "seafood", "donut", "donuts",
-            "pastry", "bagel", "boba", "swiggy", "zomato", "doordash", "deliveroo", "instacart",
-            "tesco", "aldi", "lidl", "carrefour", "costco", "woolworths", "coles", "sainsbury",
-            "asda", "waitrose", "publix", "heb", "meijer", "sprouts", "wegmans",
-            // Hindi Transliterated (Hinglish) & German
-            "khana", "chai", "nashta", "dhaba", "sabzi", "doodh", "pani",
-            "essen", "lebensmittel", "supermarkt", "kaffee", "bäckerei", "mittagessen", "abendessen", "frühstück", "bier", "wein"
+            "mcdonalds", "mcdonald", "starbucks", "subway", "kfc", "dominos", "chipotle",
+            "bakery", "butcher", "deli", "bistro", "restaurant", "cafe", "coffee", "latte",
+            "espresso", "cappuccino", "dinner", "lunch", "breakfast", "brunch", "snack", "snacks",
+            "pizza", "burger", "burgers", "sushi", "ramen", "tacos", "taco", "burrito", "noodle",
+            "noodles", "pasta", "buffet", "bar", "pub", "brewery", "winery", "beer", "wine",
+            "cocktail", "cocktails", "drinks", "liquor", "food", "eats", "dining", "eatery",
+            "steakhouse", "seafood", "donut", "donuts", "pastry", "bagel", "boba", "swiggy",
+            "zomato", "doordash", "deliveroo", "khana", "chai", "nashta", "dhaba",
+            "essen", "kaffee", "bäckerei", "mittagessen", "abendessen", "frühstück", "bier", "wein"
+        ),
+        ExpenseCategories.GROCERIES to listOf(
+            "grocery", "groceries", "supermarket", "walmart", "costco", "aldi", "lidl", "kroger",
+            "safeway", "publix", "wegmans", "sprouts", "wholefoods", "traderjoes", "tesco", "carrefour",
+            "woolworths", "coles", "sainsbury", "asda", "waitrose", "heb", "meijer", "produce",
+            "sabzi", "doodh", "lebensmittel", "supermarkt"
         ),
         ExpenseCategories.TRANSPORT to listOf(
             "uber", "lyft", "grab", "bolt", "didi", "ola", "waymo", "cab", "cabs", "taxi", "taxis",
@@ -356,9 +395,7 @@ object CategoryDetector {
             "fuel", "diesel", "parking", "parkometer", "toll", "tolls", "turnpike", "flight",
             "flights", "airline", "airfare", "baggage", "ryanair", "easyjet", "delta", "united",
             "lufthansa", "emirates", "southwest", "jetblue", "spirit", "carwash", "auto", "vehicle",
-            "commute", "hertz", "avis", "enterprise", "sixt",
-            // Hindi Transliterated (Hinglish) & German
-            "safhar", "yatra",
+            "commute", "hertz", "avis", "enterprise", "sixt", "safhar", "yatra",
             "bahn", "zug", "benzin", "parken", "flug", "fahrkarte"
         ),
         ExpenseCategories.SHOPPING to listOf(
@@ -368,9 +405,7 @@ object CategoryDetector {
             "gap", "oldnavy", "lululemon", "sephora", "ulta", "ikea", "wayfair", "clothes",
             "clothing", "shirt", "shirts", "pants", "shoes", "sneakers", "dress", "jacket", "coat",
             "fashion", "apparel", "boutique", "mall", "shopping", "store", "shop", "merchandise",
-            "jewelry", "watch", "furniture", "decor", "hardware", "bestbuy",
-            // Hindi Transliterated (Hinglish) & German
-            "kapde", "joota", "dukaan",
+            "jewelry", "watch", "furniture", "decor", "hardware", "bestbuy", "kapde", "joota", "dukaan",
             "kleidung", "schuhe", "einkaufen", "geschäft"
         ),
         ExpenseCategories.BILLS to listOf(
@@ -381,9 +416,7 @@ object CategoryDetector {
             "progressive", "allstate", "tuition", "tax", "taxes", "loan", "debt",
             "interest", "bill", "bills", "maintenance", "repair", "repairs", "laundry",
             "laundromat", "cleaner", "cleaners", "plumber", "electrician", "storage",
-            // Hindi Transliterated (Hinglish) & German
-            "bijli", "kiraya", "recharge",
-            "miete", "strom", "wasser", "versicherung", "rechnung"
+            "bijli", "kiraya", "recharge", "miete", "strom", "wasser", "versicherung", "rechnung"
         ),
         ExpenseCategories.ENTERTAINMENT to listOf(
             "netflix", "spotify", "hulu", "disney", "hbo", "max", "youtube", "twitch", "audible",
@@ -392,16 +425,26 @@ object CategoryDetector {
             "movies", "theater", "theatre", "concert", "ticket", "tickets", "ticketmaster",
             "eventbrite", "event", "show", "party", "club", "nightclub", "bowling", "golf", "ski",
             "resort", "museum", "gallery", "zoo", "aquarium", "gym", "fitness", "equinox", "ymca",
-            "yoga", "pilates", "crossfit", "festival", "stadium",
-            // German
-            "kino", "film", "konzert", "fitnessstudio", "spiel"
+            "yoga", "pilates", "crossfit", "festival", "stadium", "kino", "film", "konzert", "spiel"
+        ),
+        ExpenseCategories.HEALTH to listOf(
+            "pharmacy", "medicine", "doctor", "hospital", "clinic", "dental", "dentist", "optometrist",
+            "prescription", "cvs", "walgreens", "riteaid", "healthcare", "therapy", "vitamin", "vitamins",
+            "apotheke", "arzt", "krankenhaus"
+        ),
+        ExpenseCategories.TRAVEL to listOf(
+            "hotel", "airbnb", "hostel", "resort", "booking", "expedia", "agoda", "tripadvisor",
+            "vacation", "luggage", "passport", "visa", "flughafen", "übernachtung"
+        ),
+        ExpenseCategories.EDUCATION to listOf(
+            "tuition", "school", "university", "college", "course", "courses", "udemy", "coursera",
+            "edx", "book", "books", "textbook", "textbooks", "supplies", "stationery", "exam",
+            "schüle", "universität", "buch"
         ),
         ExpenseCategories.INCOME to listOf(
             "salary", "payroll", "paycheck", "stipend", "dividend", "dividends", "yield", "income",
             "refund", "cashback", "bonus", "commission", "grant", "scholarship", "pension",
-            "allowance", "deposit", "freelance", "reimbursement",
-            // Hindi Transliterated (Hinglish) & German
-            "paisa", "kamai", "tankha",
+            "allowance", "deposit", "freelance", "reimbursement", "paisa", "kamai", "tankha",
             "gehalt", "lohn", "einkommen", "rückerstattung"
         )
     )

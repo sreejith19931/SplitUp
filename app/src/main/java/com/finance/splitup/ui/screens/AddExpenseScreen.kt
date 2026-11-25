@@ -37,6 +37,7 @@ fun AddExpenseScreen(
     initialTitle: String? = null,
     initialCategory: String? = null,
     initialIsIncome: Boolean = false,
+    initialCurrency: String? = null,
     viewModel: FinanceViewModel,
     onBack: () -> Unit,
     onNavigateToScanner: () -> Unit = {}
@@ -47,7 +48,7 @@ fun AddExpenseScreen(
     var title by rememberSaveable { mutableStateOf(existingExpense?.title ?: initialTitle ?: viewModel.currentExtractedReceipt?.merchantName ?: "") }
     var amount by rememberSaveable { mutableStateOf(existingExpense?.amount?.let { formatInputNumber(it) } ?: initialAmount?.let { formatInputNumber(it) } ?: viewModel.currentExtractedReceipt?.totalAmount?.let { formatInputNumber(it) } ?: "") }
     var selectedCategory by rememberSaveable { mutableStateOf(existingExpense?.category ?: initialCategory ?: ExpenseCategories.FOOD) }
-    var selectedCurrency by rememberSaveable { mutableStateOf(existingExpense?.currency ?: viewModel.currentExtractedReceipt?.currency ?: Currencies.EUR) }
+    var selectedCurrency by rememberSaveable { mutableStateOf(existingExpense?.currency ?: initialCurrency ?: viewModel.currentExtractedReceipt?.currency ?: viewModel.defaultCurrency) }
     val currencySymbol = remember(selectedCurrency) { Currencies.getSymbol(selectedCurrency) }
     var description by rememberSaveable { mutableStateOf(existingExpense?.description ?: "") }
     var paidBy by rememberSaveable { mutableStateOf(existingExpense?.paidBy ?: "You") }
@@ -60,6 +61,7 @@ fun AddExpenseScreen(
 
     var isCategoryManuallySelected by rememberSaveable { mutableStateOf(existingExpense != null || initialCategory != null) }
     var isIncome by rememberSaveable { mutableStateOf(initialIsIncome) }
+    var selectedSubCategory by rememberSaveable { mutableStateOf("") }
     var isRecurring by rememberSaveable { mutableStateOf(false) }
     var recurringFrequency by rememberSaveable { mutableStateOf("Monthly") }
 
@@ -174,7 +176,8 @@ fun AddExpenseScreen(
                 onValueChange = {
                     title = it
                     errorMessage = null
-                    if (it.isNotBlank() && !isCategoryManuallySelected && !isIncome) {
+                    isCategoryManuallySelected = false
+                    if (it.isNotBlank() && !isIncome) {
                         selectedCategory = detectCategoryFromTitle(it)
                     }
                 },
@@ -203,9 +206,8 @@ fun AddExpenseScreen(
                         SuggestionChip(
                             onClick = {
                                 title = suggestion
-                                if (!isCategoryManuallySelected && !isIncome) {
-                                    selectedCategory = detectCategoryFromTitle(suggestion)
-                                } else {
+                                isCategoryManuallySelected = false
+                                if (!isIncome) {
                                     selectedCategory = detectCategoryFromTitle(suggestion)
                                 }
                             },
@@ -334,7 +336,7 @@ fun AddExpenseScreen(
                     onExpandedChange = { expandedCategoryDropdown = it }
                 ) {
                     OutlinedTextField(
-                        value = selectedCategory,
+                        value = ExpenseCategories.getDisplayName(selectedCategory),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Category") },
@@ -350,7 +352,7 @@ fun AddExpenseScreen(
                     ) {
                         ExpenseCategories.expenseCategories.forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(category) },
+                                text = { Text(ExpenseCategories.getDisplayName(category)) },
                                 onClick = {
                                     selectedCategory = category
                                     isCategoryManuallySelected = true
@@ -364,17 +366,47 @@ fun AddExpenseScreen(
                     }
                 }
 
+                val subCategories = remember(selectedCategory) {
+                    ExpenseCategories.subCategoriesMap[selectedCategory] ?: emptyList()
+                }
+
+                LaunchedEffect(selectedCategory) {
+                    if (!subCategories.contains(selectedSubCategory)) {
+                        selectedSubCategory = ""
+                    }
+                }
+
+                if (subCategories.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("Sub-category", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(subCategories) { subCat ->
+                            FilterChip(
+                                selected = selectedSubCategory == subCat,
+                                onClick = {
+                                    selectedSubCategory = if (selectedSubCategory == subCat) "" else subCat
+                                },
+                                label = { Text(subCat, fontSize = 12.sp) }
+                            )
+                        }
+                    }
+                }
+
                 val currentCategorySpent = remember(expenses, selectedCategory, viewModel.defaultCurrency) {
                     expenses.filter { it.category == selectedCategory }
                         .sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
                 }
                 val categoryLimit = budgets[selectedCategory] ?: 0.0
                 val enteredAmt = amount.parseAmount()
-                val projectedSpent = currentCategorySpent + enteredAmt
+                val convertedEnteredAmt = Currencies.convert(enteredAmt, selectedCurrency, viewModel.defaultCurrency)
+                val projectedSpent = currentCategorySpent + convertedEnteredAmt
                 val isBudgetExceeded = categoryLimit > 0.0 && projectedSpent >= categoryLimit
                 val isBudgetWarning = categoryLimit > 0.0 && projectedSpent >= categoryLimit * 0.8 && !isBudgetExceeded
 
-                if (categoryLimit > 0.0 && (isBudgetExceeded || isBudgetWarning)) {
+                if (!isIncome && selectedCategory != ExpenseCategories.INCOME && categoryLimit > 0.0 && (isBudgetExceeded || isBudgetWarning)) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = if (isBudgetExceeded) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant,
@@ -629,13 +661,19 @@ fun AddExpenseScreen(
                             finalDate
                         }
 
+                        val finalDescription = if (selectedSubCategory.isNotBlank()) {
+                            "[$selectedSubCategory] ${description.trim()}".trim()
+                        } else {
+                            description
+                        }
+
                         if (isIncome) {
                             viewModel.addExpense(
                                 title = title,
                                 amount = amt,
                                 category = ExpenseCategories.INCOME,
                                 date = finalDate,
-                                description = description.ifBlank { "Income" },
+                                description = finalDescription.ifBlank { "Income" },
                                 paidBy = paidBy,
                                 currency = selectedCurrency,
                                 paymentMethod = selectedPaymentMethod
@@ -658,7 +696,7 @@ fun AddExpenseScreen(
                                     amount = amt,
                                     category = selectedCategory,
                                     date = finalDate,
-                                    description = description,
+                                    description = finalDescription,
                                     paidBy = paidBy,
                                     currency = selectedCurrency,
                                     paymentMethod = selectedPaymentMethod,
@@ -671,7 +709,7 @@ fun AddExpenseScreen(
                                     amount = amt,
                                     category = selectedCategory,
                                     date = finalDate,
-                                    description = description,
+                                    description = finalDescription,
                                     paidBy = paidBy,
                                     currency = selectedCurrency,
                                     paymentMethod = selectedPaymentMethod,
@@ -685,7 +723,7 @@ fun AddExpenseScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isFormValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,

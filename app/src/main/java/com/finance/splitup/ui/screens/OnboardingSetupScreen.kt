@@ -70,6 +70,7 @@ fun OnboardingSetupScreen(
         viewModel.updateBudget(ExpenseCategories.ENTERTAINMENT, entertainmentBudget.toDoubleOrNull() ?: 150.0)
         viewModel.updateUserProfile(upiVpa, paypalHandle, "", "")
         viewModel.toggleBiometricLock(enableBiometrics)
+        viewModel.setOnboardingCompleted(true)
 
         prefs.edit()
             .putBoolean("has_completed_onboarding_$currentUserId", true)
@@ -472,7 +473,7 @@ fun OnboardingSetupScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp),
+                        .heightIn(min = 54.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

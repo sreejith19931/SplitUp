@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,15 +17,17 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.finance.splitup.data.Currencies
+import com.finance.splitup.data.Expense
 import com.finance.splitup.data.ExpenseCategories
+import com.finance.splitup.data.SampleData
 import com.finance.splitup.ui.theme.*
 import com.finance.splitup.viewmodel.FinanceViewModel
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetScreen(
     viewModel: FinanceViewModel,
@@ -34,7 +35,25 @@ fun BudgetScreen(
 ) {
     val expenses by viewModel.expenses.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
-    val currencySymbol = Currencies.getSymbol(viewModel.defaultCurrency)
+    BudgetScreen(
+        expenses = expenses,
+        budgets = budgets,
+        defaultCurrency = viewModel.defaultCurrency,
+        onUpdateBudget = { category, newLimit -> viewModel.updateBudget(category, newLimit) },
+        onBack = onBack
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BudgetScreen(
+    expenses: List<Expense>,
+    budgets: Map<String, Double>,
+    defaultCurrency: String,
+    onUpdateBudget: (String, Double) -> Unit,
+    onBack: () -> Unit
+) {
+    val currencySymbol = Currencies.getSymbol(defaultCurrency)
 
     var editingCategory by remember { mutableStateOf<String?>(null) }
     var budgetInput by remember { mutableStateOf("") }
@@ -50,11 +69,11 @@ fun BudgetScreen(
         )
     }
 
-    val spendingByCategory = remember(expenses, viewModel.defaultCurrency) {
+    val spendingByCategory = remember(expenses, defaultCurrency) {
         expenses.filter { it.amount > 0 && it.category != ExpenseCategories.INCOME }
             .groupBy { it.category }
             .mapValues { entry ->
-                entry.value.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+                entry.value.sumOf { Currencies.convert(it.amount, it.currency, defaultCurrency) }
             }
     }
 
@@ -128,6 +147,7 @@ fun BudgetScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(
+                                modifier = Modifier.weight(1f),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
@@ -142,7 +162,7 @@ fun BudgetScreen(
                                     }
                                 }
                                 Column {
-                                    Text(category, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Text(ExpenseCategories.getDisplayName(category), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                     Text(
                                         "$currencySymbol${String.format(Locale.US, "%.2f", spent)} spent of $currencySymbol${String.format(Locale.US, "%.2f", limit)} limit",
                                         style = MaterialTheme.typography.bodySmall,
@@ -156,9 +176,10 @@ fun BudgetScreen(
                                     editingCategory = category
                                     budgetInput = limit.toString()
                                 },
-                                shape = RoundedCornerShape(10.dp)
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                             ) {
-                                Text("Edit Limit", fontSize = 12.sp)
+                                Text("Edit Limit", fontSize = 12.sp, maxLines = 1, softWrap = false)
                             }
                         }
 
@@ -174,7 +195,7 @@ fun BudgetScreen(
                         val cal = java.util.Calendar.getInstance()
                         val currentDay = cal.get(java.util.Calendar.DAY_OF_MONTH)
                         val maxDays = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
-                        val projectedSpent = if (currentDay > 0) (spent / currentDay) * maxDays else spent
+                        val projectedSpent = (spent / currentDay) * maxDays
                         val isProjectedExceeded = !isExceeded && limit > 0 && projectedSpent > limit && currentDay >= 3
 
                         if (isProjectedExceeded) {
@@ -217,7 +238,7 @@ fun BudgetScreen(
                 Button(
                     onClick = {
                         val newLimit = budgetInput.toDoubleOrNull() ?: 200.0
-                        viewModel.updateBudget(cat, newLimit)
+                        onUpdateBudget(cat, newLimit)
                         editingCategory = null
                     }
                 ) {
@@ -229,6 +250,20 @@ fun BudgetScreen(
                     Text("Cancel")
                 }
             }
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun BudgetScreenPreview() {
+    SplitUpTheme {
+        BudgetScreen(
+            expenses = SampleData.initialExpenses,
+            budgets = SampleData.initialBudgets,
+            defaultCurrency = Currencies.EUR,
+            onUpdateBudget = { _, _ -> },
+            onBack = {}
         )
     }
 }

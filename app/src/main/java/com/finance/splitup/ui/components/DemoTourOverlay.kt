@@ -1,6 +1,7 @@
 package com.finance.splitup.ui.components
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -11,81 +12,241 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 
-data class TourStepInfo(
+enum class TourHighlightArea {
+    TOP_SUMMARY_CARD,
+    BOTTOM_RIGHT_FAB,
+    TOP_SEARCH_FILTERS,
+    CENTER_GROUPS_LIST,
+    SETTINGS_PREFERENCES
+}
+
+object TourManager {
+    val boundsMap = mutableStateMapOf<TourHighlightArea, Rect>()
+
+    fun reportBounds(area: TourHighlightArea, rect: Rect) {
+        if (rect != Rect.Zero && rect.width > 0f && rect.height > 0f) {
+            boundsMap[area] = rect
+        }
+    }
+
+    fun getBounds(area: TourHighlightArea): Rect? {
+        return boundsMap[area]
+    }
+}
+
+fun Modifier.tourTarget(area: TourHighlightArea): Modifier = this.onGloballyPositioned { coordinates ->
+    val bounds = coordinates.boundsInRoot()
+    TourManager.reportBounds(area, bounds)
+}
+
+data class TourStepDetails(
+    val stepIndex: Int,
     val title: String,
+    val badgeLabel: String,
     val description: String,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val highlightArea: TourHighlightArea,
+    val cardAlignment: Alignment
 )
 
 @Composable
 fun DemoTourOverlay(
     currentStep: Int,
-    totalSteps: Int,
+    totalSteps: Int = 5,
     onNext: () -> Unit,
     onBack: () -> Unit,
     onSkip: () -> Unit
 ) {
     val steps = remember {
         listOf(
-            TourStepInfo(
-                title = "1. Dashboard & Net Worth",
-                description = "Track your total balance, income vs expenses, and net cash flow at a glance.",
-                icon = Icons.Rounded.Dashboard
+            TourStepDetails(
+                stepIndex = 0,
+                title = "Dashboard & Net Worth",
+                badgeLabel = "🎯 Net Worth Overview",
+                description = "Track your total net worth, monthly income vs expenses, and real-time net cash flow summary at a glance.",
+                icon = Icons.Rounded.Dashboard,
+                highlightArea = TourHighlightArea.TOP_SUMMARY_CARD,
+                cardAlignment = Alignment.BottomCenter
             ),
-            TourStepInfo(
-                title = "2. Quick Actions & AI Scanner",
-                description = "Tap the floating action menu to quickly log expenses, create groups, or scan paper receipts with AI OCR.",
-                icon = Icons.Rounded.Bolt
+            TourStepDetails(
+                stepIndex = 1,
+                title = "Quick Actions & AI Scanner",
+                badgeLabel = "⚡ Floating Action Button",
+                description = "Tap the floating (+) button anytime to log personal expenses, create shared groups, or scan receipts with AI OCR.",
+                icon = Icons.Rounded.Bolt,
+                highlightArea = TourHighlightArea.BOTTOM_RIGHT_FAB,
+                cardAlignment = Alignment.TopCenter
             ),
-            TourStepInfo(
-                title = "3. Personal Expenses & Incomes",
-                description = "Browse, filter, and search through all your personal spending and income sources in one unified view.",
-                icon = Icons.Rounded.ReceiptLong
+            TourStepDetails(
+                stepIndex = 2,
+                title = "Expense & Income Tracker",
+                badgeLabel = "🔍 Personal Finances",
+                description = "Search transactions instantly, filter by category (Food, Travel, Bills), and manage your spending habits.",
+                icon = Icons.Rounded.ReceiptLong,
+                highlightArea = TourHighlightArea.TOP_SEARCH_FILTERS,
+                cardAlignment = Alignment.BottomCenter
             ),
-            TourStepInfo(
-                title = "4. Group Splitting & Settlements",
-                description = "Manage shared expenses, view balances, and use simplified debt calculations to settle up effortlessly.",
-                icon = Icons.Rounded.Groups
+            TourStepDetails(
+                stepIndex = 3,
+                title = "Group Splitting & Settlements",
+                badgeLabel = "👥 Shared Groups & Balances",
+                description = "Manage shared expenses with friends or roommates, view net balances, and calculate optimal debt settlements.",
+                icon = Icons.Rounded.Groups,
+                highlightArea = TourHighlightArea.CENTER_GROUPS_LIST,
+                cardAlignment = Alignment.BottomCenter
             ),
-            TourStepInfo(
-                title = "5. Settings & Security",
-                description = "Customize your currency, enable biometric locks, and export PDF/CSV financial reports anytime.",
-                icon = Icons.Rounded.Security
+            TourStepDetails(
+                stepIndex = 4,
+                title = "Preferences & Security",
+                badgeLabel = "⚙️ Currency & PDF Export",
+                description = "Customize your primary currency (€, $, £, ₹), enable biometric PIN security, and export PDF/CSV financial reports anytime.",
+                icon = Icons.Rounded.Security,
+                highlightArea = TourHighlightArea.SETTINGS_PREFERENCES,
+                cardAlignment = Alignment.BottomCenter
             )
         )
     }
 
     val step = steps.getOrElse(currentStep) { steps.last() }
 
-    Dialog(
-        onDismissRequest = onSkip,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnBackPress = false,
-            dismissOnClickOutside = false
-        )
+    val infiniteTransition = rememberInfiniteTransition(label = "spotlight_pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.98f,
+        targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    val density = LocalDensity.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(enabled = false) {}
     ) {
+        val measuredBounds = TourManager.getBounds(step.highlightArea)
+
+        // 1. Dynamic Canvas Darkened Overlay with True Measured Gap Cutout (BlendMode.Clear)
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = 0.99f }
+        ) {
+            drawRect(color = Color.Black.copy(alpha = 0.72f))
+
+            if (measuredBounds != null) {
+                with(density) {
+                    val left = measuredBounds.left - 8.dp.toPx()
+                    val top = measuredBounds.top - 8.dp.toPx()
+                    val width = measuredBounds.width + 16.dp.toPx()
+                    val height = measuredBounds.height + 16.dp.toPx()
+                    val cornerRadius = CornerRadius(20.dp.toPx(), 20.dp.toPx())
+
+                    if (step.highlightArea == TourHighlightArea.BOTTOM_RIGHT_FAB) {
+                        val centerX = measuredBounds.center.x
+                        val centerY = measuredBounds.center.y
+                        val radius = (measuredBounds.width / 1.5f) * pulseScale
+
+                        drawCircle(
+                            color = Color.Transparent,
+                            center = Offset(centerX, centerY),
+                            radius = radius,
+                            blendMode = BlendMode.Clear
+                        )
+                        drawCircle(
+                            color = primaryColor.copy(alpha = pulseAlpha),
+                            center = Offset(centerX, centerY),
+                            radius = radius,
+                            style = Stroke(width = 3.5.dp.toPx())
+                        )
+                    } else {
+                        drawRoundRect(
+                            color = Color.Transparent,
+                            topLeft = Offset(left, top),
+                            size = Size(width, height),
+                            cornerRadius = cornerRadius,
+                            blendMode = BlendMode.Clear
+                        )
+                        drawRoundRect(
+                            brush = Brush.horizontalGradient(listOf(primaryColor, tertiaryColor)),
+                            topLeft = Offset(left, top),
+                            size = Size(width, height),
+                            cornerRadius = cornerRadius,
+                            style = Stroke(width = 3.dp.toPx())
+                        )
+                    }
+                }
+            }
+        }
+
+        // 2. Dynamic Badge Indicator Label positioned above measured target
+        if (measuredBounds != null) {
+            with(density) {
+                val badgeTop = (measuredBounds.top - 42.dp.toPx()).coerceAtLeast(16.dp.toPx())
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = primaryColor,
+                    modifier = Modifier
+                        .padding(start = 24.dp)
+                        .offset(y = badgeTop.toDp())
+                ) {
+                    Text(
+                        text = step.badgeLabel,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        // 3. Persistent Tour Tooltip Card
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.78f))
-                .clickable(enabled = false) {},
-            contentAlignment = Alignment.Center
+                .padding(16.dp)
+                .padding(
+                    top = if (step.cardAlignment == Alignment.TopCenter) 80.dp else 0.dp,
+                    bottom = if (step.cardAlignment == Alignment.BottomCenter) 40.dp else 0.dp
+                ),
+            contentAlignment = step.cardAlignment
         ) {
-            Card(
+            ElevatedCard(
                 modifier = Modifier
-                    .fillMaxWidth(0.92f)
-                    .wrapContentHeight()
-                    .padding(16.dp),
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
                 shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 18.dp)
@@ -93,8 +254,8 @@ fun DemoTourOverlay(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(28.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                        .padding(22.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -119,33 +280,42 @@ fun DemoTourOverlay(
                         }
                     }
 
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        modifier = Modifier.size(72.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(step.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
+                        Surface(
+                            shape = CircleShape,
+                            color = primaryColor.copy(alpha = 0.15f),
+                            modifier = Modifier.size(52.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    step.icon,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = step.title,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = step.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 20.sp
+                            )
                         }
                     }
-
-                    Text(
-                        text = step.title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Text(
-                        text = step.description,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 22.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -157,18 +327,22 @@ fun DemoTourOverlay(
                                 onClick = onBack,
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(vertical = 12.dp)
+                                contentPadding = PaddingValues(vertical = 10.dp)
                             ) {
-                                Text("Back", fontSize = 15.sp)
+                                Text("Back", fontSize = 14.sp)
                             }
                         }
                         Button(
                             onClick = onNext,
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(vertical = 12.dp)
+                            contentPadding = PaddingValues(vertical = 10.dp)
                         ) {
-                            Text(if (currentStep < totalSteps - 1) "Next ➔" else "Finish Tour 🚀", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text(
+                                if (currentStep < totalSteps - 1) "Next ➔" else "Finish Tour 🚀",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
                         }
                     }
                 }

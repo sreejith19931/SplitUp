@@ -20,7 +20,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 import com.finance.splitup.BuildConfig
 import com.finance.splitup.R
 import com.finance.splitup.data.UpdateChecker
@@ -33,8 +32,6 @@ fun AboutScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    var isCheckingUpdates by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -124,30 +121,16 @@ fun AboutScreen(
                     }
                 )
 
-                // Updates Item
+                // Play Store / Updates Item
                 QuickActionItem(
                     iconPainter = null,
                     imageVector = Icons.Rounded.SystemUpdate,
-                    label = if (isCheckingUpdates) "Checking..." else "Updates",
+                    label = "Play Store",
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                    isLoading = isCheckingUpdates,
                     onClick = {
-                        if (!isCheckingUpdates) {
-                            isCheckingUpdates = true
-                            coroutineScope.launch {
-                                UpdateChecker.checkLatestRelease(
-                                    onUpdateAvailable = { version, url ->
-                                        isCheckingUpdates = false
-                                        UpdateChecker.openReleaseUrl(context, url)
-                                    },
-                                    onUpToDate = {
-                                        isCheckingUpdates = false
-                                        android.widget.Toast.makeText(context, "You are already on the latest version (v${BuildConfig.VERSION_NAME})!", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                            }
-                        }
+                        val packageName = context.packageName
+                        UpdateChecker.openReleaseUrl(context, "https://play.google.com/store/apps/details?id=$packageName")
                     }
                 )
             }
@@ -369,10 +352,22 @@ fun LicenseItem(name: String, license: String, desc: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Text(license, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            Text(
+                text = name,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = license,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                softWrap = false
+            )
         }
         Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

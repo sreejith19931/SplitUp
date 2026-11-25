@@ -268,6 +268,22 @@ object CloudSyncManager {
 
                 val userRef = db.collection("users").document(uid)
 
+                // Restore onboarding status from cloud if wiped locally
+                try {
+                    val userDoc = userRef.get().await()
+                    if (userDoc.exists() && (userDoc.getBoolean("isOnboardingCompleted") == true || userDoc.getBoolean("has_completed_onboarding") == true)) {
+                        if (context != null) {
+                            EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                                .edit()
+                                .putBoolean("has_completed_onboarding_$uid", true)
+                                .putBoolean("has_completed_onboarding", true)
+                                .apply()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to restore onboarding status from cloud", e)
+                }
+
                 // Restore Expenses (Delta sync if lastSyncedAt > 0, otherwise full fetch)
                 var expenseDocs = if (lastSyncedAt > 0) {
                     val query = userRef.collection("expenses").whereGreaterThan("updatedAt", lastSyncedAt).get().await()
@@ -933,6 +949,9 @@ object CloudSyncManager {
         try {
             withTimeout(SYNC_TIMEOUT_MS * 2) {
                 val userRef = db.collection("users").document(uid)
+                val userDoc = try { userRef.get().await() } catch (_: Exception) { null }
+                val userEmail = userDoc?.getString("email")?.lowercase() ?: auth?.currentUser?.email?.lowercase()
+
                 val collections = listOf("expenses", "incomes", "groups", "budgets", "recurring_expenses", "incoming_notifications")
                 for (colName in collections) {
                     try {
@@ -945,22 +964,58 @@ object CloudSyncManager {
                     }
                 }
 
-                // Remove user from shared groups in root /groups collection
+                // Remove user / delete shared groups in root /groups collection by UID and Email
                 try {
                     val sharedGroups = db.collection("groups").whereArrayContains("memberUids", uid).get().await()
                     for (groupDoc in sharedGroups.documents) {
-                        val group = groupDoc.toObject(Group::class.java)
-                        if (group != null) {
-                            val updatedUids = group.memberUids.filter { it != uid }
-                            if (updatedUids.isEmpty()) {
-                                groupDoc.reference.delete().await()
+                        try {
+                            val group = groupDoc.toObject(Group::class.java)
+                            if (group != null) {
+                                val updatedUids = group.memberUids.filter { it != uid }
+                                val updatedEmails = if (!userEmail.isNullOrBlank()) group.memberEmails.filter { !it.equals(userEmail, ignoreCase = true) } else group.memberEmails
+                                if (updatedUids.isEmpty() || updatedEmails.isEmpty()) {
+                                    groupDoc.reference.delete().await()
+                                } else {
+                                    groupDoc.reference.update(
+                                        mapOf(
+                                            "memberUids" to updatedUids,
+                                            "memberEmails" to updatedEmails,
+                                            "updatedAt" to System.currentTimeMillis()
+                                        )
+                                    ).await()
+                                }
                             } else {
-                                groupDoc.reference.update(
-                                    mapOf(
-                                        "memberUids" to updatedUids,
-                                        "updatedAt" to System.currentTimeMillis()
-                                    )
-                                ).await()
+                                groupDoc.reference.delete().await()
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed deleting root group ${groupDoc.id}", e)
+                        }
+                    }
+
+                    if (!userEmail.isNullOrBlank()) {
+                        val sharedByEmail = db.collection("groups").whereArrayContains("memberEmails", userEmail).get().await()
+                        for (groupDoc in sharedByEmail.documents) {
+                            try {
+                                val group = groupDoc.toObject(Group::class.java)
+                                if (group != null) {
+                                    val updatedUids = group.memberUids.filter { it != uid }
+                                    val updatedEmails = group.memberEmails.filter { !it.equals(userEmail, ignoreCase = true) }
+                                    if (updatedUids.isEmpty() || updatedEmails.isEmpty()) {
+                                        groupDoc.reference.delete().await()
+                                    } else {
+                                        groupDoc.reference.update(
+                                            mapOf(
+                                                "memberUids" to updatedUids,
+                                                "memberEmails" to updatedEmails,
+                                                "updatedAt" to System.currentTimeMillis()
+                                            )
+                                        ).await()
+                                    }
+                                } else {
+                                    groupDoc.reference.delete().await()
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed deleting root group by email ${groupDoc.id}", e)
                             }
                         }
                     }
@@ -972,6 +1027,75 @@ object CloudSyncManager {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed deleteUserCloudData for $uid", e)
+        }
+    }
+
+    suspend fun clearCloudDataPreservingSharedGroups(uid: String, email: String?) {
+        val db = firestore ?: return
+        try {
+            withTimeout(SYNC_TIMEOUT_MS * 2) {
+                val userRef = db.collection("users").document(uid)
+
+                // 1. Delete personal collections
+                val personalCollections = listOf("expenses", "incomes", "budgets", "recurring_expenses", "incoming_notifications")
+                for (colName in personalCollections) {
+                    try {
+                        val snapshot = userRef.collection(colName).get().await()
+                        for (doc in snapshot.documents) {
+                            doc.reference.delete().await()
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed deleting personal subcollection $colName for $uid", e)
+                    }
+                }
+
+                // 2. Handle groups: keep shared groups (with other members) intact by removing user from them, delete personal groups (no other members)
+                try {
+                    val userGroupsSnapshot = userRef.collection("groups").get().await()
+                    for (groupDoc in userGroupsSnapshot.documents) {
+                        val group = groupDoc.toObject(Group::class.java)
+                        val otherMembersCount = group?.members?.count { !it.equals("You", ignoreCase = true) } ?: 0
+                        val hasOtherUids = group?.memberUids?.any { it != uid } == true
+                        val hasOtherEmails = !email.isNullOrBlank() && group?.memberEmails?.any { !it.equals(email, ignoreCase = true) } == true
+
+                        if (otherMembersCount > 0 || hasOtherUids || hasOtherEmails) {
+                            // Shared group: remove user rather than deleting group
+                            groupDoc.reference.delete().await()
+                            if (group != null) {
+                                val rootGroupRef = db.collection("groups").document(group.id)
+                                val updatedUids = group.memberUids.filter { it != uid }
+                                val updatedEmails = if (!email.isNullOrBlank()) group.memberEmails.filter { !it.equals(email, ignoreCase = true) } else group.memberEmails
+                                val updatedMembers = group.members.filter { !it.equals("You", ignoreCase = true) }
+                                if (updatedUids.isEmpty() && updatedEmails.isEmpty()) {
+                                    rootGroupRef.delete().await()
+                                } else {
+                                    rootGroupRef.update(
+                                        mapOf(
+                                            "memberUids" to updatedUids,
+                                            "memberEmails" to updatedEmails,
+                                            "members" to updatedMembers,
+                                            "updatedAt" to System.currentTimeMillis()
+                                        )
+                                    ).await()
+                                }
+                            }
+                        } else {
+                            // Personal group (no other members): fully delete
+                            val groupId = groupDoc.id
+                            groupDoc.reference.delete().await()
+                            try {
+                                db.collection("groups").document(groupId).delete().await()
+                            } catch (_: Exception) {}
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed handling groups during clear app data for $uid", e)
+                }
+
+                userRef.delete().await()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed clearCloudDataPreservingSharedGroups for $uid", e)
         }
     }
 
@@ -1101,6 +1225,53 @@ object CloudSyncManager {
                     .await()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to send notification doc to user $targetUid", e)
+            }
+        }
+
+        // Also attempt OneSignal push notification directly to recipient user IDs
+        sendOneSignalPushNotification(recipientUids, title, body, group.id)
+    }
+
+    private fun sendOneSignalPushNotification(
+        targetUids: Collection<String>,
+        title: String,
+        body: String,
+        groupId: String
+    ) {
+        if (targetUids.isEmpty()) return
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val url = java.net.URL("https://onesignal.com/api/v1/notifications")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                conn.doOutput = true
+
+                val uidsJsonArray = targetUids.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
+                val cleanTitle = title.replace("\"", "\\\"").replace("\n", " ")
+                val cleanBody = body.replace("\"", "\\\"").replace("\n", " ")
+                val jsonPayload = """
+                    {
+                      "app_id": "607e86ec-f74c-4419-ab95-2e420c912bde",
+                      "include_aliases": {
+                        "external_id": $uidsJsonArray
+                      },
+                      "target_channel": "push",
+                      "headings": {"en": "$cleanTitle"},
+                      "contents": {"en": "$cleanBody"},
+                      "data": {"groupId": "$groupId"}
+                    }
+                """.trimIndent()
+
+                conn.outputStream.use { os ->
+                    val input = jsonPayload.toByteArray(Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
+
+                val responseCode = conn.responseCode
+                Log.d(TAG, "OneSignal Push API response code: $responseCode")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed sending OneSignal push notification", e)
             }
         }
     }

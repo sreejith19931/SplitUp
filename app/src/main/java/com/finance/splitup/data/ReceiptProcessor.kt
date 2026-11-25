@@ -164,9 +164,16 @@ object ReceiptProcessor {
 
     private fun parseReceiptPrice(priceStr: String): Double {
         if (priceStr.isBlank()) return 0.0
-        val cleaned = priceStr.trim()
-        val isNegative = cleaned.startsWith("-")
-        val absCleaned = if (isNegative) cleaned.substring(1).trim() else cleaned
+        var cleaned = priceStr.trim()
+        cleaned = cleaned.replace(Regex("""[€$£₹]|EUR|USD|GBP|INR"""), "").trim()
+        val isNegative = cleaned.startsWith("-") || cleaned.endsWith("-") || cleaned.contains("–") || cleaned.contains("—") || (cleaned.startsWith("(") && cleaned.endsWith(")"))
+        val absCleaned = cleaned
+            .replace("-", "")
+            .replace("–", "")
+            .replace("—", "")
+            .replace("(", "")
+            .replace(")", "")
+            .trim()
         val normalized = if (absCleaned.contains(",") && absCleaned.contains(".")) {
             val lastComma = absCleaned.lastIndexOf(',')
             val lastDot = absCleaned.lastIndexOf('.')
@@ -220,12 +227,12 @@ object ReceiptProcessor {
         val tipKeywords = setOf("TIP", "GRATUITY", "SERVICE", "TRINKGELD", "POURBOIRE", "SERVIZIO")
         val paymentKeywords = setOf("CARD", "VISA", "MASTERCARD", "AMEX", "CREDIT", "DEBIT", "CASH", "PAYMENT", "PAID", "CHANGE", "TENDER", "EFTPOS", "APPLE PAY", "GOOGLE PAY", "BARZAHLUNG", "KARTE", "GUTHABEN", "ESPACE", "EFFECTUE", "CARTA", "CONTANTI", "CONTANT")
         val codeKeywords = setOf("CODE", "ARTIKEL", "ART.", "ITEM NO", "SKU", "PLU", "EAN", "BARCODE", "POS", "REF", "ID:")
-        val discountKeywords = setOf("RABATT", "DISCOUNT", "RABAT", "REDUKTION", "SAVINGS", "GUTSCHEIN", "COUPON", "APP PREIS", "OFF", "NACHLASS", "PROMO", "PROMOTIONAL", "SPECIAL", "OFFER", "REBATE", "CREDIT", "REDUCTION", "SCONTO", "DESCUENTO", "KORTING", "SPAREN", "AKTION", "ERMÄSSIGUNG", "MEMBER PRICE")
+        val discountKeywords = setOf("RABATT", "DISCOUNT", "RABAT", "RAB", "REDUKTION", "SAVINGS", "GUTSCHEIN", "COUPON", "APP PREIS", "OFF", "NACHLASS", "PROMO", "PROMOTIONAL", "SPECIAL", "OFFER", "REBATE", "CREDIT", "REDUCTION", "SCONTO", "DESCUENTO", "KORTING", "SPAREN", "AKTION", "ANGEBOT", "ERMÄSSIGUNG", "MEMBER PRICE", "GUTSCHRIFT", "STORNO", "ANRECHNUNG")
         val companySuffixes = setOf("GMBH", "AG", "E.K.", "INC", "LLC", "LTD", "CORP", "CO", "HANDELS", "SUPERMARKET", "MARKET")
         val addressTerms = setOf("STREET", "ST", "AVENUE", "AVE", "ROAD", "RD", "BOULEVARD", "BLVD", "DRIVE", "DR", "LANE", "LN", "WAY", "SUITE", "STE", "UNIT", "FLOOR", "FL", "HIGHWAY", "HWY", "PARKWAY", "PKWY", "BOX", "ZIP", "POSTAL", "CITY", "STATE")
         val nonMerchantTerms = setOf("TABLE", "GUEST", "SERVER", "RECEIPT", "INVOICE", "CHECK", "DATE", "TIME", "REGISTER", "TERMINAL", "CASHIER", "WELCOME", "TICKET", "ORDER", "CASH", "CARD", "STORE", "BRANCH", "SHOP", "LOCATION", "MANAGER", "TEL", "PHONE", "FAX", "MOBILE", "WWW", "HTTP", "HTTPS", "COM", "ORG", "NET", "THANK", "THANKS", "VISIT", "CUSTOMER", "DUPLICATE", "ORIGINAL")
 
-        val priceRegex = Regex("""(-?\s*\d+[.,]\d{1,2})""")
+        val priceRegex = Regex("""([€$£₹]?\s*-?\s*\d+[.,]\d{1,2}\s*-?|[€$£₹]?\s*\(\s*\d+[.,]\d{1,2}\s*\))""")
 
         fun cleanMerchantLine(line: String): String {
             var s = line.trim()

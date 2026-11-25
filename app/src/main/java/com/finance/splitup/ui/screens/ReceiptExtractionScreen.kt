@@ -39,6 +39,14 @@ fun ReceiptExtractionScreen(
     val currencySymbol = Currencies.getSymbol(currentReceipt.currency)
     val confidencePct = (currentReceipt.confidenceScore * 100).toInt()
 
+    val parsedTotal = totalAmount.parseAmount()
+    val parsedTax = taxAmount.parseAmount()
+    val parsedTip = tipAmount.parseAmount()
+    val itemsSum = lineItems.sumOf { (itemPriceStrings[it.id] ?: formatInputNumber(it.price)).parseAmount() }
+    val expectedTotal = itemsSum + parsedTax + parsedTip
+    val diff = kotlin.math.abs(parsedTotal - expectedTotal)
+    val isTotalMatched = diff <= 0.01
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -183,7 +191,8 @@ fun ReceiptExtractionScreen(
                 Text(
                     text = "Detected Line Items (${lineItems.size})",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    fontSize = 18.sp,
+                    modifier = Modifier.weight(1f)
                 )
                 OutlinedButton(
                     onClick = {
@@ -196,11 +205,12 @@ fun ReceiptExtractionScreen(
                         lineItems = lineItems + newItem
                         itemPriceStrings = itemPriceStrings + (newId to "")
                     },
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Item", fontSize = 12.sp)
+                    Text("Add Item", fontSize = 12.sp, maxLines = 1, softWrap = false)
                 }
             }
 
@@ -263,16 +273,22 @@ fun ReceiptExtractionScreen(
                 }
             }
 
+            if (!isTotalMatched) {
+                Text(
+                    text = "⚠️ Price discrepancy detected ($currencySymbol${String.format(java.util.Locale.US, "%.2f", diff)}). Please match total or adjust items before proceeding.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
+
             Button(
                 onClick = {
                     val updatedLineItems = lineItems.map { item ->
                         val priceStr = itemPriceStrings[item.id] ?: formatInputNumber(item.price)
                         item.copy(price = priceStr.parseAmount())
                     }
-                    val parsedTotal = totalAmount.parseAmount()
-                    val parsedTax = taxAmount.parseAmount()
-                    val parsedTip = tipAmount.parseAmount()
-                    val itemsSum = updatedLineItems.sumOf { it.price }
                     val newTotal = if (parsedTotal > 0.0) parsedTotal else itemsSum
                     viewModel.currentExtractedReceipt = currentReceipt.copy(
                         merchantName = merchant,
@@ -283,9 +299,10 @@ fun ReceiptExtractionScreen(
                     )
                     onProceedToAllocate()
                 },
+                enabled = isTotalMatched,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Rounded.Group, contentDescription = null)

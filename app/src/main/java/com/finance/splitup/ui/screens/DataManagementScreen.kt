@@ -52,6 +52,10 @@ fun DataManagementScreen(
 
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var showClearDataDialog by remember { mutableStateOf(false) }
+    var showUnsettledWarningDialog by remember { mutableStateOf(false) }
+    var showUnsettledDebtBlockDialog by remember { mutableStateOf(false) }
+    var unsettledGroupNames by remember { mutableStateOf(listOf<String>()) }
+    var debtGroupNames by remember { mutableStateOf(listOf<String>()) }
     var showTestingChecklistDialog by remember { mutableStateOf(false) }
 
     var hasUnsyncedChanges by remember { mutableStateOf(false) }
@@ -324,7 +328,38 @@ fun DataManagementScreen(
                     }
 
                     Button(
-                        onClick = { showDeleteAccountDialog = true },
+                        onClick = {
+                            val settlementsUseCase = com.finance.splitup.domain.CalculateGroupSettlementsUseCase()
+                            val currentUserName = viewModel.currentUserName
+                            val currentUserEmail = viewModel.currentUserEmail
+                            val defaultCurrency = viewModel.defaultCurrency
+
+                            val groupsWhereUserOwes = groups.filter { group ->
+                                val settlements = settlementsUseCase.calculateSettlements(group, defaultCurrency, currentUserName, currentUserEmail)
+                                settlements.any { s ->
+                                    s.from.equals("You", ignoreCase = true) ||
+                                    s.from.equals(currentUserName, ignoreCase = true) ||
+                                    (!currentUserEmail.isBlank() && s.from.equals(currentUserEmail, ignoreCase = true))
+                                }
+                            }.map { it.name }
+
+                            if (groupsWhereUserOwes.isNotEmpty()) {
+                                debtGroupNames = groupsWhereUserOwes
+                                showUnsettledDebtBlockDialog = true
+                            } else {
+                                val unsettled = groups.filter { group ->
+                                    val settlements = settlementsUseCase.calculateSettlements(group, defaultCurrency, currentUserName, currentUserEmail)
+                                    settlements.isNotEmpty()
+                                }.map { it.name }
+
+                                if (unsettled.isNotEmpty()) {
+                                    unsettledGroupNames = unsettled
+                                    showUnsettledWarningDialog = true
+                                } else {
+                                    showDeleteAccountDialog = true
+                                }
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -390,6 +425,66 @@ fun DataManagementScreen(
         )
     }
 
+    if (showUnsettledDebtBlockDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnsettledDebtBlockDialog = false },
+            title = { Text("Account Deletion Blocked", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error) },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("⚠️ You cannot delete your account because you owe money in the following group(s):", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                    Text("• ${debtGroupNames.joinToString("\n• ")}")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Please settle your balances with other members in these groups before attempting to delete your account.")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showUnsettledDebtBlockDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
+                ) {
+                    Text("Understood", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    if (showUnsettledWarningDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnsettledWarningDialog = false },
+            title = { Text("Unsettled Groups Exist", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error) },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("⚠️ You have active unsettled balances in the following groups:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                    Text("• ${unsettledGroupNames.joinToString("\n• ")}")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Deleting your account will leave these debts unsettled with other members. Do you still want to proceed?")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showUnsettledWarningDialog = false
+                        showDeleteAccountDialog = true
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
+                ) {
+                    Text("Proceed to Delete", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnsettledWarningDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     if (showDeleteAccountDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteAccountDialog = false },
@@ -414,6 +509,9 @@ fun DataManagementScreen(
                         scope.launch {
                             authViewModel.deleteAccount(
                                 onSuccess = {
+                                    scope.launch {
+                                        viewModel.clearAllData()
+                                    }
                                     Toast.makeText(context, "Account and all data deleted successfully.", Toast.LENGTH_LONG).show()
                                     showDeleteAccountDialog = false
                                 },

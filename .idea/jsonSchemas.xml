@@ -14,6 +14,9 @@
                   <Item>
                     <option name="path" value=".well-known/assetlinks.json" />
                   </Item>
+                  <Item>
+                    <option name="path" value="landing/.well-known/assetlinks.json" />
+                  </Item>
                 </list>
               </option>
             </SchemaInfo>

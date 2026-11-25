@@ -1,5 +1,4 @@
-- `[/]` Add sub-routes (`SecuritySettingsRoute`, `DataManagementRoute`) to `AppScreens.kt`
-- `[ ]` Create `SecuritySettingsScreen.kt` for security, biometrics, PIN, and payment handles
-- `[ ]` Create `DataManagementScreen.kt` for backups, exports, and danger zone actions
-- `[ ]` Redesign `SettingsScreen.kt` with categorized M3 `ListItem` cards and sub-navigation links
-- `[ ]` Wire up new routes in `MainActivity.kt` and verify build & unit tests
+- [x] Phase 1: Implement Adaptive Navigation (`NavigationSuiteScaffold`) in MainActivity
+- [x] Phase 2: Add Multi-Pane List-Detail Layouts to Dashboard & Personal Expenses
+- [x] Phase 3: Implement Adaptive Grids (`GridCells.Adaptive`) for Wide Screens
+- [x] Phase 4: State Preservation & Edge-to-Edge Insets Polish

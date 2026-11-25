@@ -33,6 +33,8 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.finance.splitup.ui.components.tourTarget
+import com.finance.splitup.ui.components.TourHighlightArea
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
@@ -120,18 +122,6 @@ fun DashboardScreen(
     var isFabExpanded by remember { mutableStateOf(false) }
     var showGroupPickerForExpense by remember { mutableStateOf(false) }
     var showNotificationsSheet by remember { mutableStateOf(false) }
-    var showDemoTour by remember { mutableStateOf(false) }
-    var currentTourStep by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(Unit) {
-        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-        val seenTour = prefs.getBoolean("has_seen_demo_tour", false)
-        val step = prefs.getInt("demo_tour_step", 0)
-        if (!seenTour && step <= 1) {
-            currentTourStep = step
-            showDemoTour = true
-        }
-    }
 
     val dismissedNotifications by viewModel.dismissedNotifications.collectAsState()
 
@@ -149,9 +139,12 @@ fun DashboardScreen(
                 if (!dismissedNotifications.contains(key)) list.add(key to msg)
             }
         }
-        recurringExpenses.filter { !it.isIncome && it.category != com.finance.splitup.data.ExpenseCategories.INCOME }.forEach { r ->
+        recurringExpenses.forEach { r ->
+            val isInc = r.isIncome || r.category == ExpenseCategories.INCOME
             val key = "recurring_${r.id}"
-            val msg = "Upcoming Subscription: '${r.title}' (${Currencies.getSymbol(r.currency)}${r.amount}) due on ${r.nextDueDate}."
+            val prefix = if (isInc) "Upcoming Income:" else "Upcoming Subscription:"
+            val actionText = if (isInc) "expected on" else "due on"
+            val msg = "$prefix '${r.title}' (${Currencies.getSymbol(r.currency)}${r.amount}) $actionText ${r.nextDueDate}."
             if (!dismissedNotifications.contains(key)) list.add(key to msg)
         }
         budgets.forEach { (cat, limit) ->
@@ -213,7 +206,19 @@ fun DashboardScreen(
                             modifier = Modifier.padding(bottom = 6.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                SplitUpLogo(size = 24.dp, style = LogoStyle.REFINED_CARD_SPLITUP, modifier = Modifier.width(135.dp))
+                                SplitUpLogo(size = 24.dp, style = LogoStyle.REFINED_CARD_SPLITUP)
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                ) {
+                                    Text(
+                                        text = "ALPHA",
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                }
                                 if (!isOnline) {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
@@ -346,7 +351,9 @@ fun DashboardScreen(
                         val dashboardData = (dashboardState as? com.finance.splitup.ui.state.DashboardUiState.Success)?.data ?: com.finance.splitup.ui.state.DashboardUiData()
                         val pagerState = rememberPagerState(pageCount = { 3 })
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .tourTarget(TourHighlightArea.TOP_SUMMARY_CARD),
                             shape = RoundedCornerShape(20.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                             elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
@@ -643,9 +650,18 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Recent Personal Expenses", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    TextButton(onClick = { onNavigateToPersonalExpenses(null) }) {
-                        Text("View All")
+                    Text(
+                        text = "Recent Personal Expenses",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(
+                        onClick = { onNavigateToPersonalExpenses(null) },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("View All", maxLines = 1, softWrap = false)
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -723,9 +739,18 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Active Groups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    TextButton(onClick = onNavigateToGroups) {
-                        Text("View All")
+                    Text(
+                        text = "Active Groups",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(
+                        onClick = onNavigateToGroups,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("View All", maxLines = 1, softWrap = false)
                     }
                 }
             }
@@ -797,6 +822,7 @@ fun DashboardScreen(
     if (showGroupPickerForExpense) {
         AlertDialog(
             onDismissRequest = { showGroupPickerForExpense = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Select Group for Expense", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -857,36 +883,6 @@ fun DashboardScreen(
             onDismiss = { showNotificationsSheet = false }
         )
     }
-
-    if (showDemoTour) {
-        com.finance.splitup.ui.components.DemoTourOverlay(
-            currentStep = currentTourStep,
-            totalSteps = 5,
-            onNext = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                if (currentTourStep == 0) {
-                    currentTourStep = 1
-                    prefs.edit().putInt("demo_tour_step", 1).apply()
-                } else if (currentTourStep == 1) {
-                    prefs.edit().putInt("demo_tour_step", 2).apply()
-                    showDemoTour = false
-                    onNavigateToPersonalExpenses(null)
-                }
-            },
-            onBack = {
-                if (currentTourStep > 0) {
-                    currentTourStep--
-                    val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                    prefs.edit().putInt("demo_tour_step", currentTourStep).apply()
-                }
-            },
-            onSkip = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putBoolean("has_seen_demo_tour", true).apply()
-                showDemoTour = false
-            }
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -919,20 +915,27 @@ fun NotificationTraySheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Icon(Icons.Rounded.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text("Notifications & Alerts", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 }
                 if (activeNotifications.isNotEmpty() || pendingApprovalRequests.isNotEmpty()) {
-                    TextButton(onClick = {
-                        if (activeNotifications.isNotEmpty()) {
-                            viewModel.dismissNotifications(activeNotifications.map { it.first })
-                        }
-                        pendingApprovalRequests.forEach { req ->
-                            viewModel.rejectGroupRequest(req)
-                        }
-                    }) {
-                        Text("Clear All", color = MaterialTheme.colorScheme.error)
+                    TextButton(
+                        onClick = {
+                            if (activeNotifications.isNotEmpty()) {
+                                viewModel.dismissNotifications(activeNotifications.map { it.first })
+                            }
+                            pendingApprovalRequests.forEach { req ->
+                                viewModel.rejectGroupRequest(req)
+                            }
+                        },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("Clear All", color = MaterialTheme.colorScheme.error, maxLines = 1, softWrap = false)
                     }
                 }
             }
@@ -1162,7 +1165,9 @@ fun SpeedDialFabMenu(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.semantics { contentDescription = "Quick Actions Menu" }
+                modifier = Modifier
+                    .semantics { contentDescription = "Quick Actions Menu" }
+                    .tourTarget(TourHighlightArea.BOTTOM_RIGHT_FAB)
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Add,
@@ -1326,6 +1331,7 @@ fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () 
     if (showDeleteConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Delete Expense", fontWeight = FontWeight.SemiBold) },
             text = { Text("Are you sure you want to delete '${expense.title}'?") },
             confirmButton = {

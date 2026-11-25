@@ -1,21 +1,15 @@
-# SplitUp App Fixes & Improvements Walkthrough
+# Edge-to-Edge and Large Screen Compatibility Walkthrough
 
-## Summary of Completed Audits & Fixes
+## Audit & Verification Results
 
-1. **Deep Link & Settlement URL Encoding (`PaymentDeepLinkHelper.kt`)**
-   - Verified that UPI, PayPal, Venmo, and Revolut deep links properly encode query parameters (`Uri.encode()`) to prevent malformed intents or crash exceptions on custom user handles and notes.
+1. **Edge-to-Edge APIs**:
+   - The app uses modern `enableEdgeToEdge()` from `androidx.activity.enableEdgeToEdge`, avoiding deprecated manual window flags (`SYSTEM_UI_FLAG_...`, `FLAG_LAYOUT_NO_LIMITS`, `setDecorFitsSystemWindows`).
+   - Insets are managed via Compose `Scaffold`, `NavigationSuiteScaffold`, and `WindowInsets`.
 
-2. **Memory-Efficient Receipt Scanning (`ReceiptScannerScreen.kt`)**
-   - Verified that `decodeSampledBitmapFromUri` downscales captured and picked receipt images prior to OCR text extraction, preventing `OutOfMemoryError` on high-resolution camera sensors.
+2. **Resizability & Orientation Restrictions**:
+   - Checked `AndroidManifest.xml`: No `screenOrientation` restrictions are set on activities.
+   - No `resizeableActivity="false"` is set, ensuring full compatibility with Android 16+ large screen requirements (foldables and tablets).
+   - `android.hardware.screen.portrait` feature is declared with `android:required="false"`.
 
-3. **Accessibility & Screen Reader Support (`SpendingChartComponent.kt`)**
-   - Added robust semantic descriptions (`Modifier.semantics`) to custom canvas-drawn financial charts and summary cards to ensure seamless navigation for TalkBack users.
-
-4. **Error Logging & Exception Handling (`CloudSyncManager.kt`)**
-   - Inspected cloud synchronization logic to ensure background operations log errors explicitly rather than failing silently, ensuring reliable Firebase Firestore multi-user sync.
-
-5. **Biometric & PIN Fallback Security (`MainActivity.kt`)**
-   - Verified secure local authentication flow combining biometric prompts with 4-digit PIN verification and inline error validation.
-
-## Build Verification
-- Successfully ran `./gradlew app:assembleDebug` with **0 errors**. All KSP Room code generation, data repositories, and UI composables compile and execute successfully.
+3. **Build & Lint**:
+   - `app:assembleDebug` and `app:lintDebug` completed successfully with zero errors.

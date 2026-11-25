@@ -63,9 +63,10 @@ private sealed class AlertItem {
         override val key: String,
         val subscriptionId: String,
         val title: String,
+        val isIncome: Boolean = false,
         override val message: String
     ) : AlertItem() {
-        override val categoryName = "Subscriptions"
+        override val categoryName = if (isIncome) "Income" else "Subscriptions"
     }
 }
 
@@ -136,14 +137,17 @@ fun NotificationsScreen(
             }
         }
         recurringExpenses.forEach { r ->
+            val isInc = r.isIncome || r.category == com.finance.splitup.data.ExpenseCategories.INCOME
             val key = "recurring_${r.id}"
-            val msg = "'${r.title}' (${com.finance.splitup.data.Currencies.getSymbol(r.currency)}${r.amount}) due on ${r.nextDueDate}."
+            val actionText = if (isInc) "expected on" else "due on"
+            val msg = "'${r.title}' (${com.finance.splitup.data.Currencies.getSymbol(r.currency)}${r.amount}) $actionText ${r.nextDueDate}."
             if (!dismissedNotifications.contains(key)) {
                 list.add(
                     AlertItem.Subscription(
                         key = key,
                         subscriptionId = r.id,
                         title = r.title,
+                        isIncome = isInc,
                         message = msg
                     )
                 )
@@ -526,26 +530,26 @@ fun NotificationsScreen(
                             when (item) {
                                 is AlertItem.GroupBalance -> onNavigateToGroupDetail(item.groupId, 0)
                                 is AlertItem.Budget -> onNavigateToBudgets()
-                                is AlertItem.Subscription -> onNavigateToSubscriptions()
+                                is AlertItem.Subscription -> if (item.isIncome) onNavigateToPersonalExpenses(null) else onNavigateToSubscriptions()
                             }
                         }
 
                         val icon = when (item) {
                             is AlertItem.GroupBalance -> if (item.isOwed) Icons.AutoMirrored.Rounded.CallReceived else Icons.AutoMirrored.Rounded.CallMade
                             is AlertItem.Budget -> if (item.isExceeded) Icons.Rounded.Warning else Icons.Rounded.PieChart
-                            is AlertItem.Subscription -> Icons.Rounded.CalendarToday
+                            is AlertItem.Subscription -> if (item.isIncome) Icons.AutoMirrored.Rounded.CallReceived else Icons.Rounded.CalendarToday
                         }
 
                         val iconContainerColor = when (item) {
                             is AlertItem.GroupBalance -> if (item.isOwed) EmeraldSuccess.copy(alpha = 0.15f) else CrimsonDanger.copy(alpha = 0.15f)
                             is AlertItem.Budget -> if (item.isExceeded) CrimsonDanger.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer
-                            is AlertItem.Subscription -> MaterialTheme.colorScheme.tertiaryContainer
+                            is AlertItem.Subscription -> if (item.isIncome) EmeraldSuccess.copy(alpha = 0.15f) else MaterialTheme.colorScheme.tertiaryContainer
                         }
 
                         val iconColor = when (item) {
                             is AlertItem.GroupBalance -> if (item.isOwed) EmeraldSuccess else CrimsonDanger
                             is AlertItem.Budget -> if (item.isExceeded) CrimsonDanger else MaterialTheme.colorScheme.primary
-                            is AlertItem.Subscription -> MaterialTheme.colorScheme.tertiary
+                            is AlertItem.Subscription -> if (item.isIncome) EmeraldSuccess else MaterialTheme.colorScheme.tertiary
                         }
 
                         Card(
@@ -582,7 +586,7 @@ fun NotificationsScreen(
                                             when (item) {
                                                 is AlertItem.GroupBalance -> if (item.isOwed) "Owed Money • ${item.groupName}" else "Balance Owed • ${item.groupName}"
                                                 is AlertItem.Budget -> if (item.isExceeded) "Budget Exceeded • ${item.category}" else "Budget Warning • ${item.category}"
-                                                is AlertItem.Subscription -> "Subscription Due • ${item.title}"
+                                                is AlertItem.Subscription -> if (item.isIncome) "Recurring Income • ${item.title}" else "Subscription Due • ${item.title}"
                                             },
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp,

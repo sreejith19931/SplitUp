@@ -18,6 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.finance.splitup.ui.components.tourTarget
+import com.finance.splitup.ui.components.TourHighlightArea
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,22 +51,22 @@ fun PersonalExpensesScreen(
     val incomes by viewModel.incomes.collectAsState()
     val recurringExpenses by viewModel.recurringExpenses.collectAsState()
 
-    var selectedCategoryFilter by remember { mutableStateOf<String?>(if (initialCategory == "INCOME" || initialCategory == ExpenseCategories.INCOME) null else initialCategory) }
+    val isIncomeRequest = initialCategory?.equals("INCOME", ignoreCase = true) == true || initialCategory?.equals(ExpenseCategories.INCOME, ignoreCase = true) == true
+    var selectedCategoryFilter by remember { mutableStateOf<String?>(if (isIncomeRequest) null else initialCategory) }
     var selectedDateRange by remember { mutableStateOf("All") }
-    var selectedPersonalTab by remember { mutableIntStateOf(if (initialCategory == "INCOME" || initialCategory == ExpenseCategories.INCOME) 1 else 0) } // 0 = Expenses, 1 = Incomes
+    var selectedPersonalTab by remember { mutableIntStateOf(if (isIncomeRequest) 1 else 0) } // 0 = Expenses, 1 = Incomes
+
+    LaunchedEffect(initialCategory) {
+        if (initialCategory?.equals("INCOME", ignoreCase = true) == true || initialCategory?.equals(ExpenseCategories.INCOME, ignoreCase = true) == true) {
+            selectedPersonalTab = 1
+            selectedCategoryFilter = null
+        } else if (initialCategory != null) {
+            selectedCategoryFilter = initialCategory
+        }
+    }
 
     var showBudgetsDialog by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
-    var showDemoTour by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-        val seenTour = prefs.getBoolean("has_seen_demo_tour", false)
-        val step = prefs.getInt("demo_tour_step", 0)
-        if (!seenTour && step == 2) {
-            showDemoTour = true
-        }
-    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -84,7 +86,8 @@ fun PersonalExpensesScreen(
     val currencySymbol = Currencies.getSymbol(viewModel.defaultCurrency)
     val groups by viewModel.groups.collectAsState()
 
-    Scaffold(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -180,28 +183,87 @@ fun PersonalExpensesScreen(
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp)
-                    ) {
-                        Text("Total Personal Spent", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-                        AnimatedAmountText(
-                            targetAmount = totalPersonalSpent,
-                            currencySymbol = currencySymbol,
-                            fontSize = 28.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        val subtitleText = if (selectedCategoryFilter != null) "Filtered by $selectedCategoryFilter" else "Logged individual expenses & recurring bills"
-                        Text(subtitleText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val isWide = maxWidth >= 700.dp
+                    if (isWide) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp)
+                                ) {
+                                    Text("Total Personal Spent", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                                    AnimatedAmountText(
+                                        targetAmount = totalPersonalSpent,
+                                        currencySymbol = currencySymbol,
+                                        fontSize = 28.sp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    val subtitleText = if (selectedCategoryFilter != null) "Filtered by $selectedCategoryFilter" else "Logged individual expenses & recurring bills"
+                                    Text(subtitleText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+                                }
+                            }
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp)
+                                ) {
+                                    Text("Total Incomes", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f))
+                                    val totalIncome = incomes.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+                                    AnimatedAmountText(
+                                        targetAmount = totalIncome,
+                                        currencySymbol = currencySymbol,
+                                        fontSize = 28.sp,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("Active income sources & inflows", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                                }
+                            }
+                        }
+                    } else {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp)
+                            ) {
+                                Text("Total Personal Spent", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                                AnimatedAmountText(
+                                    targetAmount = totalPersonalSpent,
+                                    currencySymbol = currencySymbol,
+                                    fontSize = 28.sp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                val subtitleText = if (selectedCategoryFilter != null) "Filtered by $selectedCategoryFilter" else "Logged individual expenses & recurring bills"
+                                Text(subtitleText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
+                            }
+                        }
                     }
                 }
             }
@@ -292,11 +354,20 @@ fun PersonalExpensesScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("One-Time Incomes (${incomes.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        TextButton(onClick = { onNavigateToAddExpense(null, true) }) {
+                        Text(
+                            text = "One-Time Incomes (${incomes.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(
+                            onClick = { onNavigateToAddExpense(null, true) },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
                             Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add Income")
+                            Text("Add Income", maxLines = 1, softWrap = false)
                         }
                     }
                 }
@@ -367,11 +438,20 @@ fun PersonalExpensesScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Recurring Incomes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        TextButton(onClick = { onNavigateToAddExpense(null, true) }) {
+                        Text(
+                            text = "Recurring Incomes",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(
+                            onClick = { onNavigateToAddExpense(null, true) },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
                             Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add Recurring Income")
+                            Text("Add Recurring Income", maxLines = 1, softWrap = false)
                         }
                     }
                 }
@@ -443,7 +523,8 @@ fun PersonalExpensesScreen(
                 // 1. Filters at the top
                 item {
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.tourTarget(TourHighlightArea.TOP_SEARCH_FILTERS)
                     ) {
                         val ranges = listOf("All", "This Month", "Last 30 Days", "This Year")
                         items(ranges, key = { it }) { range ->
@@ -475,7 +556,7 @@ fun PersonalExpensesScreen(
                                 onClick = {
                                     selectedCategoryFilter = if (selectedCategoryFilter == category) null else category
                                 },
-                                label = { Text(category) },
+                                label = { Text(ExpenseCategories.getDisplayName(category)) },
                                 shape = RoundedCornerShape(10.dp)
                             )
                         }
@@ -673,7 +754,7 @@ fun PersonalExpensesScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = category, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                            Text(text = ExpenseCategories.getDisplayName(category), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
                             OutlinedTextField(
                                 value = limitText,
                                 onValueChange = { newVal ->
@@ -698,27 +779,5 @@ fun PersonalExpensesScreen(
             }
         )
     }
-
-    if (showDemoTour) {
-        com.finance.splitup.ui.components.DemoTourOverlay(
-            currentStep = 2,
-            totalSteps = 5,
-            onNext = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putInt("demo_tour_step", 3).apply()
-                showDemoTour = false
-                onNavigateToGroups()
-            },
-            onBack = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putInt("demo_tour_step", 1).apply()
-                showDemoTour = false
-            },
-            onSkip = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putBoolean("has_seen_demo_tour", true).apply()
-                showDemoTour = false
-            }
-        )
-    }
+}
 }

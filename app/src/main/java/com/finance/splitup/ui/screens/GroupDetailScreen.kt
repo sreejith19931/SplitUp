@@ -481,18 +481,24 @@ fun GroupDetailContent(
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().height(36.dp),
+                        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 36.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Members (${group.members.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(
+                            text = "Members (${group.members.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            modifier = Modifier.weight(1f)
+                        )
                         TextButton(
                             onClick = { showAddMemberDialog = true },
                             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
                         ) {
                             Icon(Icons.Rounded.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add Member", fontSize = 13.sp)
+                            Text("Add Member", fontSize = 13.sp, maxLines = 1, softWrap = false)
                         }
                     }
 
@@ -1211,6 +1217,7 @@ fun GroupDetailContent(
 
         AlertDialog(
             onDismissRequest = { showEditGroupDialog = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(
@@ -1844,12 +1851,6 @@ fun MemberSearchAndAddDialog(
     val registeredCloudUsers by viewModel.registeredUsers.collectAsState()
     val registeredUserEmails by viewModel.registeredUserEmails.collectAsState()
 
-    LaunchedEffect(Unit) {
-        if (!contactPermissionState.status.isGranted) {
-            contactPermissionState.launchPermissionRequest()
-        }
-    }
-
     val allContacts = remember(contactPermissionState.status.isGranted, registeredCloudUsers, registeredUserEmails, searchQuery) {
         val deviceList = if (contactPermissionState.status.isGranted) {
             SampleContacts.loadDeviceContacts(context)
@@ -1859,11 +1860,22 @@ fun MemberSearchAndAddDialog(
         val deviceEmails = deviceList.map { it.email.lowercase() }.toSet()
         val registeredSet = registeredUserEmails + registeredCloudUsers.map { it.email.lowercase() }
         val visibleCloudUsers = if (searchQuery.isNotBlank()) {
-            registeredCloudUsers
+            registeredCloudUsers.filter {
+                it.name.contains(searchQuery, ignoreCase = true) ||
+                        it.email.contains(searchQuery, ignoreCase = true)
+            }
         } else {
             registeredCloudUsers.filter { it.email.lowercase() in deviceEmails }
         }
-        val combined = (deviceList + visibleCloudUsers).distinctBy { it.email.lowercase() }
+        val deviceListFiltered = if (searchQuery.isNotBlank()) {
+            deviceList.filter {
+                it.name.contains(searchQuery, ignoreCase = true) ||
+                        it.email.contains(searchQuery, ignoreCase = true)
+            }
+        } else {
+            deviceList
+        }
+        val combined = (deviceListFiltered + visibleCloudUsers).distinctBy { it.email.lowercase() }
         combined.map { contact ->
             val isRegistered = contact.isSplitUpMember ||
                     registeredSet.contains(contact.email.lowercase()) ||
@@ -1914,6 +1926,7 @@ fun MemberSearchAndAddDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("Add Group Member", fontWeight = FontWeight.Bold) },
         text = {
             Column(
@@ -1943,6 +1956,44 @@ fun MemberSearchAndAddDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    if (searchQuery.isNotBlank() && !isExactMatch && !isCustomSelfOrExisting) {
+                        item {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val name = searchQuery.trim()
+                                        val email = if (name.contains("@")) name else "$name@splitup.app"
+                                        onAddMember(name, email, false)
+                                    },
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("➕ Add '${searchQuery.trim()}'", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                        Text("Tap to add as custom group member", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                                    }
+                                    Button(
+                                        onClick = {
+                                            val name = searchQuery.trim()
+                                            val email = if (name.contains("@")) name else "$name@splitup.app"
+                                            onAddMember(name, email, false)
+                                        },
+                                        modifier = Modifier.height(36.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Add", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
                     if (searchQuery.isBlank() && recentFiltered.isNotEmpty()) {
                         item {
                             Text("Recent Friends ⏱️", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.primary)
@@ -1976,6 +2027,42 @@ fun MemberSearchAndAddDialog(
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
                                         Text("Invite", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                        if (!contactPermissionState.status.isGranted) {
+                            item {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Icon(Icons.Rounded.Contacts, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                            Text("Optional Contacts Access", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                        }
+                                        Text(
+                                            "Grant access to contacts to quickly select friends from your device address book.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        TextButton(
+                                            onClick = {
+                                                try {
+                                                    contactPermissionState.launchPermissionRequest()
+                                                } catch (_: Exception) {
+                                                    val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                        data = android.net.Uri.fromParts("package", context.packageName, null)
+                                                    }
+                                                    context.startActivity(intent)
+                                                }
+                                            }
+                                        ) {
+                                            Text("Grant Contacts Access")
+                                        }
                                     }
                                 }
                             }

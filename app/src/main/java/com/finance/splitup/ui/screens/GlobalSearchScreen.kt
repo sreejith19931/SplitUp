@@ -160,14 +160,21 @@ fun GlobalSearchScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Recent Searches", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    text = "Recent Searches",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(1f)
+                                )
                                 TextButton(
                                     onClick = {
                                         recentSearches = emptyList()
                                         prefs.edit().remove("recent_searched_queries").apply()
-                                    }
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
-                                    Text("Clear", fontSize = 12.sp)
+                                    Text("Clear", fontSize = 12.sp, maxLines = 1, softWrap = false)
                                 }
                             }
                             LazyRow(

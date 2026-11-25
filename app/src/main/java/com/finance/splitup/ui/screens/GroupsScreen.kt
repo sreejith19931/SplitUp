@@ -19,6 +19,8 @@ import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaf
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.finance.splitup.ui.components.tourTarget
+import com.finance.splitup.ui.components.TourHighlightArea
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -51,16 +53,6 @@ fun GroupsScreen(
     var selectedGroupId by remember { mutableStateOf<String?>(groups.firstOrNull()?.id) }
     var selectedGroupTypeFilter by remember { mutableStateOf<String?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
-    var showDemoTour by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-        val seenTour = prefs.getBoolean("has_seen_demo_tour", false)
-        val step = prefs.getInt("demo_tour_step", 0)
-        if (!seenTour && step == 3) {
-            showDemoTour = true
-        }
-    }
 
     val filteredGroups = remember(groups, selectedGroupTypeFilter) {
         groups.filter { group ->
@@ -79,7 +71,8 @@ fun GroupsScreen(
 
 
 
-    ListDetailPaneScaffold(
+    Box(modifier = Modifier.fillMaxSize()) {
+        ListDetailPaneScaffold(
         directive = navigator.scaffoldDirective,
         value = navigator.scaffoldValue,
         listPane = {
@@ -181,7 +174,9 @@ fun GroupsScreen(
                                     viewModel.getUserNetBalance(group, viewModel.defaultCurrency)
                                 }
                                 Card(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .tourTarget(TourHighlightArea.CENTER_GROUPS_LIST),
                                     shape = RoundedCornerShape(20.dp),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
@@ -370,29 +365,7 @@ fun GroupsScreen(
             }
         }
     )
-
-    if (showDemoTour) {
-        com.finance.splitup.ui.components.DemoTourOverlay(
-            currentStep = 3,
-            totalSteps = 5,
-            onNext = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putInt("demo_tour_step", 4).apply()
-                showDemoTour = false
-                onNavigateToSettings()
-            },
-            onBack = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putInt("demo_tour_step", 2).apply()
-                showDemoTour = false
-            },
-            onSkip = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putBoolean("has_seen_demo_tour", true).apply()
-                showDemoTour = false
-            }
-        )
-    }
+}
 }
 
 @Composable

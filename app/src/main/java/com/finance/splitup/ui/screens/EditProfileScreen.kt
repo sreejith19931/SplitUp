@@ -386,7 +386,7 @@ fun EditProfileScreen(
                         onBack()
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp),
                 enabled = !isLoading
             ) {

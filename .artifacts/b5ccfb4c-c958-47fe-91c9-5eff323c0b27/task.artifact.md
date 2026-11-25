@@ -1,0 +1,4 @@
+- [ ] Phase 1: Implement Adaptive Navigation (`NavigationSuiteScaffold`) in MainActivity
+- [ ] Phase 2: Add Multi-Pane List-Detail Layouts to Dashboard & Personal Expenses
+- [ ] Phase 3: Implement Adaptive Grids (`GridCells.Adaptive`) for Wide Screens
+- [ ] Phase 4: State Preservation & Edge-to-Edge Insets Polish

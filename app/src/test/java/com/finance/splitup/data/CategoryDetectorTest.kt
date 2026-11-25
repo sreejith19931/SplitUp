@@ -2,24 +2,42 @@ package com.finance.splitup.data
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class CategoryDetectorTest {
 
+    @Before
+    fun setUp() {
+        CategoryDetector.clearLearnedMappingsForTesting()
+    }
+
     @Test
     fun testFoodAndDiningDetection() {
         val titles = listOf(
-            "Whole Foods Market",
             "Starbucks Coffee",
             "McDonald's Drive Thru",
             "DoorDash Order",
             "Boba Tea & Snacks",
-            "Local Ramen Shop",
-            "Weekly Groceries"
+            "Local Ramen Shop"
         )
         titles.forEach { title ->
             val result = CategoryDetector.detectCategory(title)
             assertEquals("Failed for title: $title", ExpenseCategories.FOOD, result.category)
+        }
+    }
+
+    @Test
+    fun testGroceriesDetection() {
+        val titles = listOf(
+            "Whole Foods Market",
+            "Weekly Groceries",
+            "Costco Wholesale",
+            "Trader Joe's"
+        )
+        titles.forEach { title ->
+            val result = CategoryDetector.detectCategory(title)
+            assertEquals("Failed for title: $title", ExpenseCategories.GROCERIES, result.category)
         }
     }
 
@@ -120,7 +138,7 @@ class CategoryDetectorTest {
 
         val clutteredTitle = "SQ *WALMART SUPERCENTER #1234 90210"
         val result2 = CategoryDetector.detectCategory(clutteredTitle)
-        assertEquals(ExpenseCategories.FOOD, result2.category)
+        assertEquals(ExpenseCategories.GROCERIES, result2.category)
     }
 
     @Test

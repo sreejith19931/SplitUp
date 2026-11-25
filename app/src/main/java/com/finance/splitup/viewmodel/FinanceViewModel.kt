@@ -321,9 +321,46 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
     }
 
-    fun clearAllData() {
-        clearLocalDataOnSignOut()
-        prefs?.edit()?.clear()?.apply()
+    suspend fun clearAllData() {
+        realtimeGroupListenerRegistration?.remove()
+        realtimeGroupListenerRegistration = null
+        realtimeEmailGroupListenerRegistration?.remove()
+        realtimeEmailGroupListenerRegistration = null
+        notifiedGroupIds.clear()
+        notifiedExpenseIds.clear()
+        _expensesFallback.value = emptyList()
+        _groupsFallback.value = emptyList()
+        _budgetsFallback.value = emptyMap()
+        _incomesFallback.value = emptyList()
+        _recurringExpensesFallback.value = emptyList()
+        _userProfileFallback.value = com.finance.splitup.data.db.UserProfileEntity()
+        budgetWarningMessage = null
+        currentExtractedReceipt = null
+        targetGroupIdForReceipt = null
+        clearDismissedNotifications()
+
+        try {
+            val app = getApplication<Application>()
+            app.getSharedPreferences("splitup_sync_prefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+            prefs?.edit()?.clear()?.apply()
+        } catch (_: Exception) {}
+
+        val currentUser = try { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser } catch (_: Exception) { null }
+        if (currentUser != null) {
+            try {
+                com.finance.splitup.data.CloudSyncManager.clearCloudDataPreservingSharedGroups(currentUser.uid, currentUser.email)
+            } catch (e: Exception) {
+                android.util.Log.e("FinanceViewModel", "Failed clearing cloud data on clearAllData", e)
+            }
+        }
+
+        if (repository != null) {
+            try {
+                repository.clearAllLocalData()
+            } catch (e: Exception) {
+                android.util.Log.e("FinanceViewModel", "Failed to clear local data on clearAllData", e)
+            }
+        }
     }
 
     private fun triggerImmediateSync() {
@@ -382,12 +419,37 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                         "upiVpa" to cleanUpi,
                         "paypalHandle" to cleanPaypal,
                         "venmoHandle" to cleanVenmo,
-                        "revolutHandle" to cleanRevolut
+                        "revolutHandle" to cleanRevolut,
+                        "isOnboardingCompleted" to true,
+                        "has_completed_onboarding" to true
                     )
                     db.collection("users").document(currentUser.uid)
                         .set(profileData, com.google.firebase.firestore.SetOptions.merge())
                         .await()
                 } catch (_: Exception) {}
+            }
+        }
+    }
+
+    fun setOnboardingCompleted(completed: Boolean = true) {
+        val currentUser = try { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser } catch (_: Exception) { null }
+        if (currentUser != null) {
+            viewModelScope.launch {
+                try {
+                    val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    db.collection("users").document(currentUser.uid)
+                        .set(
+                            mapOf(
+                                "isOnboardingCompleted" to completed,
+                                "has_completed_onboarding" to completed,
+                                "updatedAt" to System.currentTimeMillis()
+                            ),
+                            com.google.firebase.firestore.SetOptions.merge()
+                        )
+                        .await()
+                } catch (e: Exception) {
+                    android.util.Log.e("FinanceViewModel", "Failed to set onboarding status in cloud", e)
+                }
             }
         }
     }
@@ -468,6 +530,14 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             date = com.finance.splitup.data.DateUtils.normalizeExpenseDate(date),
             currency = currency
         )
+        val eurAmount = Currencies.convertToEUR(amount, currency)
+        if (eurAmount >= 200.0) {
+            postSystemNotification(
+                "High Income Recorded 💰",
+                "You logged income '${income.title}' of ${Currencies.getSymbol(currency)}${String.format(java.util.Locale.US, "%.2f", amount)}.",
+                CHANNEL_FINANCIAL_ALERTS
+            )
+        }
         if (repository != null) {
             viewModelScope.launch {
                 repository.insertIncome(income)
@@ -900,8 +970,14 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             .filter { it.category != ExpenseCategories.INCOME }
             .sumOf { Currencies.convert(it.amount, it.currency, targetCurr) }
 
-        val income = filteredInc
+        val expenseIncomes = filteredExp
+            .filter { it.category == ExpenseCategories.INCOME }
             .sumOf { Currencies.convert(it.amount, it.currency, targetCurr) }
+
+        val registeredIncomes = filteredInc
+            .sumOf { Currencies.convert(it.amount, it.currency, targetCurr) }
+
+        val income = registeredIncomes + expenseIncomes
 
         val cashFlow = income - spent
 
@@ -970,7 +1046,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     fun getSpendingForCategory(category: String): Double {
         return expenses.value.asSequence()
             .filter { it.category == category }
-            .sumOf { Currencies.convertToEUR(it.amount, it.currency) }
+            .sumOf { Currencies.convert(it.amount, it.currency, defaultCurrency) }
     }
 
     fun getBudgetForCategory(category: String): Double {
@@ -1009,26 +1085,37 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         receiptImagePath: String? = null,
         lineItems: List<com.finance.splitup.data.ReceiptLineItem> = emptyList()
     ) {
-        val currentSpending = getSpendingForCategory(category)
-        val limit = getBudgetForCategory(category)
-        val projected = currentSpending + amount
-        if (projected > limit) {
-            val msg = "Warning: Adding '$title' (${Currencies.getSymbol(currency)}${String.format(java.util.Locale.US, "%.2f", amount)}) exceeds your monthly $category budget limit (${Currencies.getSymbol(currency)}${String.format(java.util.Locale.US, "%.0f", limit)})!"
-            budgetWarningMessage = msg
-            postSystemNotification("SplitUp Budget Exceeded", msg, CHANNEL_FINANCIAL_ALERTS)
-        } else if (projected >= limit * 0.8) {
-            val msg = "Alert: $category spending is at ${(projected / limit * 100).toInt()}% of monthly limit (${Currencies.getSymbol(currency)}${String.format(java.util.Locale.US, "%.0f", limit)})."
-            budgetWarningMessage = msg
-            postSystemNotification("SplitUp Budget Alert", msg, CHANNEL_FINANCIAL_ALERTS)
+        if (!category.equals(ExpenseCategories.INCOME, ignoreCase = true)) {
+            val currentSpending = getSpendingForCategory(category)
+            val limit = getBudgetForCategory(category)
+            val convertedAmount = Currencies.convert(amount, currency, defaultCurrency)
+            val projected = currentSpending + convertedAmount
+            if (projected > limit) {
+                val msg = "Warning: Adding '$title' (${Currencies.getSymbol(currency)}${String.format(java.util.Locale.US, "%.2f", amount)}) exceeds your monthly $category budget limit (${Currencies.getSymbol(defaultCurrency)}${String.format(java.util.Locale.US, "%.0f", limit)})!"
+                budgetWarningMessage = msg
+                postSystemNotification("SplitUp Budget Exceeded", msg, CHANNEL_FINANCIAL_ALERTS)
+            } else if (projected >= limit * 0.8) {
+                val msg = "Alert: $category spending is at ${(projected / limit * 100).toInt()}% of monthly limit (${Currencies.getSymbol(defaultCurrency)}${String.format(java.util.Locale.US, "%.0f", limit)})."
+                budgetWarningMessage = msg
+                postSystemNotification("SplitUp Budget Alert", msg, CHANNEL_FINANCIAL_ALERTS)
+            }
         }
 
         val eurAmount = Currencies.convertToEUR(amount, currency)
         if (eurAmount >= 200.0) {
-            postSystemNotification(
-                "High-Value Expense Logged 💸",
-                "You logged '$title' of ${Currencies.getSymbol(currency)}${String.format(java.util.Locale.US, "%.2f", amount)} under '$category'.",
-                CHANNEL_FINANCIAL_ALERTS
-            )
+            if (category.equals(ExpenseCategories.INCOME, ignoreCase = true)) {
+                postSystemNotification(
+                    "High Income Recorded 💰",
+                    "You logged income '$title' of ${Currencies.getSymbol(currency)}${String.format(java.util.Locale.US, "%.2f", amount)}.",
+                    CHANNEL_FINANCIAL_ALERTS
+                )
+            } else {
+                postSystemNotification(
+                    "High-Value Expense Logged 💸",
+                    "You logged '$title' of ${Currencies.getSymbol(currency)}${String.format(java.util.Locale.US, "%.2f", amount)} under '$category'.",
+                    CHANNEL_FINANCIAL_ALERTS
+                )
+            }
         }
 
         val normalizedDate = com.finance.splitup.data.DateUtils.normalizeExpenseDate(date)

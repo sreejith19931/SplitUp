@@ -44,18 +44,28 @@ fun ReceiptAllocationScreen(
     var selectedPayer by remember { mutableStateOf("You") }
     var expenseDate by remember(extracted) { mutableStateOf(extracted.date.ifBlank { "Today" }) }
     var splitModeEqual by remember { mutableStateOf(true) }
+    var tipPercentText by remember { mutableStateOf("") }
     var tipPercent by remember { mutableStateOf(0) }
+    var tipAmountText by remember { mutableStateOf("") }
+    var discountPercentText by remember { mutableStateOf("") }
     var discountPercent by remember { mutableStateOf(0) }
     var discountAmountText by remember { mutableStateOf("") }
+    var taxPercentText by remember { mutableStateOf("") }
+    var taxPercent by remember { mutableStateOf(0) }
     var extraTaxAmount by remember { mutableStateOf("") }
 
     val baseAmount = extracted.totalAmount
-    val taxValue = extraTaxAmount.parseAmount()
+    val flatTaxValue = extraTaxAmount.parseAmount()
     val flatDiscountVal = discountAmountText.parseAmount()
+    val flatTipVal = tipAmountText.parseAmount()
     val percentDiscountVal = baseAmount * (discountPercent / 100.0)
     val totalDiscount = flatDiscountVal + percentDiscountVal
     val discountedBase = kotlin.math.max(0.0, baseAmount - totalDiscount)
-    val calculatedTotal = kotlin.math.round((discountedBase * (1.0 + tipPercent / 100.0) + taxValue) * 100) / 100.0
+    val percentTaxVal = discountedBase * (taxPercent / 100.0)
+    val totalTax = flatTaxValue + percentTaxVal
+    val percentTipVal = discountedBase * (tipPercent / 100.0)
+    val totalTip = flatTipVal + percentTipVal
+    val calculatedTotal = kotlin.math.round((discountedBase + totalTip + totalTax) * 100) / 100.0
 
     var itemAssignments by remember {
         mutableStateOf(
@@ -107,6 +117,12 @@ fun ReceiptAllocationScreen(
                     if (totalDiscount > 0.0) {
                         Text(text = "Discount: -$currencySymbol${String.format(Locale.US, "%.2f", totalDiscount)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
+                    if (totalTax > 0.0) {
+                        Text(text = "Tax/Fees: +$currencySymbol${String.format(Locale.US, "%.2f", totalTax)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                    if (totalTip > 0.0) {
+                        Text(text = "Tip: +$currencySymbol${String.format(Locale.US, "%.2f", totalTip)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
                     Text(text = "Final Total: $currencySymbol${String.format(Locale.US, "%.2f", calculatedTotal)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             }
@@ -142,7 +158,7 @@ fun ReceiptAllocationScreen(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Tip, Tax & Discount Calculator", fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
                     Text("Tip", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -154,11 +170,46 @@ fun ReceiptAllocationScreen(
                         listOf(0, 10, 15, 20).forEach { pct ->
                             FilterChip(
                                 selected = tipPercent == pct,
-                                onClick = { tipPercent = pct },
+                                onClick = {
+                                    tipPercent = pct
+                                    tipPercentText = if (pct > 0) pct.toString() else ""
+                                },
                                 label = { Text("$pct% Tip") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                         }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = tipPercentText,
+                            onValueChange = { input ->
+                                val clean = input.filter { it.isDigit() }
+                                if (clean.length <= 3) {
+                                    val valInt = (clean.toIntOrNull() ?: 0).coerceAtMost(100)
+                                    tipPercentText = if (valInt > 0) valInt.toString() else clean
+                                    tipPercent = valInt
+                                }
+                            },
+                            label = { Text("Tip (%)") },
+                            placeholder = { Text("Whole %") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                        )
+                        OutlinedTextField(
+                            value = tipAmountText,
+                            onValueChange = { tipAmountText = filterPriceInput(it) },
+                            label = { Text("Flat Tip ($currencySymbol)") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                        )
                     }
 
                     Text("Discount", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -167,10 +218,13 @@ fun ReceiptAllocationScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf(0, 5, 10, 15, 20).forEach { pct ->
+                        listOf(0, 5, 10, 15, 20, 25).forEach { pct ->
                             FilterChip(
                                 selected = discountPercent == pct,
-                                onClick = { discountPercent = pct },
+                                onClick = {
+                                    discountPercent = pct
+                                    discountPercentText = if (pct > 0) pct.toString() else ""
+                                },
                                 label = { Text(if (pct == 0) "No Discount" else "$pct% Off") },
                                 shape = RoundedCornerShape(10.dp)
                             )
@@ -182,6 +236,23 @@ fun ReceiptAllocationScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         OutlinedTextField(
+                            value = discountPercentText,
+                            onValueChange = { input ->
+                                val clean = input.filter { it.isDigit() }
+                                if (clean.length <= 3) {
+                                    val valInt = (clean.toIntOrNull() ?: 0).coerceAtMost(100)
+                                    discountPercentText = if (valInt > 0) valInt.toString() else clean
+                                    discountPercent = valInt
+                                }
+                            },
+                            label = { Text("Discount (%)") },
+                            placeholder = { Text("Whole %") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                        )
+                        OutlinedTextField(
                             value = discountAmountText,
                             onValueChange = { discountAmountText = filterPriceInput(it) },
                             label = { Text("Flat Discount ($currencySymbol)") },
@@ -189,6 +260,48 @@ fun ReceiptAllocationScreen(
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true,
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                        )
+                    }
+
+                    Text("Tax & Fees", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(0, 5, 8, 10, 18, 20).forEach { pct ->
+                            FilterChip(
+                                selected = taxPercent == pct,
+                                onClick = {
+                                    taxPercent = pct
+                                    taxPercentText = if (pct > 0) pct.toString() else ""
+                                },
+                                label = { Text(if (pct == 0) "No Tax %" else "$pct% Tax") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = taxPercentText,
+                            onValueChange = { input ->
+                                val clean = input.filter { it.isDigit() }
+                                if (clean.length <= 3) {
+                                    val valInt = (clean.toIntOrNull() ?: 0).coerceAtMost(100)
+                                    taxPercentText = if (valInt > 0) valInt.toString() else clean
+                                    taxPercent = valInt
+                                }
+                            },
+                            label = { Text("Tax (%)") },
+                            placeholder = { Text("Whole %") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
                         )
                         OutlinedTextField(
                             value = extraTaxAmount,
@@ -201,19 +314,46 @@ fun ReceiptAllocationScreen(
                         )
                     }
 
-                    if (totalDiscount > 0.0) {
+                    if (totalDiscount > 0.0 || totalTax > 0.0 || totalTip > 0.0) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text("Applied Discount:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                Text("-$currencySymbol${String.format(Locale.US, "%.2f", totalDiscount)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                if (totalDiscount > 0.0) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Applied Discount:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                        Text("-$currencySymbol${String.format(Locale.US, "%.2f", totalDiscount)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                                if (totalTax > 0.0) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Applied Tax/Fees:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                        Text("+$currencySymbol${String.format(Locale.US, "%.2f", totalTax)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                                if (totalTip > 0.0) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("Applied Tip:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                        Text("+$currencySymbol${String.format(Locale.US, "%.2f", totalTip)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
                             }
                         }
                     }
@@ -297,7 +437,12 @@ fun ReceiptAllocationScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Split Mode", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text(
+                        text = "Split Mode",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.weight(1f)
+                    )
                     SingleChoiceSegmentedButtonRow {
                         SegmentedButton(
                             selected = splitModeEqual,
@@ -488,7 +633,7 @@ fun ReceiptAllocationScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Rounded.Receipt, contentDescription = null)

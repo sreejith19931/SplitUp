@@ -40,11 +40,26 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val currentUser: FirebaseUser?
         get() = try { auth?.currentUser } catch (_: Exception) { null }
 
+    private fun syncOneSignalUser(user: FirebaseUser?) {
+        if (user == null) return
+        try {
+            com.onesignal.OneSignal.login(user.uid)
+            user.email?.let { email ->
+                if (email.isNotBlank()) {
+                    com.onesignal.OneSignal.User.addEmail(email)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AuthViewModel", "Failed syncing OneSignal user identity", e)
+        }
+    }
+
     private val _authState = MutableStateFlow<AuthState>(
         try {
             val user = currentUser
             if (user != null) {
                 if (user.isEmailVerified) {
+                    syncOneSignalUser(user)
                     AuthState.Authenticated(user)
                 } else {
                     AuthState.EmailVerificationPending(user)
@@ -133,6 +148,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                         user.displayName?.let { userMap["name"] = it }
                         db.collection("users").document(user.uid).set(userMap, com.google.firebase.firestore.SetOptions.merge()).await()
                     } catch (_: Exception) {}
+                    syncOneSignalUser(user)
                     _authState.value = AuthState.Authenticated(user)
                 } else {
                     _authState.value = AuthState.Unauthenticated
@@ -177,6 +193,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                         db.collection("users").document(user.uid).set(userMap, com.google.firebase.firestore.SetOptions.merge()).await()
                     } catch (_: Exception) {}
                     if (user.isEmailVerified) {
+                        syncOneSignalUser(user)
                         _authState.value = AuthState.Authenticated(user)
                     } else {
                         _authState.value = AuthState.EmailVerificationPending(user)
@@ -326,6 +343,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _authState.value = AuthState.Loading
             try {
                 val uid = user.uid
+                // 1. First attempt to delete Firebase Auth user. If recent login is required, this throws before wiping user data.
+                user.delete().await()
+
+                // 2. Wipe cloud data and local DB after successful auth deletion
                 com.finance.splitup.data.CloudSyncManager.deleteUserCloudData(uid)
                 com.finance.splitup.data.CloudSyncManager.stopListeningForIncomingNotifications()
                 try {
@@ -335,7 +356,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 } catch (e: Exception) {
                     android.util.Log.e("AuthViewModel", "Failed to clear local DB on account deletion", e)
                 }
-                user.delete().await()
                 _authState.value = AuthState.Unauthenticated
                 onSuccess()
             } catch (e: com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException) {
@@ -438,6 +458,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 try {
                     auth?.signOut()
+                } catch (_: Exception) {}
+                try {
+                    com.onesignal.OneSignal.logout()
                 } catch (_: Exception) {}
                 _authState.value = AuthState.Unauthenticated
                 onComplete()

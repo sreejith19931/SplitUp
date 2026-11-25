@@ -46,7 +46,7 @@ fun AddGroupExpenseScreen(
     var title by remember { mutableStateOf(existingExpense?.title ?: "") }
     var amount by remember { mutableStateOf(existingExpense?.amount?.let { String.format(Locale.US, "%.2f", it) } ?: "") }
     var selectedCategory by remember { mutableStateOf(existingExpense?.category ?: ExpenseCategories.FOOD) }
-    var selectedCurrency by remember { mutableStateOf(existingExpense?.currency ?: Currencies.EUR) }
+    var selectedCurrency by remember { mutableStateOf(existingExpense?.currency ?: group?.expenses?.firstOrNull()?.currency ?: viewModel.defaultCurrency) }
     var expandedCurrencyDropdown by remember { mutableStateOf(false) }
     var expandedCategoryDropdown by remember { mutableStateOf(false) }
     val currentUserName = viewModel.currentUserName
@@ -763,7 +763,7 @@ fun AddGroupExpenseScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isFormValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,

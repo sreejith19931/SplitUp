@@ -9,12 +9,19 @@ object EncryptedPrefs {
     fun getPreferences(context: Context, name: String = "splitup_prefs"): SharedPreferences {
         return try {
             createEncryptedPrefs(context, name)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             try {
-                // Safely handle KeyStore corruption or key invalidation by clearing corrupted file and recreating encrypted storage
+                // Safely handle KeyStore corruption or key invalidation by clearing corrupted file and MasterKey alias
                 context.deleteSharedPreferences(name)
+                try {
+                    val keyStore = java.security.KeyStore.getInstance("AndroidKeyStore")
+                    keyStore.load(null)
+                    if (keyStore.containsAlias("_androidx_security_master_key_")) {
+                        keyStore.deleteEntry("_androidx_security_master_key_")
+                    }
+                } catch (_: Throwable) {}
                 createEncryptedPrefs(context, name)
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 // If KeyStore remains unavailable, return a secure private preferences instance
                 context.getSharedPreferences(name, Context.MODE_PRIVATE)
             }

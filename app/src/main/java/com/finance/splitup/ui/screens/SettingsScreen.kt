@@ -18,6 +18,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.finance.splitup.ui.components.tourTarget
+import com.finance.splitup.ui.components.TourHighlightArea
 import com.finance.splitup.BuildConfig
 import com.finance.splitup.data.Currencies
 import com.finance.splitup.ui.theme.ThemeMode
@@ -56,17 +58,7 @@ fun SettingsScreen(
     var showProfileQrDialog by remember { mutableStateOf(false) }
     var hasUnsyncedChanges by remember { mutableStateOf(false) }
     var isCheckingUnsynced by remember { mutableStateOf(false) }
-    var showDemoTour by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-
-    LaunchedEffect(Unit) {
-        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-        val seenTour = prefs.getBoolean("has_seen_demo_tour", false)
-        val step = prefs.getInt("demo_tour_step", 0)
-        if (!seenTour && step == 4) {
-            showDemoTour = true
-        }
-    }
 
     LaunchedEffect(showSignOutDialog) {
         if (showSignOutDialog) {
@@ -82,7 +74,8 @@ fun SettingsScreen(
         } catch (_: Exception) {}
     }
 
-    Scaffold(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Settings & Profile", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
@@ -105,7 +98,9 @@ fun SettingsScreen(
                 item {
                     // User Profile Card
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .tourTarget(TourHighlightArea.SETTINGS_PREFERENCES),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
@@ -291,14 +286,19 @@ fun SettingsScreen(
                                         "CHF" to Currencies.liveChfRate,
                                         "SGD" to Currencies.liveSgdRate
                                     )
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        ratesList.take(4).forEach { (curr, rate) ->
-                                            Text("${Currencies.getFlag(curr)} $curr: ${String.format(Locale.US, "%.2f", rate)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                    }
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        ratesList.drop(4).forEach { (curr, rate) ->
-                                            Text("${Currencies.getFlag(curr)} $curr: ${String.format(Locale.US, "%.2f", rate)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    FlowRow(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        ratesList.forEach { (curr, rate) ->
+                                            Box(modifier = Modifier.widthIn(min = 76.dp)) {
+                                                Text(
+                                                    text = "${Currencies.getFlag(curr)} $curr: ${String.format(Locale.US, "%.2f", rate)}",
+                                                    fontSize = 13.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -590,28 +590,5 @@ fun SettingsScreen(
             }
         }
     }
-
-    if (showDemoTour) {
-        com.finance.splitup.ui.components.DemoTourOverlay(
-            currentStep = 4,
-            totalSteps = 5,
-            onNext = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putBoolean("has_seen_demo_tour", true).remove("demo_tour_step").apply()
-                showDemoTour = false
-                onNavigateToDashboard()
-            },
-            onBack = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putInt("demo_tour_step", 3).apply()
-                showDemoTour = false
-            },
-            onSkip = {
-                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-                prefs.edit().putBoolean("has_seen_demo_tour", true).remove("demo_tour_step").apply()
-                showDemoTour = false
-                onNavigateToDashboard()
-            }
-        )
-    }
+}
 }

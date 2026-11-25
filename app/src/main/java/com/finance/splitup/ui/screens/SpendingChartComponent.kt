@@ -196,6 +196,64 @@ fun SpendingVelocityInsightCard(expenses: List<Expense>, defaultCurrency: String
     }
 }
 
+@Composable
+fun SpendingChartLegend(
+    spendingCategories: List<String>,
+    categoryAmounts: Map<String, Double>,
+    categoryColors: Map<String, Color>,
+    selectedCategory: String?,
+    onCategorySelected: (String) -> Unit,
+    currencySymbol: String
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        spendingCategories.forEach { category ->
+            val amount = categoryAmounts[category] ?: 0.0
+            if (amount <= 0.0) return@forEach
+            val color = categoryColors[category] ?: Color.Gray
+            val isSelected = selectedCategory == category
+
+            Surface(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onCategorySelected(category) },
+                shape = RoundedCornerShape(8.dp),
+                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                    )
+                    Text(
+                        text = category,
+                        fontSize = 11.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "$currencySymbol${String.format(Locale.US, "%.0f", amount)}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
 /**
  * Unified Component combining Monthly Budget Status & Donut Category Analytics into a single card.
  */
@@ -296,6 +354,24 @@ fun BudgetAndCategoryAnalyticsCard(
                         onCategorySelected = { cat ->
                             selectedCategoryFilter = if (selectedCategoryFilter == cat) null else cat
                         }
+                    )
+
+                    val categoryAmounts = remember(spendingExpenses, defaultCurrency, spendingCategories) {
+                        spendingCategories.associateWith { category ->
+                            spendingExpenses.filter { it.category == category }
+                                .sumOf { Currencies.convert(it.amount, it.currency, defaultCurrency) }
+                        }
+                    }
+
+                    SpendingChartLegend(
+                        spendingCategories = spendingCategories,
+                        categoryAmounts = categoryAmounts,
+                        categoryColors = categoryColors,
+                        selectedCategory = selectedCategoryFilter,
+                        onCategorySelected = { cat ->
+                            selectedCategoryFilter = if (selectedCategoryFilter == cat) null else cat
+                        },
+                        currencySymbol = currencySymbol
                     )
 
                     // Financial Velocity Insight Banner

@@ -123,17 +123,18 @@ object Currencies {
     }
 
     fun getSymbol(currencyStr: String): String {
+        val upper = currencyStr.uppercase()
         return when {
-            currencyStr.contains("€") -> "€"
-            currencyStr.contains("CA$") -> "CA$"
-            currencyStr.contains("A$") -> "A$"
-            currencyStr.contains("S$") -> "S$"
-            currencyStr.contains("$") -> "$"
-            currencyStr.contains("£") -> "£"
-            currencyStr.contains("₹") -> "₹"
-            currencyStr.contains("¥") -> "¥"
-            currencyStr.contains("CHF") -> "CHF"
-            currencyStr.contains("AED") -> "AED"
+            upper.contains("€") || upper.contains("EUR") -> "€"
+            upper.contains("CA$") || upper.contains("CAD") -> "CA$"
+            upper.contains("A$") || upper.contains("AUD") -> "A$"
+            upper.contains("S$") || upper.contains("SGD") -> "S$"
+            upper.contains("£") || upper.contains("GBP") -> "£"
+            upper.contains("₹") || upper.contains("INR") -> "₹"
+            upper.contains("¥") || upper.contains("JPY") || upper.contains("CNY") -> "¥"
+            upper.contains("CHF") -> "CHF"
+            upper.contains("AED") -> "AED"
+            upper.contains("$") || upper.contains("USD") -> "$"
             else -> "€"
         }
     }
@@ -174,16 +175,54 @@ object Currencies {
 
 object ExpenseCategories {
     const val FOOD = "Food & Dining"
+    const val GROCERIES = "Groceries"
     const val TRANSPORT = "Transport"
     const val SHOPPING = "Shopping"
     const val BILLS = "Bills & Utilities"
     const val ENTERTAINMENT = "Entertainment"
+    const val HEALTH = "Health & Wellness"
+    const val TRAVEL = "Travel"
+    const val EDUCATION = "Education"
     const val OTHER = "Other"
     const val INCOME = "Income"
     const val SETTLEMENT = "Settlement"
 
-    val expenseCategories = listOf(FOOD, TRANSPORT, SHOPPING, BILLS, ENTERTAINMENT, OTHER)
-    val all = listOf(FOOD, TRANSPORT, SHOPPING, BILLS, ENTERTAINMENT, OTHER, INCOME)
+    val expenseCategories = listOf(FOOD, GROCERIES, TRANSPORT, SHOPPING, BILLS, ENTERTAINMENT, HEALTH, TRAVEL, EDUCATION, OTHER)
+    val all = listOf(FOOD, GROCERIES, TRANSPORT, SHOPPING, BILLS, ENTERTAINMENT, HEALTH, TRAVEL, EDUCATION, OTHER, INCOME, SETTLEMENT)
+
+    val subCategoriesMap = mapOf(
+        FOOD to listOf("Restaurants & Cafes", "Fast Food & Takeout", "Coffee & Snacks", "Bars & Drinks"),
+        GROCERIES to listOf("Supermarket", "Farmers Market", "Convenience Store", "Organic & Specialty"),
+        TRANSPORT to listOf("Fuel & Gas", "Public Transit", "Rideshare & Taxi", "Parking & Tolls", "Car Maintenance"),
+        SHOPPING to listOf("Clothing & Apparel", "Electronics & Tech", "Home & Furniture", "Personal Care & Beauty", "General"),
+        BILLS to listOf("Electricity & Gas", "Water", "Internet & Phone", "Rent & Housing", "Subscriptions"),
+        ENTERTAINMENT to listOf("Movies & Shows", "Gaming", "Events & Concerts", "Hobbies & Sports"),
+        HEALTH to listOf("Pharmacy & Medicine", "Doctor & Healthcare", "Fitness & Gym"),
+        TRAVEL to listOf("Flights & Transport", "Hotels & Lodging", "Tours & Activities"),
+        EDUCATION to listOf("Tuition & Courses", "Books & Supplies"),
+        OTHER to listOf("Gifts & Donations", "Pets", "Miscellaneous")
+    )
+
+    fun getEmoji(category: String): String {
+        return when (category) {
+            FOOD -> "🍔"
+            GROCERIES -> "🛒"
+            TRANSPORT -> "🚗"
+            SHOPPING -> "🛍️"
+            BILLS -> "💡"
+            ENTERTAINMENT -> "🎬"
+            HEALTH -> "🏥"
+            TRAVEL -> "✈️"
+            EDUCATION -> "📚"
+            INCOME -> "💰"
+            SETTLEMENT -> "🤝"
+            else -> "📦"
+        }
+    }
+
+    fun getDisplayName(category: String): String {
+        return "${getEmoji(category)} $category"
+    }
 }
 
 object DateUtils {

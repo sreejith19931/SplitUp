@@ -52,12 +52,6 @@ fun CreateGroupScreen(
     val registeredCloudUsers by viewModel.registeredUsers.collectAsState()
     val registeredUserEmails by viewModel.registeredUserEmails.collectAsState()
 
-    LaunchedEffect(Unit) {
-        if (!contactPermissionState.status.isGranted) {
-            contactPermissionState.launchPermissionRequest()
-        }
-    }
-
     val allContacts = remember(contactPermissionState.status.isGranted, registeredCloudUsers, registeredUserEmails, memberSearchQuery) {
         val deviceList = if (contactPermissionState.status.isGranted) {
             SampleContacts.loadDeviceContacts(context)
@@ -67,11 +61,22 @@ fun CreateGroupScreen(
         val deviceEmails = deviceList.map { it.email.lowercase() }.toSet()
         val registeredSet = registeredUserEmails + registeredCloudUsers.map { it.email.lowercase() }
         val visibleCloudUsers = if (memberSearchQuery.isNotBlank()) {
-            registeredCloudUsers
+            registeredCloudUsers.filter {
+                it.name.contains(memberSearchQuery, ignoreCase = true) ||
+                        it.email.contains(memberSearchQuery, ignoreCase = true)
+            }
         } else {
             registeredCloudUsers.filter { it.email.lowercase() in deviceEmails }
         }
-        val combined = (deviceList + visibleCloudUsers).distinctBy { it.email.lowercase() }
+        val deviceListFiltered = if (memberSearchQuery.isNotBlank()) {
+            deviceList.filter {
+                it.name.contains(memberSearchQuery, ignoreCase = true) ||
+                        it.email.contains(memberSearchQuery, ignoreCase = true)
+            }
+        } else {
+            deviceList
+        }
+        val combined = (deviceListFiltered + visibleCloudUsers).distinctBy { it.email.lowercase() }
         combined.map { contact ->
             val isRegistered = contact.isSplitUpMember ||
                     registeredSet.contains(contact.email.lowercase()) ||
@@ -217,6 +222,40 @@ fun CreateGroupScreen(
                         },
                         shape = RoundedCornerShape(12.dp)
                     )
+                }
+            }
+
+            if (!contactPermissionState.status.isGranted) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Rounded.Contacts, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Text("Optional Contacts Access", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        }
+                        Text(
+                            "Grant access to contacts to quickly select friends from your device address book.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        TextButton(
+                            onClick = {
+                                try {
+                                    contactPermissionState.launchPermissionRequest()
+                                } catch (_: Exception) {
+                                    val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = android.net.Uri.fromParts("package", context.packageName, null)
+                                    }
+                                    context.startActivity(intent)
+                                }
+                            }
+                        ) {
+                            Text("Grant Contacts Access")
+                        }
+                    }
                 }
             }
 
@@ -475,7 +514,7 @@ fun CreateGroupScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Rounded.GroupAdd, contentDescription = null)

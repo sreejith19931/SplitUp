@@ -541,13 +541,25 @@ fun ReceiptInteractiveCropView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Crop & Straighten Receipt", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = { autoStraighten() }) {
-                        Text("Rotate 90°", fontSize = 12.sp)
+                Text("Editor", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(
+                        onClick = { autoStraighten() },
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Rotate", fontSize = 12.sp)
                     }
-                    TextButton(onClick = { performAutoCrop() }) {
-                        Text("Auto-Crop", fontSize = 12.sp)
+                    Button(
+                        onClick = { performAutoCrop() },
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Auto Crop", fontSize = 12.sp, maxLines = 1)
                     }
                 }
             }

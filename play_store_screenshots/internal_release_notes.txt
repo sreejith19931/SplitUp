@@ -1,0 +1,21 @@
+=============================================================
+GOOGLE PLAY CONSOLE - RELEASE NOTES (INTERNAL TESTING v1.4)
+=============================================================
+
+Version Name: 1.4
+Version Code: 7
+
+WHAT'S NEW IN THIS RELEASE:
+-------------------------------------------------------------
+Welcome to the official internal testing release of SplitUp! Here is what you can test in this version:
+
+🚀 Initial Release of SplitUp:
+• Shared Group Expense Splitting: Easily create groups for trips, roommates, couples, and dinners with flexible split options.
+• Automated Payment Notification Reader: Optional local notification listener service to automatically parse and suggest expenses from payment alerts.
+• Personal Budgets & Insights: Set monthly category spending limits and monitor your financial health.
+• Receipt OCR Scanner: Scan paper receipts instantly using Google ML Kit camera scanning.
+• Live Multi-Currency Conversion: Real-time exchange rate conversion for multi-national expenses.
+• Secure Cloud & Local Sync: Lightning-fast offline support with Room database and secure Firebase synchronization.
+• Privacy First: Optional biometric lock (Fingerprint / Face ID) and encrypted storage.
+
+Please test all core features and share your feedback with our development team!

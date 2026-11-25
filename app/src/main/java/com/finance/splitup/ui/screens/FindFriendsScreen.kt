@@ -38,12 +38,6 @@ fun FindFriendsScreen(
 
     var searchQuery by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        if (!contactPermissionState.status.isGranted) {
-            contactPermissionState.launchPermissionRequest()
-        }
-    }
-
     val allContacts = remember(contactPermissionState.status.isGranted, registeredCloudUsers, searchQuery) {
         val deviceList = if (contactPermissionState.status.isGranted) {
             SampleContacts.loadDeviceContacts(context)
@@ -52,11 +46,22 @@ fun FindFriendsScreen(
         }
         val deviceEmails = deviceList.map { it.email.lowercase() }.toSet()
         val visibleCloudUsers = if (searchQuery.isNotBlank()) {
-            registeredCloudUsers
+            registeredCloudUsers.filter {
+                it.name.contains(searchQuery, ignoreCase = true) ||
+                        it.email.contains(searchQuery, ignoreCase = true)
+            }
         } else {
             registeredCloudUsers.filter { it.email.lowercase() in deviceEmails }
         }
-        (deviceList + visibleCloudUsers).distinctBy { it.email.lowercase() }
+        val deviceListFiltered = if (searchQuery.isNotBlank()) {
+            deviceList.filter {
+                it.name.contains(searchQuery, ignoreCase = true) ||
+                        it.email.contains(searchQuery, ignoreCase = true)
+            }
+        } else {
+            deviceList
+        }
+        (deviceListFiltered + visibleCloudUsers).distinctBy { it.email.lowercase() }
     }
 
     val contactsWithStatus = remember(allContacts, registeredEmails) {

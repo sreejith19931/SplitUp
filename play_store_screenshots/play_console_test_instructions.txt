@@ -1,0 +1,23 @@
+=============================================================
+GOOGLE PLAY CONSOLE - APP ACCESS / TEST INSTRUCTIONS FOR REVIEWERS
+=============================================================
+
+When setting up "App Access" in the Google Play Console, select:
+"All or some functionality is restricted" (because sign-in is required for cloud sync).
+
+Then, add the following instructions and test credentials:
+
+TEST INSTRUCTIONS:
+-------------------------------------------------------------
+Reviewers have two convenient ways to test the app:
+
+OPTION 1 (Quickest - Guest Mode):
+Open the app and simply tap the "Try SplitUp as Guest" button on the welcome screen. This instantly logs you in as a guest user to test all core UI, expense splitting, budgets, groups, and settings without needing any login credentials.
+
+OPTION 2 (Full Account Login):
+Use the following dedicated test account credentials on the Sign In screen:
+
+• Email Address: playstore.tester@splitup.app
+• Password: SplitUpTestPassword2026!
+
+(Note: Ensure you create this test user account in your Firebase Auth console beforehand so the login succeeds).

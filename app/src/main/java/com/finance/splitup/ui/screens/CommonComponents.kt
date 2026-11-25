@@ -242,23 +242,32 @@ fun SwipeableItemContainer(
 
 fun getCategoryColor(category: String): Color {
     return when (category) {
-        com.finance.splitup.data.ExpenseCategories.FOOD -> com.finance.splitup.ui.theme.LogoPrimaryBlue // Cobalt Blue
-        com.finance.splitup.data.ExpenseCategories.TRANSPORT -> com.finance.splitup.ui.theme.LogoEmeraldTeal // Emerald Teal
-        com.finance.splitup.data.ExpenseCategories.SHOPPING -> com.finance.splitup.ui.theme.LogoCyan // Cyan
-        com.finance.splitup.data.ExpenseCategories.BILLS -> com.finance.splitup.ui.theme.LogoLightBlue // Light Blue
-        com.finance.splitup.data.ExpenseCategories.ENTERTAINMENT -> com.finance.splitup.ui.theme.LogoGold // Gold
-        com.finance.splitup.data.ExpenseCategories.INCOME -> com.finance.splitup.ui.theme.EmeraldSuccess
-        else -> Color(0xFF475569) // Slate
+        com.finance.splitup.data.ExpenseCategories.FOOD -> Color(0xFF2563EB)          // Blue (Food & Dining)
+        com.finance.splitup.data.ExpenseCategories.GROCERIES -> Color(0xFF0D9488)     // Teal (Groceries)
+        com.finance.splitup.data.ExpenseCategories.TRANSPORT -> Color(0xFFD97706)     // Amber (Transport)
+        com.finance.splitup.data.ExpenseCategories.SHOPPING -> Color(0xFF7C3AED)      // Violet (Shopping)
+        com.finance.splitup.data.ExpenseCategories.BILLS -> Color(0xFF0284C7)         // Sky Blue (Bills & Utilities)
+        com.finance.splitup.data.ExpenseCategories.ENTERTAINMENT -> Color(0xFFE11D48) // Rose (Entertainment)
+        com.finance.splitup.data.ExpenseCategories.HEALTH -> Color(0xFFDC2626)        // Crimson Red (Health & Wellness)
+        com.finance.splitup.data.ExpenseCategories.TRAVEL -> Color(0xFF4F46E5)        // Indigo (Travel)
+        com.finance.splitup.data.ExpenseCategories.EDUCATION -> Color(0xFFCA8A04)     // Gold (Education)
+        com.finance.splitup.data.ExpenseCategories.SETTLEMENT -> Color(0xFF0891B2)    // Cyan (Settlement)
+        com.finance.splitup.data.ExpenseCategories.INCOME -> Color(0xFF059669)        // Emerald Green (Income)
+        else -> Color(0xFF475569)                                                     // Slate (Other)
     }
 }
 
 fun getCategoryIcon(category: String): ImageVector {
     return when (category) {
         com.finance.splitup.data.ExpenseCategories.FOOD -> Icons.Rounded.Restaurant
+        com.finance.splitup.data.ExpenseCategories.GROCERIES -> Icons.Rounded.LocalGroceryStore
         com.finance.splitup.data.ExpenseCategories.TRANSPORT -> Icons.Rounded.DirectionsCar
         com.finance.splitup.data.ExpenseCategories.SHOPPING -> Icons.Rounded.ShoppingBag
         com.finance.splitup.data.ExpenseCategories.BILLS -> Icons.AutoMirrored.Rounded.ReceiptLong
         com.finance.splitup.data.ExpenseCategories.ENTERTAINMENT -> Icons.Rounded.Movie
+        com.finance.splitup.data.ExpenseCategories.HEALTH -> Icons.Rounded.LocalHospital
+        com.finance.splitup.data.ExpenseCategories.TRAVEL -> Icons.Rounded.Flight
+        com.finance.splitup.data.ExpenseCategories.EDUCATION -> Icons.Rounded.School
         com.finance.splitup.data.ExpenseCategories.INCOME -> Icons.Rounded.AttachMoney
         else -> Icons.Rounded.Category
     }
@@ -616,6 +625,7 @@ fun ReceiptLineItemsBreakdownView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -636,7 +646,9 @@ fun ReceiptLineItemsBreakdownView(
                     text = "$currencySymbol${String.format(Locale.US, "%.2f", lineItems.sumOf { it.price })}",
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
 

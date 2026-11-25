@@ -37,6 +37,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaul
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import kotlinx.coroutines.tasks.await
 import com.finance.splitup.ui.navigation.*
 import com.finance.splitup.ui.screens.*
 import com.finance.splitup.ui.theme.SplitUpTheme
@@ -68,11 +69,38 @@ class MainActivity : FragmentActivity() {
             var hasCompletedOnboarding by remember(currentUserId) {
                 mutableStateOf(prefs.getBoolean("has_completed_onboarding_$currentUserId", false))
             }
+            var isCheckingCloudOnboarding by remember(currentUserId) {
+                mutableStateOf(currentUserId != "guest" && currentUserId != "local_demo" && !hasCompletedOnboarding)
+            }
+
+            LaunchedEffect(currentUserId) {
+                if (currentUserId != "guest" && currentUserId != "local_demo" && !hasCompletedOnboarding) {
+                    isCheckingCloudOnboarding = true
+                    try {
+                        val userDoc = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                            .collection("users")
+                            .document(currentUserId)
+                            .get()
+                            .await()
+                        if (userDoc.exists() && (userDoc.getBoolean("isOnboardingCompleted") == true || userDoc.getBoolean("has_completed_onboarding") == true)) {
+                            prefs.edit()
+                                .putBoolean("has_completed_onboarding_$currentUserId", true)
+                                .putBoolean("has_completed_onboarding", true)
+                                .apply()
+                            hasCompletedOnboarding = true
+                        }
+                    } catch (_: Exception) {}
+                    isCheckingCloudOnboarding = false
+                } else {
+                    isCheckingCloudOnboarding = false
+                }
+            }
 
             LaunchedEffect(authState) {
                 when (authState) {
                     is com.finance.splitup.viewmodel.AuthState.Authenticated -> {
                         viewModel.triggerCloudSync()
+                        com.finance.splitup.data.SplitUpMessagingService.uploadTokenToFirestore()
                     }
                     is com.finance.splitup.viewmodel.AuthState.Unauthenticated -> {
                         viewModel.clearLocalDataOnSignOut()
@@ -85,7 +113,19 @@ class MainActivity : FragmentActivity() {
                 when (val state = authState) {
                     is com.finance.splitup.viewmodel.AuthState.LocalDemo,
                     is com.finance.splitup.viewmodel.AuthState.Authenticated -> {
-                        if (!hasCompletedOnboarding) {
+                        if (isCheckingCloudOnboarding) {
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = MaterialTheme.colorScheme.background
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        } else if (!hasCompletedOnboarding) {
                             OnboardingSetupScreen(
                                 viewModel = viewModel,
                                 onSetupComplete = {
@@ -188,6 +228,20 @@ fun SplitUpApp(
         )
 
         com.finance.splitup.data.CloudSyncManager.startListeningForIncomingNotifications(context)
+
+        val currentUser = try { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser } catch (_: Exception) { null }
+        if (currentUser != null) {
+            try {
+                com.onesignal.OneSignal.login(currentUser.uid)
+                currentUser.email?.let { email ->
+                    if (email.isNotBlank()) {
+                        com.onesignal.OneSignal.User.addEmail(email)
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed initializing OneSignal user identity", e)
+            }
+        }
     }
 
     LaunchedEffect(currentIntent) {
@@ -226,6 +280,7 @@ fun SplitUpApp(
             val title = intent.getStringExtra(com.finance.splitup.data.PaymentNotificationListenerService.EXTRA_DETECTED_TITLE)
             val isIncome = intent.getBooleanExtra(com.finance.splitup.data.PaymentNotificationListenerService.EXTRA_DETECTED_IS_INCOME, false)
             val category = intent.getStringExtra(com.finance.splitup.data.PaymentNotificationListenerService.EXTRA_DETECTED_CATEGORY)
+            val currency = intent.getStringExtra(com.finance.splitup.data.PaymentNotificationListenerService.EXTRA_DETECTED_CURRENCY)
 
             intent.removeExtra(com.finance.splitup.data.PaymentNotificationListenerService.EXTRA_REVIEW_DETECTED_TRANSACTION)
 
@@ -234,7 +289,8 @@ fun SplitUpApp(
                     initialAmount = if (amount > 0) amount else null,
                     initialTitle = title,
                     initialCategory = category,
-                    initialIsIncome = isIncome
+                    initialIsIncome = isIncome,
+                    initialCurrency = currency
                 )
             )
             return@LaunchedEffect
@@ -371,7 +427,21 @@ fun SplitUpApp(
         NavigationSuiteType.None
     }
 
-    NavigationSuiteScaffold(
+    var showDemoTour by remember { mutableStateOf(false) }
+    var currentTourStep by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+        val seenTour = prefs.getBoolean("has_seen_demo_tour", false)
+        val savedStep = prefs.getInt("demo_tour_step", 0)
+        if (!seenTour) {
+            currentTourStep = savedStep
+            showDemoTour = true
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavigationSuiteScaffold(
         layoutType = navLayoutType,
         navigationSuiteItems = {
             if (isTopLevelRoute) {
@@ -885,6 +955,7 @@ fun SplitUpApp(
                             initialTitle = key.initialTitle,
                             initialCategory = key.initialCategory,
                             initialIsIncome = key.initialIsIncome,
+                            initialCurrency = key.initialCurrency,
                             viewModel = viewModel,
                             onBack = {
                                 if (backStack.size > 1) {
@@ -910,6 +981,86 @@ fun SplitUpApp(
         )
       }
     }
+
+    if (showDemoTour) {
+        com.finance.splitup.ui.components.DemoTourOverlay(
+            currentStep = currentTourStep,
+            totalSteps = 5,
+            onNext = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                when (currentTourStep) {
+                    0 -> {
+                        currentTourStep = 1
+                        prefs.edit().putInt("demo_tour_step", 1).apply()
+                    }
+                    1 -> {
+                        currentTourStep = 2
+                        prefs.edit().putInt("demo_tour_step", 2).apply()
+                        backStack.clear()
+                        backStack.add(DashboardRoute)
+                        backStack.add(PersonalExpensesRoute(null))
+                    }
+                    2 -> {
+                        currentTourStep = 3
+                        prefs.edit().putInt("demo_tour_step", 3).apply()
+                        backStack.clear()
+                        backStack.add(DashboardRoute)
+                        backStack.add(GroupsRoute)
+                    }
+                    3 -> {
+                        currentTourStep = 4
+                        prefs.edit().putInt("demo_tour_step", 4).apply()
+                        backStack.clear()
+                        backStack.add(DashboardRoute)
+                        backStack.add(SettingsRoute)
+                    }
+                    4 -> {
+                        prefs.edit().putBoolean("has_seen_demo_tour", true).remove("demo_tour_step").apply()
+                        showDemoTour = false
+                        backStack.clear()
+                        backStack.add(DashboardRoute)
+                    }
+                }
+            },
+            onBack = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                when (currentTourStep) {
+                    1 -> {
+                        currentTourStep = 0
+                        prefs.edit().putInt("demo_tour_step", 0).apply()
+                    }
+                    2 -> {
+                        currentTourStep = 1
+                        prefs.edit().putInt("demo_tour_step", 1).apply()
+                        backStack.clear()
+                        backStack.add(DashboardRoute)
+                    }
+                    3 -> {
+                        currentTourStep = 2
+                        prefs.edit().putInt("demo_tour_step", 2).apply()
+                        backStack.clear()
+                        backStack.add(DashboardRoute)
+                        backStack.add(PersonalExpensesRoute(null))
+                    }
+                    4 -> {
+                        currentTourStep = 3
+                        prefs.edit().putInt("demo_tour_step", 3).apply()
+                        backStack.clear()
+                        backStack.add(DashboardRoute)
+                        backStack.add(GroupsRoute)
+                    }
+                }
+            },
+            onSkip = {
+                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                prefs.edit().putBoolean("has_seen_demo_tour", true).remove("demo_tour_step").apply()
+                showDemoTour = false
+                backStack.clear()
+                backStack.add(DashboardRoute)
+            }
+        )
+    }
+}
 }
 
 fun hashSecurityPin(pin: String): String {

@@ -541,8 +541,11 @@ object CloudSyncManager {
 
                 if (repository != null) {
                     if (context != null) {
-                        val prefs = context.getSharedPreferences("splitup_prefs", Context.MODE_PRIVATE)
-                        val lastUid = prefs.getString("last_sync_uid", null)
+                    // Use the plain sync-prefs file: splitup_prefs is EncryptedSharedPreferences
+                    // (encrypted key/value format) and must never be read or written with
+                    // plain SharedPreferences — mixing corrupts the file and triggers wipes.
+                    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    val lastUid = prefs.getString("last_sync_uid", null)
                         if (lastUid != null && lastUid != uid) {
                             repository.clearAllLocalData()
                             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()

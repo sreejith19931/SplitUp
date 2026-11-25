@@ -138,9 +138,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 val result = firebaseAuth.signInWithCredential(credential).await()
                 val user = result.user
                 if (user != null) {
-                    val app = getApplication<Application>()
-                    app.getSharedPreferences("splitup_prefs", android.content.Context.MODE_PRIVATE)
-                        .edit().putString("last_user_email", user.email).apply()
                     try {
                         val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                         val userMap = mutableMapOf<String, Any>("lastActive" to java.util.Date())
@@ -180,9 +177,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 val result = firebaseAuth.signInWithEmailAndPassword(email.trim(), pass).await()
                 val user = result.user
                 if (user != null) {
-                    val app = getApplication<Application>()
-                    app.getSharedPreferences("splitup_prefs", android.content.Context.MODE_PRIVATE)
-                        .edit().putString("last_user_email", user.email).apply()
                     try {
                         val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                         val userMap = mutableMapOf<String, Any>("lastActive" to java.util.Date())

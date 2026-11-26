@@ -16,6 +16,7 @@ data class DashboardUiData(
     val selectedDateRange: String = "This Month",
     val totalSpent: Double = 0.0,
     val totalIncome: Double = 0.0,
+    val totalInvestments: Double = 0.0,
     val netCashFlow: Double = 0.0,
     val netGroupOwed: Double = 0.0,
     val netGroupOwes: Double = 0.0,

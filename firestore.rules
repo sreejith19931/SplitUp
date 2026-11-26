@@ -48,6 +48,16 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && uid() == userId;
     }
 
+    // Public lookup documents for contact matching / member-uid resolution,
+    // keyed by the user's lowercase email. Bounded public surface (name, email,
+    // payment handles) so clients never need to scan the users collection.
+    match /user_lookup/{emailId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() == emailId;
+    }
+
     // ---------- Shared groups ----------
 
     match /groups/{groupId} {

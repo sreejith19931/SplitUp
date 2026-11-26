@@ -164,9 +164,9 @@ fun GroupsScreen(
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            contentPadding = PaddingValues(bottom = 32.dp)
+                                .padding(horizontal = 10.dp, vertical = 2.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            contentPadding = PaddingValues(bottom = 24.dp)
                         ) {
                             item {
                                 val currencySymbol = com.finance.splitup.data.Currencies.getSymbol(viewModel.defaultCurrency)
@@ -183,7 +183,7 @@ fun GroupsScreen(
                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(14.dp),
+                                        modifier = Modifier.padding(10.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Surface(

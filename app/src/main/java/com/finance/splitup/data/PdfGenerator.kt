@@ -171,7 +171,8 @@ object PdfGenerator {
     fun generateFullAppSummaryPdf(
         context: Context,
         expenses: List<Expense>,
-        groups: List<Group>
+        groups: List<Group>,
+        investments: List<com.finance.splitup.data.db.InvestmentEntity> = emptyList()
     ): File? {
         return try {
             val pdfDocument = PdfDocument()
@@ -245,6 +246,44 @@ object PdfGenerator {
                 val sym = Currencies.getSymbol(exp.currency)
                 canvas.drawText("$sym${String.format(Locale.US, "%.2f", exp.amount)}", 470f, y + 15f, bodyPaint)
                 y += 22f
+            }
+
+            if (investments.isNotEmpty()) {
+                y += 20f
+                if (y > 700f) {
+                    pdfDocument.finishPage(page)
+                    pageNumber++
+                    pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
+                    page = pdfDocument.startPage(pageInfo)
+                    canvas = page.canvas
+                    drawHeader(canvas)
+                    y = 100f
+                }
+                canvas.drawText("2. INVESTMENT PORTFOLIO (${investments.size})", 40f, y, sectionPaint)
+                y += 20f
+
+                for ((index, inv) in investments.withIndex()) {
+                    if (y > 730f) {
+                        pdfDocument.finishPage(page)
+                        pageNumber++
+                        pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
+                        page = pdfDocument.startPage(pageInfo)
+                        canvas = page.canvas
+                        drawHeader(canvas)
+                        y = 100f
+                    }
+                    if (index % 2 == 1) {
+                        canvas.drawRect(40f, y, 555f, y + 22f, altBgPaint)
+                    }
+                    canvas.drawRect(40f, y, 555f, y + 22f, borderPaint)
+                    canvas.drawText(inv.title.take(25), 50f, y + 15f, bodyPaint)
+                    val catText = if (inv.brokerOrPlatform.isNotBlank()) "${inv.category} (${inv.brokerOrPlatform})" else inv.category
+                    canvas.drawText(catText.take(22), 220f, y + 15f, bodyPaint)
+                    canvas.drawText(DateUtils.formatDisplayDate(inv.date, inv.updatedAt).take(12), 350f, y + 15f, bodyPaint)
+                    val sym = Currencies.getSymbol(inv.currency)
+                    canvas.drawText("$sym${String.format(Locale.US, "%.2f", inv.amount)}", 470f, y + 15f, bodyPaint)
+                    y += 22f
+                }
             }
 
             y += 20f

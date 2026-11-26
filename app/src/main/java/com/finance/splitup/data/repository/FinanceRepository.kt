@@ -7,6 +7,7 @@ import com.finance.splitup.data.db.ExpenseEntity
 import com.finance.splitup.data.db.FinanceDao
 import com.finance.splitup.data.db.GroupEntity
 import com.finance.splitup.data.db.IncomeEntity
+import com.finance.splitup.data.db.InvestmentEntity
 import com.finance.splitup.data.db.RecurringExpenseEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -14,7 +15,9 @@ import kotlinx.coroutines.flow.map
 interface FinanceRepository {
     fun getAllExpenses(): Flow<List<Expense>>
     suspend fun getExpenseCount(): Int
+    suspend fun getExpenseById(id: String): Expense?
     suspend fun insertExpense(expense: Expense)
+    suspend fun insertExpenseClean(expense: Expense)
     suspend fun deleteExpense(id: String)
 
     fun getAllGroups(): Flow<List<Group>>
@@ -44,11 +47,22 @@ interface FinanceRepository {
 
     fun getAllIncomes(): Flow<List<IncomeEntity>>
     suspend fun getIncomeCount(): Int
+    suspend fun getIncomeById(id: String): IncomeEntity?
     suspend fun insertIncome(income: IncomeEntity)
+    suspend fun insertIncomeClean(income: IncomeEntity)
     suspend fun deleteIncome(id: String)
 
+    fun getAllInvestments(): Flow<List<InvestmentEntity>>
+    suspend fun getInvestmentCount(): Int
+    suspend fun getInvestmentById(id: String): InvestmentEntity?
+    suspend fun insertInvestment(investment: InvestmentEntity)
+    suspend fun insertInvestmentClean(investment: InvestmentEntity)
+    suspend fun deleteInvestment(id: String)
+
     fun getAllRecurringExpenses(): Flow<List<RecurringExpenseEntity>>
+    suspend fun getRecurringExpenseById(id: String): RecurringExpenseEntity?
     suspend fun upsertRecurringExpense(recurring: RecurringExpenseEntity)
+    suspend fun upsertRecurringExpenseClean(recurring: RecurringExpenseEntity)
     suspend fun deleteRecurringExpense(id: String)
 
     suspend fun getDirtyExpenses(): List<ExpenseEntity>
@@ -57,6 +71,8 @@ interface FinanceRepository {
     suspend fun markGroupsClean(ids: List<String>)
     suspend fun getDirtyIncomes(): List<IncomeEntity>
     suspend fun markIncomesClean(ids: List<String>)
+    suspend fun getDirtyInvestments(): List<InvestmentEntity>
+    suspend fun markInvestmentsClean(ids: List<String>)
     suspend fun getDirtyRecurringExpenses(): List<RecurringExpenseEntity>
     suspend fun markRecurringExpensesClean(ids: List<String>)
     suspend fun getDirtyBudgets(): List<BudgetEntity>
@@ -78,6 +94,14 @@ class OfflineFirstFinanceRepository(private val dao: FinanceDao) : FinanceReposi
 
     override suspend fun insertExpense(expense: Expense) {
         dao.insertExpense(ExpenseEntity.fromDomain(expense, isDirty = true))
+    }
+
+    override suspend fun getExpenseById(id: String): Expense? {
+        return dao.getExpenseById(id)?.toDomain()
+    }
+
+    override suspend fun insertExpenseClean(expense: Expense) {
+        dao.insertExpense(ExpenseEntity.fromDomain(expense, isDirty = false))
     }
 
     override suspend fun deleteExpense(id: String) {
@@ -176,8 +200,41 @@ class OfflineFirstFinanceRepository(private val dao: FinanceDao) : FinanceReposi
         dao.insertIncome(income.copy(updatedAt = System.currentTimeMillis(), isDirty = true))
     }
 
+    override suspend fun getIncomeById(id: String): IncomeEntity? {
+        return dao.getIncomeById(id)
+    }
+
+    /** Pull-path insert: keeps the cloud updatedAt and marks clean (no re-push churn). */
+    override suspend fun insertIncomeClean(income: IncomeEntity) {
+        dao.insertIncome(income.copy(isDirty = false))
+    }
+
     override suspend fun deleteIncome(id: String) {
         dao.deleteIncome(id)
+    }
+
+    override fun getAllInvestments(): Flow<List<InvestmentEntity>> {
+        return dao.getAllInvestments()
+    }
+
+    override suspend fun getInvestmentCount(): Int {
+        return dao.getInvestmentCount()
+    }
+
+    override suspend fun insertInvestment(investment: InvestmentEntity) {
+        dao.insertInvestment(investment.copy(updatedAt = System.currentTimeMillis(), isDirty = true))
+    }
+
+    override suspend fun getInvestmentById(id: String): InvestmentEntity? {
+        return dao.getInvestmentById(id)
+    }
+
+    override suspend fun insertInvestmentClean(investment: InvestmentEntity) {
+        dao.insertInvestment(investment.copy(isDirty = false))
+    }
+
+    override suspend fun deleteInvestment(id: String) {
+        dao.deleteInvestment(id)
     }
 
     override fun getAllRecurringExpenses(): Flow<List<RecurringExpenseEntity>> {
@@ -186,6 +243,15 @@ class OfflineFirstFinanceRepository(private val dao: FinanceDao) : FinanceReposi
 
     override suspend fun upsertRecurringExpense(recurring: RecurringExpenseEntity) {
         dao.upsertRecurringExpense(recurring.copy(updatedAt = System.currentTimeMillis(), isDirty = true))
+    }
+
+    override suspend fun getRecurringExpenseById(id: String): RecurringExpenseEntity? {
+        return dao.getRecurringExpenseById(id)
+    }
+
+    /** Pull-path insert: keeps the cloud updatedAt and marks clean (no re-push churn). */
+    override suspend fun upsertRecurringExpenseClean(recurring: RecurringExpenseEntity) {
+        dao.upsertRecurringExpense(recurring.copy(isDirty = false))
     }
 
     override suspend fun deleteRecurringExpense(id: String) {
@@ -205,6 +271,10 @@ class OfflineFirstFinanceRepository(private val dao: FinanceDao) : FinanceReposi
     override suspend fun getDirtyIncomes(): List<IncomeEntity> = dao.getDirtyIncomes()
     override suspend fun markIncomesClean(ids: List<String>) {
         if (ids.isNotEmpty()) dao.markIncomesClean(ids)
+    }
+    override suspend fun getDirtyInvestments(): List<InvestmentEntity> = dao.getDirtyInvestments()
+    override suspend fun markInvestmentsClean(ids: List<String>) {
+        if (ids.isNotEmpty()) dao.markInvestmentsClean(ids)
     }
 
     override suspend fun getDirtyRecurringExpenses(): List<RecurringExpenseEntity> = dao.getDirtyRecurringExpenses()

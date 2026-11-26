@@ -3,6 +3,7 @@ package com.finance.splitup.data
 import android.content.Context
 import android.util.Log
 import com.finance.splitup.data.db.IncomeEntity
+import com.finance.splitup.data.db.InvestmentEntity
 import com.finance.splitup.data.repository.FinanceRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -13,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -60,6 +62,42 @@ object CloudSyncManager {
             snapshot.documents.map { it.id }.toSet()
         } catch (e: Exception) {
             emptySet()
+        }
+    }
+
+    /**
+     * Writes/updates this user's public lookup document used for contact
+     * matching and member-uid resolution. Keeps a small, bounded surface
+     * (name/email/payment handles) instead of every client scanning the whole
+     * `users` collection, which also contains private sync metadata.
+     */
+    suspend fun updateUserLookup(name: String?, email: String?, handles: Map<String, String> = emptyMap()) {
+        val e = email?.trim()?.lowercase() ?: return
+        if (e.isBlank() || !e.contains("@")) return
+        val db = firestore ?: return
+        try {
+            val doc = mutableMapOf<String, Any>(
+                "uid" to (auth?.currentUser?.uid ?: ""),
+                "email" to e,
+                "updatedAt" to System.currentTimeMillis()
+            )
+            if (!name.isNullOrBlank()) doc["name"] = name
+            handles.forEach { (k, v) -> if (v.isNotBlank()) doc[k] = v }
+            db.collection("user_lookup").document(e)
+                .set(doc, com.google.firebase.firestore.SetOptions.merge())
+                .await()
+        } catch (e2: Exception) {
+            Log.w(TAG, "Failed to update user_lookup for $e", e2)
+        }
+    }
+
+    /** Resolves a member email to their uid via the lookup collection (single-doc get). */
+    suspend fun resolveUidByEmail(db: FirebaseFirestore, email: String): String? {
+        return try {
+            db.collection("user_lookup").document(email.trim().lowercase()).get().await()
+                .getString("uid")?.takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -172,6 +210,14 @@ object CloudSyncManager {
                 batch.set(ref, inc)
             }
 
+            // Push dirty investments
+            val dirtyInvestments = repository.getDirtyInvestments()
+            val investmentIds = dirtyInvestments.map { it.id }
+            for (inv in dirtyInvestments) {
+                val ref = db.collection("users").document(uid).collection("investments").document(inv.id)
+                batch.set(ref, inv)
+            }
+
             // Push dirty groups (filtering out any groups that were deleted)
             val dirtyGroups = repository.getDirtyGroups().filter { !deletedGroupIds.contains(it.id) }
             repository.getDirtyGroups().filter { deletedGroupIds.contains(it.id) }.forEach {
@@ -187,11 +233,25 @@ object CloudSyncManager {
 
                 if (emails.isNotEmpty()) {
                     try {
-                        val usersSnapshot = db.collection("users").get().await()
-                        for (doc in usersSnapshot.documents) {
-                            val userEmail = doc.getString("email")?.lowercase()
-                            if (userEmail != null && emails.contains(userEmail)) {
-                                uids.add(doc.id)
+                        // Resolve member uids via the lookup collection (one doc-get per
+                        // email) instead of scanning the entire users collection.
+                        var allResolved = true
+                        for (email in emails) {
+                            val uidResolved = resolveUidByEmail(db, email)
+                            if (uidResolved != null) {
+                                uids.add(uidResolved)
+                            } else {
+                                allResolved = false
+                            }
+                        }
+                        if (!allResolved) {
+                            // Fallback for members who haven't written a lookup doc yet.
+                            val usersSnapshot = db.collection("users").get().await()
+                            for (doc in usersSnapshot.documents) {
+                                val userEmail = doc.getString("email")?.lowercase()
+                                if (userEmail != null && emails.contains(userEmail)) {
+                                    uids.add(doc.id)
+                                }
                             }
                         }
                     } catch (e: Exception) {
@@ -236,6 +296,7 @@ object CloudSyncManager {
             // Mark local records clean
             if (expenseIds.isNotEmpty()) repository.markExpensesClean(expenseIds)
             if (incomeIds.isNotEmpty()) repository.markIncomesClean(incomeIds)
+            if (investmentIds.isNotEmpty()) repository.markInvestmentsClean(investmentIds)
             if (groupIds.isNotEmpty()) repository.markGroupsClean(groupIds)
             if (budgetCategories.isNotEmpty()) repository.markBudgetsClean(budgetCategories)
             if (recurringIds.isNotEmpty()) repository.markRecurringExpensesClean(recurringIds)
@@ -296,7 +357,15 @@ object CloudSyncManager {
                     try {
                         val exp = doc.toObject(com.finance.splitup.data.db.ExpenseEntity::class.java)
                         if (exp != null) {
-                            repository.insertExpense(exp.toDomain())
+                            val domain = exp.toDomain()
+                            val existing = repository.getExpenseById(exp.id)
+                            // LWW guard: never let an older remote doc clobber a newer local one.
+                            if (existing == null || domain.updatedAt >= existing.updatedAt) {
+                                // Insert clean: preserves the cloud updatedAt and avoids re-push churn.
+                                repository.insertExpenseClean(domain)
+                            } else {
+                                Log.w(TAG, "Kept newer local expense ${exp.id} (local=${existing.updatedAt} > remote=${domain.updatedAt})")
+                            }
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to restore expense ${doc.id}", e)
@@ -315,10 +384,39 @@ object CloudSyncManager {
                     try {
                         val inc = doc.toObject(IncomeEntity::class.java)
                         if (inc != null) {
-                            repository.insertIncome(inc.copy(isDirty = false))
+                            val existing = repository.getIncomeById(inc.id)
+                            if (existing == null || inc.updatedAt >= existing.updatedAt) {
+                                repository.insertIncomeClean(inc)
+                            } else {
+                                Log.w(TAG, "Kept newer local income ${inc.id} (local=${existing.updatedAt} > remote=${inc.updatedAt})")
+                            }
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to restore income ${doc.id}", e)
+                    }
+                }
+
+                // Restore Investments
+                var investmentDocs = if (lastSyncedAt > 0) {
+                    val query = userRef.collection("investments").whereGreaterThan("updatedAt", lastSyncedAt).get().await()
+                    if (query.isEmpty) userRef.collection("investments").get().await() else query
+                } else {
+                    userRef.collection("investments").get().await()
+                }
+
+                for (doc in investmentDocs.documents) {
+                    try {
+                        val inv = doc.toObject(InvestmentEntity::class.java)
+                        if (inv != null) {
+                            val existing = repository.getInvestmentById(inv.id)
+                            if (existing == null || inv.updatedAt >= existing.updatedAt) {
+                                repository.insertInvestmentClean(inv)
+                            } else {
+                                Log.w(TAG, "Kept newer local investment ${inv.id} (local=${existing.updatedAt} > remote=${inv.updatedAt})")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to restore investment ${doc.id}", e)
                     }
                 }
 
@@ -334,7 +432,12 @@ object CloudSyncManager {
                     try {
                         val rec = doc.toObject(com.finance.splitup.data.db.RecurringExpenseEntity::class.java)
                         if (rec != null) {
-                            repository.upsertRecurringExpense(rec.copy(isDirty = false))
+                            val existing = repository.getRecurringExpenseById(rec.id)
+                            if (existing == null || rec.updatedAt >= existing.updatedAt) {
+                                repository.upsertRecurringExpenseClean(rec)
+                            } else {
+                                Log.w(TAG, "Kept newer local recurring expense ${rec.id} (local=${existing.updatedAt} > remote=${rec.updatedAt})")
+                            }
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to restore recurring expense ${doc.id}", e)
@@ -537,6 +640,23 @@ object CloudSyncManager {
                     userMap["name"] = user.displayName!!
                 }
                 userRef.set(userMap, com.google.firebase.firestore.SetOptions.merge()).await()
+
+                // Keep the public lookup doc in sync (name/email/payment handles)
+                // so other clients never need to scan the users collection.
+                try {
+                    val profile = repository?.getUserProfile()?.firstOrNull()
+                    updateUserLookup(
+                        name = userMap["name"] as? String,
+                        email = user.email,
+                        handles = mapOf(
+                            "upiVpa" to (profile?.upiVpa ?: ""),
+                            "paypalHandle" to (profile?.paypalHandle ?: ""),
+                            "venmoHandle" to (profile?.venmoHandle ?: ""),
+                            "revolutHandle" to (profile?.revolutHandle ?: "")
+                        )
+                    )
+                } catch (_: Exception) {}
+
                 SplitUpMessagingService.uploadTokenToFirestore()
 
                 if (repository != null) {
@@ -641,6 +761,40 @@ object CloudSyncManager {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed deleteIncomeFromCloud $incomeId", e)
+        }
+    }
+
+    suspend fun syncInvestmentToCloud(investment: InvestmentEntity) {
+        val user = auth?.currentUser ?: return
+        val db = firestore ?: return
+        try {
+            withTimeout(SYNC_TIMEOUT_MS) {
+                db.collection("users")
+                    .document(user.uid)
+                    .collection("investments")
+                    .document(investment.id)
+                    .set(investment)
+                    .await()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed syncInvestmentToCloud ${investment.id}", e)
+        }
+    }
+
+    suspend fun deleteInvestmentFromCloud(investmentId: String) {
+        val user = auth?.currentUser ?: return
+        val db = firestore ?: return
+        try {
+            withTimeout(SYNC_TIMEOUT_MS) {
+                db.collection("users")
+                    .document(user.uid)
+                    .collection("investments")
+                    .document(investmentId)
+                    .delete()
+                    .await()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed deleteInvestmentFromCloud $investmentId", e)
         }
     }
 

@@ -431,7 +431,8 @@ fun OnboardingSetupScreen(
                                 onClick = {
                                     if (newPinInput.length == 4 && confirmPinInput.length == 4) {
                                         if (newPinInput == confirmPinInput) {
-                                            val hashed = com.finance.splitup.hashSecurityPin(newPinInput)
+                                            val hashed = com.finance.splitup.data.PinSecurity.hash(newPinInput)
+                                                ?: com.finance.splitup.data.PinSecurity.legacyHash(newPinInput)
                                             val sp = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
                                             sp.edit().putString("security_pin_hash", hashed).apply()
                                             enableBiometrics = true

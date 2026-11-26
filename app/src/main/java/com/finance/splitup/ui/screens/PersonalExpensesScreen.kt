@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,6 +41,7 @@ fun PersonalExpensesScreen(
     viewModel: FinanceViewModel,
     initialCategory: String? = null,
     onNavigateToAddExpense: (expenseId: String?, isIncome: Boolean) -> Unit = { _, _ -> },
+    onNavigateToEditInvestment: (String?) -> Unit = {},
     onNavigateToEditExpense: (String) -> Unit = {},
     onNavigateToGlobalSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
@@ -49,15 +51,20 @@ fun PersonalExpensesScreen(
     val expenses by viewModel.expenses.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
     val incomes by viewModel.incomes.collectAsState()
+    val investments by viewModel.investments.collectAsState()
     val recurringExpenses by viewModel.recurringExpenses.collectAsState()
 
+    val isInvestmentRequest = initialCategory?.equals("INVESTMENT", ignoreCase = true) == true || initialCategory?.equals("Investments", ignoreCase = true) == true
     val isIncomeRequest = initialCategory?.equals("INCOME", ignoreCase = true) == true || initialCategory?.equals(ExpenseCategories.INCOME, ignoreCase = true) == true
-    var selectedCategoryFilter by remember { mutableStateOf<String?>(if (isIncomeRequest) null else initialCategory) }
+    var selectedCategoryFilter by remember { mutableStateOf<String?>(if (isIncomeRequest || isInvestmentRequest) null else initialCategory) }
     var selectedDateRange by remember { mutableStateOf("All") }
-    var selectedPersonalTab by remember { mutableIntStateOf(if (isIncomeRequest) 1 else 0) } // 0 = Expenses, 1 = Incomes
+    var selectedPersonalTab by remember { mutableIntStateOf(if (isInvestmentRequest) 2 else if (isIncomeRequest) 1 else 0) } // 0 = Expenses, 1 = Incomes, 2 = Investments
 
     LaunchedEffect(initialCategory) {
-        if (initialCategory?.equals("INCOME", ignoreCase = true) == true || initialCategory?.equals(ExpenseCategories.INCOME, ignoreCase = true) == true) {
+        if (initialCategory?.equals("INVESTMENT", ignoreCase = true) == true || initialCategory?.equals("Investments", ignoreCase = true) == true) {
+            selectedPersonalTab = 2
+            selectedCategoryFilter = null
+        } else if (initialCategory?.equals("INCOME", ignoreCase = true) == true || initialCategory?.equals(ExpenseCategories.INCOME, ignoreCase = true) == true) {
             selectedPersonalTab = 1
             selectedCategoryFilter = null
         } else if (initialCategory != null) {
@@ -109,11 +116,11 @@ fun PersonalExpensesScreen(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Export PDF Report") },
+                                text = { Text("Export Full PDF Statement") },
                                 onClick = {
                                     showMenu = false
                                     try {
-                                        val pdfFile = com.finance.splitup.data.PdfGenerator.generateFullAppSummaryPdf(context, expenses, groups)
+                                        val pdfFile = com.finance.splitup.data.PdfGenerator.generateFullAppSummaryPdf(context, expenses, groups, investments)
                                         if (pdfFile != null) {
                                             viewModel.postSystemNotification(
                                                 "Statement PDF Generated 📄",
@@ -123,11 +130,11 @@ fun PersonalExpensesScreen(
                                             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", pdfFile)
                                             val intent = Intent(Intent.ACTION_SEND).apply {
                                                 type = "application/pdf"
-                                                putExtra(Intent.EXTRA_SUBJECT, "Personal Expenses Report")
+                                                putExtra(Intent.EXTRA_SUBJECT, "Financial Statement PDF")
                                                 putExtra(Intent.EXTRA_STREAM, uri)
                                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                             }
-                                            context.startActivity(Intent.createChooser(intent, "Export Expense Report PDF"))
+                                            context.startActivity(Intent.createChooser(intent, "Export Financial Statement PDF"))
                                         } else {
                                             Toast.makeText(context, "Failed to generate report", Toast.LENGTH_SHORT).show()
                                         }
@@ -138,7 +145,7 @@ fun PersonalExpensesScreen(
                                 leadingIcon = { Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                             )
                             DropdownMenuItem(
-                                text = { Text("Export CSV Report") },
+                                text = { Text("Export Expenses CSV") },
                                 onClick = {
                                     showMenu = false
                                     try {
@@ -156,6 +163,26 @@ fun PersonalExpensesScreen(
                                     }
                                 },
                                 leadingIcon = { Icon(Icons.Rounded.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Export Investments CSV") },
+                                onClick = {
+                                    showMenu = false
+                                    try {
+                                        val csvFile = com.finance.splitup.data.CsvExportImporter.exportInvestmentsToCsv(context, investments)
+                                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", csvFile)
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/csv"
+                                            putExtra(Intent.EXTRA_SUBJECT, "Investments Portfolio CSV")
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(Intent.createChooser(intent, "Export Investments Portfolio CSV"))
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "CSV export error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                leadingIcon = { Icon(Icons.Rounded.TrendingUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                             )
                         }
                     }
@@ -178,9 +205,9 @@ fun PersonalExpensesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 32.dp)
+                .padding(horizontal = 10.dp, vertical = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             item {
                 BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -277,7 +304,7 @@ fun PersonalExpensesScreen(
                     SegmentedButton(
                         selected = selectedPersonalTab == 0,
                         onClick = { selectedPersonalTab = 0 },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
                         icon = {},
                         colors = SegmentedButtonDefaults.colors(
                             activeContainerColor = MaterialTheme.colorScheme.primary,
@@ -287,7 +314,7 @@ fun PersonalExpensesScreen(
                         )
                     ) {
                         Text(
-                            text = "Expenses & Recurring",
+                            text = "Expenses",
                             maxLines = 1,
                             softWrap = false,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -298,7 +325,7 @@ fun PersonalExpensesScreen(
                     SegmentedButton(
                         selected = selectedPersonalTab == 1,
                         onClick = { selectedPersonalTab = 1 },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
                         icon = {},
                         colors = SegmentedButtonDefaults.colors(
                             activeContainerColor = MaterialTheme.colorScheme.primary,
@@ -309,6 +336,27 @@ fun PersonalExpensesScreen(
                     ) {
                         Text(
                             text = "Incomes",
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    SegmentedButton(
+                        selected = selectedPersonalTab == 2,
+                        onClick = { selectedPersonalTab = 2 },
+                        shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                        icon = {},
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = MaterialTheme.colorScheme.primary,
+                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                            inactiveContentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Text(
+                            text = "Investments",
                             maxLines = 1,
                             softWrap = false,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -509,6 +557,135 @@ fun PersonalExpensesScreen(
                                     )
                                     IconButton(onClick = { viewModel.deleteRecurringExpense(recInc.id) }) {
                                         Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete Recurring Income", tint = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (selectedPersonalTab == 2) {
+                // INVESTMENTS TAB
+                item {
+                    val totalInvestmentAmt = remember(investments, viewModel.defaultCurrency) {
+                        investments.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("Total Investments & Assets", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "📈 $currencySymbol${String.format(Locale.US, "%.2f", totalInvestmentAmt)}",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 24.sp
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Portfolio Investments (${investments.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(
+                            onClick = { onNavigateToEditInvestment(null) },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Add Investment", maxLines = 1, softWrap = false)
+                        }
+                    }
+                }
+
+                if (investments.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No investments logged yet. Tap 'Add Investment' above to track stocks, crypto, mutual funds, or real estate.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    items(investments, key = { it.id }) { inv ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onNavigateToEditInvestment(inv.id) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        modifier = Modifier.size(44.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                com.finance.splitup.data.InvestmentCategories.getEmoji(inv.category),
+                                                fontSize = 20.sp
+                                            )
+                                        }
+                                    }
+                                    Column {
+                                        Text(inv.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        val subtitle = inv.category + (if (inv.brokerOrPlatform.isNotBlank()) " • ${inv.brokerOrPlatform}" else "")
+                                        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                    }
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = "${Currencies.getSymbol(inv.currency)}${String.format(Locale.US, "%.2f", inv.amount)}",
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontSize = 16.sp
+                                    )
+                                    IconButton(onClick = { viewModel.deleteInvestment(inv.id) }) {
+                                        Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete Investment", tint = MaterialTheme.colorScheme.error)
                                     }
                                 }
                             }

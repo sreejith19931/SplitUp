@@ -5,6 +5,29 @@ All notable changes to the SplitUp app will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.spec/v1.0.0.html).
 
+## [1.5-alpha] - 2026-11-25
+
+### Added
+- **Investments & Assets Tracking:**
+  - New `InvestmentEntity` (Room v23) with categories (Stocks, Mutual Funds, Crypto, Real Estate, Provident Fund, Gold, Bonds), broker/platform, and BUY/SELL/DIVIDEND_RETURN transaction types.
+  - Full add/edit/delete with cloud sync, delta sync, and LWW conflict guards.
+  - Personal Expenses screen: dedicated Investments tab with portfolio total and per-asset cards (tap to edit).
+  - Dashboard "Investments & Assets" summary card; Insights "Portfolio Asset Allocation" breakdown; Investments CSV export and full-app-summary PDF section.
+- **Replay Interactive Product Tour** button in About screen.
+
+### Fixed
+- Pull-path LWW guards for expenses/incomes/recurring/investments: older remote records can no longer clobber newer local edits.
+- Pulled incomes/recurring/investments now insert clean (no timestamp bump) — eliminates the re-push echo every sync cycle.
+- "Add Investment" button on the Investments tab now opens the Investment form (previously opened the Expense form).
+- Centralized large-amount notification thresholds (income €200, expense €200, investment €500 EUR-equivalent).
+- Settings row labels wrap to two lines instead of clipping under large system fonts.
+- Demo tour scrim now blocks touches on background content and navigation bar; system back is owned by the tour; step badge centered above the highlighted target.
+- Live FX rates persist across restarts (no more hardcoded-rate balances before first refresh); migrated to `api.frankfurter.dev`.
+- Notification-shade Approve/Decline moved to WorkManager with an owner re-verification guard (no more 10s broadcast-window risk).
+- PIN hashing upgraded to salted PBKDF2 (transparent migration from legacy unsalted SHA-256 on next successful unlock).
+- CSV export neutralizes spreadsheet formula injection (=, +, -, @ prefixes).
+- `user_lookup` collection replaces full `users` collection scans for contact matching and member-uid resolution.
+
 ## [1.4] - 2026-11-15
 
 ### Added

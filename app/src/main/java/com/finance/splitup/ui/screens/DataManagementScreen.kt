@@ -120,17 +120,27 @@ fun DataManagementScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Rounded.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Cloud Sync Status", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Rounded.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Text(
-                                text = if (hasUnsyncedChanges) "⚠️ Unsynced changes pending" else "✨ All changes synced to cloud",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (hasUnsyncedChanges) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                text = "Cloud Sync Status",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
                         OutlinedButton(
@@ -151,19 +161,26 @@ fun DataManagementScreen(
                                 }
                             },
                             enabled = !isSyncingNow,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             if (isSyncingNow) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Syncing")
+                                Text("Syncing", fontSize = 12.sp, maxLines = 1)
                             } else {
                                 Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Sync Now")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Sync Now", fontSize = 12.sp, maxLines = 1)
                             }
                         }
                     }
+                    Text(
+                        text = if (hasUnsyncedChanges) "⚠️ Unsynced changes pending" else "✨ All changes synced to cloud",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (hasUnsyncedChanges) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        fontSize = 12.sp
+                    )
                 }
             }
             // Data Exports & Backup Card

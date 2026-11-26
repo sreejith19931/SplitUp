@@ -33,6 +33,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 @Composable
 fun AddExpenseScreen(
     expenseId: String? = null,
+    investmentId: String? = null,
     initialAmount: Double? = null,
     initialTitle: String? = null,
     initialCategory: String? = null,
@@ -44,15 +45,17 @@ fun AddExpenseScreen(
 ) {
     val expenses by viewModel.expenses.collectAsState()
     val existingExpense = remember(expenses, expenseId) { expenses.find { it.id == expenseId } }
+    val investments by viewModel.investments.collectAsState()
+    val existingInvestment = remember(investments, investmentId) { investments.find { it.id == investmentId } }
 
-    var title by rememberSaveable { mutableStateOf(existingExpense?.title ?: initialTitle ?: viewModel.currentExtractedReceipt?.merchantName ?: "") }
-    var amount by rememberSaveable { mutableStateOf(existingExpense?.amount?.let { formatInputNumber(it) } ?: initialAmount?.let { formatInputNumber(it) } ?: viewModel.currentExtractedReceipt?.totalAmount?.let { formatInputNumber(it) } ?: "") }
-    var selectedCategory by rememberSaveable { mutableStateOf(existingExpense?.category ?: initialCategory ?: ExpenseCategories.FOOD) }
-    var selectedCurrency by rememberSaveable { mutableStateOf(existingExpense?.currency ?: initialCurrency ?: viewModel.currentExtractedReceipt?.currency ?: viewModel.defaultCurrency) }
+    var title by rememberSaveable { mutableStateOf(existingExpense?.title ?: existingInvestment?.title ?: initialTitle ?: viewModel.currentExtractedReceipt?.merchantName ?: "") }
+    var amount by rememberSaveable { mutableStateOf(existingExpense?.amount?.let { formatInputNumber(it) } ?: existingInvestment?.amount?.let { formatInputNumber(it) } ?: initialAmount?.let { formatInputNumber(it) } ?: viewModel.currentExtractedReceipt?.totalAmount?.let { formatInputNumber(it) } ?: "") }
+    var selectedCategory by rememberSaveable { mutableStateOf(existingExpense?.category ?: existingInvestment?.category ?: initialCategory ?: ExpenseCategories.FOOD) }
+    var selectedCurrency by rememberSaveable { mutableStateOf(existingExpense?.currency ?: existingInvestment?.currency ?: initialCurrency ?: viewModel.currentExtractedReceipt?.currency ?: viewModel.defaultCurrency) }
     val currencySymbol = remember(selectedCurrency) { Currencies.getSymbol(selectedCurrency) }
-    var description by rememberSaveable { mutableStateOf(existingExpense?.description ?: "") }
+    var description by rememberSaveable { mutableStateOf(existingExpense?.description ?: existingInvestment?.description ?: "") }
     var paidBy by rememberSaveable { mutableStateOf(existingExpense?.paidBy ?: "You") }
-    var expenseDate by rememberSaveable { mutableStateOf(existingExpense?.date ?: "Today") }
+    var expenseDate by rememberSaveable { mutableStateOf(existingExpense?.date ?: existingInvestment?.date ?: "Today") }
     var selectedPaymentMethod by rememberSaveable { mutableStateOf(existingExpense?.paymentMethod ?: com.finance.splitup.data.PaymentMethods.CASH) }
     var expandedCategoryDropdown by remember { mutableStateOf(false) }
     var expandedCurrencyDropdown by remember { mutableStateOf(false) }
@@ -60,7 +63,20 @@ fun AddExpenseScreen(
     var isSubmitting by remember { mutableStateOf(false) }
 
     var isCategoryManuallySelected by rememberSaveable { mutableStateOf(existingExpense != null || initialCategory != null) }
-    var isIncome by rememberSaveable { mutableStateOf(initialIsIncome) }
+    var entryType by rememberSaveable {
+        mutableStateOf(
+            when {
+                existingInvestment != null -> "Investment"
+                initialCategory?.equals("INVESTMENT", ignoreCase = true) == true || initialCategory?.equals("Investments", ignoreCase = true) == true -> "Investment"
+                initialIsIncome -> "Income"
+                else -> "Expense"
+            }
+        )
+    }
+    val isIncome = entryType == "Income"
+    val isInvestment = entryType == "Investment"
+    var brokerOrPlatform by rememberSaveable { mutableStateOf(existingInvestment?.brokerOrPlatform ?: "") }
+    var investmentType by rememberSaveable { mutableStateOf(existingInvestment?.transactionType ?: "BUY") }
     var selectedSubCategory by rememberSaveable { mutableStateOf("") }
     var isRecurring by rememberSaveable { mutableStateOf(false) }
     var recurringFrequency by rememberSaveable { mutableStateOf("Monthly") }
@@ -75,7 +91,7 @@ fun AddExpenseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isIncome) (if (existingExpense != null) "Edit Income" else "Add Income") else (if (existingExpense != null) "Edit Personal Expense" else "Add Personal Expense"), fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text(if (isInvestment) (if (existingInvestment != null) "Edit Investment" else "Add Investment") else if (isIncome) (if (existingExpense != null) "Edit Income" else "Add Income") else (if (existingExpense != null) "Edit Personal Expense" else "Add Personal Expense"), fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -91,36 +107,56 @@ fun AddExpenseScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .imePadding()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text("Entry Type", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                SingleChoiceSegmentedButtonRow {
-                    SegmentedButton(
-                        selected = !isIncome,
-                        onClick = { isIncome = false },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                    ) {
-                        Text("Expense")
-                    }
-                    SegmentedButton(
-                        selected = isIncome,
-                        onClick = { isIncome = true },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                    ) {
-                        Text("Income")
+                Text("Entry Type", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val entryOptions = listOf("Expense", "Income", "Investment")
+                    entryOptions.forEach { option ->
+                        val isSelected = entryType == option
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                entryType = option
+                                selectedCategory = when (option) {
+                                    "Expense" -> ExpenseCategories.FOOD
+                                    "Income" -> ExpenseCategories.INCOME
+                                    else -> com.finance.splitup.data.InvestmentCategories.STOCKS
+                                }
+                            },
+                            label = {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = option,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 12.sp,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
                     }
                 }
             }
             Surface(
                 onClick = onNavigateToScanner,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 tonalElevation = 2.dp
@@ -128,7 +164,7 @@ fun AddExpenseScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
@@ -181,9 +217,9 @@ fun AddExpenseScreen(
                         selectedCategory = detectCategoryFromTitle(it)
                     }
                 },
-                label = { Text(if (isIncome) "Income Title (e.g. Salary)" else "Expense Title (e.g. Grocery)") },
+                label = { Text(if (isInvestment) "Asset Title (e.g. Apple Stock, Vanguard ETF)" else if (isIncome) "Income Title (e.g. Salary)" else "Expense Title (e.g. Grocery)") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 singleLine = true,
                 isError = errorMessage != null && title.isBlank()
             )
@@ -245,7 +281,7 @@ fun AddExpenseScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 OutlinedTextField(
                     value = amount,
@@ -255,7 +291,7 @@ fun AddExpenseScreen(
                     },
                     label = { Text("Amount") },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = errorMessage != null && amount.parseAmount() <= 0
@@ -265,18 +301,19 @@ fun AddExpenseScreen(
                 ExposedDropdownMenuBox(
                     expanded = expandedCurrencyDropdown,
                     onExpandedChange = { expandedCurrencyDropdown = it },
-                    modifier = Modifier.widthIn(min = 125.dp, max = 160.dp)
+                    modifier = Modifier.widthIn(min = 135.dp, max = 175.dp)
                 ) {
                     OutlinedTextField(
                         value = "${Currencies.getFlag(selectedCurrency)} $selectedCurrency",
                         onValueChange = {},
                         readOnly = true,
+                        singleLine = true,
                         label = { Text("Currency") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCurrencyDropdown) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
                     ExposedDropdownMenu(
                         expanded = expandedCurrencyDropdown,
@@ -330,7 +367,81 @@ fun AddExpenseScreen(
 
             // Category dropdown menu
             val budgets by viewModel.budgets.collectAsState()
-            if (!isIncome) {
+            if (isInvestment) {
+                ExposedDropdownMenuBox(
+                    expanded = expandedCategoryDropdown,
+                    onExpandedChange = { expandedCategoryDropdown = it }
+                ) {
+                    OutlinedTextField(
+                        value = com.finance.splitup.data.InvestmentCategories.getDisplayName(selectedCategory),
+                        onValueChange = {},
+                        readOnly = true,
+                        singleLine = true,
+                        label = { Text("Asset Category") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoryDropdown) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedCategoryDropdown,
+                        onDismissRequest = { expandedCategoryDropdown = false }
+                    ) {
+                        com.finance.splitup.data.InvestmentCategories.all.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(com.finance.splitup.data.InvestmentCategories.getDisplayName(category)) },
+                                onClick = {
+                                    selectedCategory = category
+                                    expandedCategoryDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = brokerOrPlatform,
+                    onValueChange = { brokerOrPlatform = it },
+                    label = { Text("Broker / Platform (e.g. Robinhood, Fidelity, Binance)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("Transaction Type", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = investmentType == "BUY",
+                            onClick = { investmentType = "BUY" },
+                            label = { Text("📈 Buy / Contribution", fontSize = 12.sp) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        FilterChip(
+                            selected = investmentType == "SELL",
+                            onClick = { investmentType = "SELL" },
+                            label = { Text("📉 Sell / Withdrawal", fontSize = 12.sp) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        FilterChip(
+                            selected = investmentType == "DIVIDEND_RETURN",
+                            onClick = { investmentType = "DIVIDEND_RETURN" },
+                            label = { Text("💰 Dividend / Return", fontSize = 12.sp) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+                }
+            } else if (!isIncome) {
                 ExposedDropdownMenuBox(
                     expanded = expandedCategoryDropdown,
                     onExpandedChange = { expandedCategoryDropdown = it }
@@ -339,12 +450,13 @@ fun AddExpenseScreen(
                         value = ExpenseCategories.getDisplayName(selectedCategory),
                         onValueChange = {},
                         readOnly = true,
+                        singleLine = true,
                         label = { Text("Category") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoryDropdown) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
                     ExposedDropdownMenu(
                         expanded = expandedCategoryDropdown,
@@ -667,7 +779,34 @@ fun AddExpenseScreen(
                             description
                         }
 
-                        if (isIncome) {
+                        if (isInvestment) {
+                            val existingInv = existingInvestment
+                            if (existingInv != null) {
+                                viewModel.updateInvestment(
+                                    existingInv.copy(
+                                        title = title,
+                                        amount = amt,
+                                        category = selectedCategory,
+                                        brokerOrPlatform = brokerOrPlatform,
+                                        transactionType = investmentType,
+                                        currency = selectedCurrency,
+                                        date = finalDate,
+                                        description = finalDescription.ifBlank { "Investment Asset" }
+                                    )
+                                )
+                            } else {
+                                viewModel.addInvestment(
+                                    title = title,
+                                    amount = amt,
+                                    category = selectedCategory,
+                                    brokerOrPlatform = brokerOrPlatform,
+                                    transactionType = investmentType,
+                                    currency = selectedCurrency,
+                                    date = finalDate,
+                                    description = finalDescription.ifBlank { "Investment Asset" }
+                                )
+                            }
+                        } else if (isIncome) {
                             viewModel.addExpense(
                                 title = title,
                                 amount = amt,
@@ -733,7 +872,7 @@ fun AddExpenseScreen(
                 Icon(Icons.Rounded.Check, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isIncome) (if (existingExpense != null) "Save Income" else "Add Income") else (if (existingExpense != null) "Save Changes" else "Save Expense"),
+                    text = if (isInvestment) (if (existingInvestment != null) "Save Investment" else "Add Investment") else if (isIncome) (if (existingExpense != null) "Save Income" else "Add Income") else (if (existingExpense != null) "Save Changes" else "Save Expense"),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )

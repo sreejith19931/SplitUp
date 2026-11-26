@@ -91,16 +91,15 @@ fun SettingsScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 32.dp)
+                    .padding(horizontal = 10.dp, vertical = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
             ) {
                 item {
                     // User Profile Card
                     Card(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .tourTarget(TourHighlightArea.SETTINGS_PREFERENCES),
+                            .fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
@@ -109,7 +108,7 @@ fun SettingsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
@@ -131,24 +130,31 @@ fun SettingsScreen(
                                 Text(text = userName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                 Text(text = userEmail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                                 Spacer(modifier = Modifier.height(10.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                                     Button(
                                         onClick = onNavigateToEditProfile,
                                         enabled = !isGuest,
                                         modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
-                                            Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                                            Text("Edit Profile", fontSize = 13.sp)
+                                            Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Text(
+                                                text = "Edit Profile",
+                                                fontSize = 12.sp,
+                                                maxLines = 2,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                            )
                                         }
                                     }
                                     Button(
                                         onClick = { showProfileQrDialog = true },
                                         modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
                                         shape = RoundedCornerShape(10.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = MaterialTheme.colorScheme.secondary,
@@ -157,10 +163,17 @@ fun SettingsScreen(
                                     ) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
-                                            Icon(Icons.Rounded.QrCode, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                                            Text("My QR Code", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                            Icon(Icons.Rounded.QrCode, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                            Text(
+                                                text = "My QR Code",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 2,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                            )
                                         }
                                     }
                                 }
@@ -172,7 +185,9 @@ fun SettingsScreen(
                 item {
                     // Preferences & General Card
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .tourTarget(TourHighlightArea.SETTINGS_PREFERENCES),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -180,8 +195,8 @@ fun SettingsScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text("Preferences & General", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
 
@@ -191,7 +206,11 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     Icon(Icons.Rounded.CurrencyExchange, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                     Text("Default Currency", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                 }
@@ -199,9 +218,16 @@ fun SettingsScreen(
                                 Box {
                                     OutlinedButton(
                                         onClick = { expandedCurrencyDropdown = true },
-                                        shape = RoundedCornerShape(12.dp)
+                                        shape = RoundedCornerShape(12.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                                     ) {
-                                        Text("${Currencies.getFlag(viewModel.defaultCurrency)} ${viewModel.defaultCurrency}")
+                                        Text(
+                                            text = "${Currencies.getFlag(viewModel.defaultCurrency)} ${viewModel.defaultCurrency}",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 2,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
                                     }
                                     DropdownMenu(
                                         expanded = expandedCurrencyDropdown,
@@ -228,43 +254,53 @@ fun SettingsScreen(
                             }
                             var isRefreshingRates by remember { mutableStateOf(false) }
 
-                            Row(
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Live Exchange Rates", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text("Last synced: $formattedTime", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                OutlinedButton(
-                                    onClick = {
-                                        isRefreshingRates = true
-                                        scope.launch {
-                                            try {
-                                                com.finance.splitup.data.CurrencyApiService.updateLiveRates()
-                                                Toast.makeText(context, "Live exchange rates updated successfully!", Toast.LENGTH_SHORT).show()
-                                            } catch (_: Exception) {
-                                                Toast.makeText(context, "Failed to update rates. Check internet connection.", Toast.LENGTH_SHORT).show()
-                                            } finally {
-                                                isRefreshingRates = false
-                                            }
-                                        }
-                                    },
-                                    enabled = !isRefreshingRates,
-                                    shape = RoundedCornerShape(12.dp)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    if (isRefreshingRates) {
-                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Updating...")
-                                    } else {
-                                        Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Refresh")
+                                    Text(
+                                        text = "Live Exchange Rates",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 2,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                    OutlinedButton(
+                                        onClick = {
+                                            isRefreshingRates = true
+                                            scope.launch {
+                                                try {
+                                                    com.finance.splitup.data.CurrencyApiService.updateLiveRates()
+                                                    Toast.makeText(context, "Live exchange rates updated successfully!", Toast.LENGTH_SHORT).show()
+                                                } catch (_: Exception) {
+                                                    Toast.makeText(context, "Failed to update rates. Check internet connection.", Toast.LENGTH_SHORT).show()
+                                                } finally {
+                                                    isRefreshingRates = false
+                                                }
+                                            }
+                                        },
+                                        enabled = !isRefreshingRates,
+                                        shape = RoundedCornerShape(12.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        if (isRefreshingRates) {
+                                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("Updating...", fontSize = 12.sp, maxLines = 1)
+                                        } else {
+                                            Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Refresh", fontSize = 12.sp, maxLines = 1)
+                                        }
                                     }
                                 }
+                                Text("Last synced: $formattedTime", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
 
                             // Common Currency Rates display
@@ -328,7 +364,7 @@ fun SettingsScreen(
                                             inactiveContainerColor = MaterialTheme.colorScheme.surface,
                                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                                         )
-                                    ) { Text("System", fontSize = 12.sp) }
+                                    ) { Text("System", fontSize = 12.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                                     SegmentedButton(
                                         selected = viewModel.themeMode == ThemeMode.LIGHT,
                                         onClick = { viewModel.updateThemeMode(ThemeMode.LIGHT) },
@@ -341,7 +377,7 @@ fun SettingsScreen(
                                             inactiveContainerColor = MaterialTheme.colorScheme.surface,
                                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                                         )
-                                    ) { Text("Light", fontSize = 12.sp) }
+                                    ) { Text("Light", fontSize = 12.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                                     SegmentedButton(
                                         selected = viewModel.themeMode == ThemeMode.DARK,
                                         onClick = { viewModel.updateThemeMode(ThemeMode.DARK) },
@@ -354,7 +390,7 @@ fun SettingsScreen(
                                             inactiveContainerColor = MaterialTheme.colorScheme.surface,
                                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                                         )
-                                    ) { Text("Dark", fontSize = 12.sp) }
+                                    ) { Text("Dark", fontSize = 12.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                                 }
                             }
 
@@ -414,11 +450,15 @@ fun SettingsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
                                 Icon(Icons.Rounded.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 Column {
                                     Text("Security & App Protection", fontWeight = FontWeight.Bold, fontSize = 15.sp)
@@ -443,11 +483,15 @@ fun SettingsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
                                 Icon(Icons.Rounded.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 Column {
                                     Text("Data Management, Reports & Backups", fontWeight = FontWeight.Bold, fontSize = 15.sp)
@@ -458,8 +502,6 @@ fun SettingsScreen(
                         }
                     }
                 }
-
-
 
                 item {
                     // About Card
@@ -474,7 +516,7 @@ fun SettingsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {

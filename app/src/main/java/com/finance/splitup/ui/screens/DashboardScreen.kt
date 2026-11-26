@@ -289,9 +289,9 @@ fun DashboardScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                        .padding(horizontal = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     if (syncStatus == com.finance.splitup.data.SyncStatus.ERROR || currentUser == null) {
                         item {
@@ -349,7 +349,7 @@ fun DashboardScreen(
                     item {
                         val dashboardState by viewModel.dashboardUiState.collectAsState()
                         val dashboardData = (dashboardState as? com.finance.splitup.ui.state.DashboardUiState.Success)?.data ?: com.finance.splitup.ui.state.DashboardUiData()
-                        val pagerState = rememberPagerState(pageCount = { 3 })
+                        val pagerState = rememberPagerState(pageCount = { 4 })
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -534,6 +534,42 @@ fun DashboardScreen(
                                         Spacer(modifier = Modifier.height(10.dp))
                                     }
                                 }
+                                3 -> {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onNavigateToPersonalExpenses("INVESTMENT") }
+                                    ) {
+                                        Text("Investments & Assets (${dashboardData.selectedDateRange})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column {
+                                                Text("Total Investments", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                AnimatedAmountText(
+                                                    targetAmount = dashboardData.totalInvestments,
+                                                    currencySymbol = currencySymbol,
+                                                    fontSize = 22.sp,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            }
+                                            Column(horizontalAlignment = Alignment.End) {
+                                                Text("Asset Allocation", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = "📈 Portfolio Growth",
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                    }
+                                }
                             }
                         }
 
@@ -543,7 +579,7 @@ fun DashboardScreen(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            repeat(3) { index ->
+                            repeat(4) { index ->
                                 val isSelected = pagerState.currentPage == index
                                 val dotWidth by animateDpAsState(
                                     targetValue = if (isSelected) 18.dp else 6.dp,

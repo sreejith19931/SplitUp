@@ -35,6 +35,31 @@ object CsvExportImporter {
         return file
     }
 
+    fun exportInvestmentsToCsv(context: Context, investments: List<com.finance.splitup.data.db.InvestmentEntity>): File {
+        val fileName = "SplitUp_Investments_Portfolio_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.csv"
+        val file = File(context.cacheDir, fileName)
+
+        val sb = StringBuilder()
+        sb.append("ID,AssetTitle,Amount,AssetCategory,BrokerOrPlatform,Currency,Date,Description\n")
+
+        for (inv in investments) {
+            val id = escapeCsv(inv.id)
+            val title = escapeCsv(inv.title)
+            val amount = String.format(Locale.US, "%.2f", inv.amount)
+            val category = escapeCsv(inv.category)
+            val broker = escapeCsv(inv.brokerOrPlatform)
+            val currency = escapeCsv(inv.currency)
+            val date = escapeCsv(inv.date)
+            val desc = escapeCsv(inv.description)
+            sb.append("$id,$title,$amount,$category,$broker,$currency,$date,$desc\n")
+        }
+
+        FileOutputStream(file).use { out ->
+            out.write(sb.toString().toByteArray(Charsets.UTF_8))
+        }
+        return file
+    }
+
     fun exportGroupToCsv(context: Context, group: Group): File {
         val fileName = "SplitUp_${group.name.replace("\\s+".toRegex(), "_")}_Expenses_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.csv"
         val file = File(context.cacheDir, fileName)
@@ -99,10 +124,15 @@ object CsvExportImporter {
     }
 
     private fun escapeCsv(value: String): String {
-        return if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            "\"" + value.replace("\"", "\"\"") + "\""
+        var safe = value
+        // Neutralize spreadsheet formula injection (=, +, -, @, tab/CR at cell start)
+        if (safe.isNotEmpty() && safe.first() in setOf('=', '+', '-', '@', '\t', '\r')) {
+            safe = "'$safe"
+        }
+        return if (safe.contains(",") || safe.contains("\"") || safe.contains("\n")) {
+            "\"" + safe.replace("\"", "\"\"") + "\""
         } else {
-            value
+            safe
         }
     }
 

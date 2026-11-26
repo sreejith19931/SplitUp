@@ -633,6 +633,13 @@ fun SplitUpApp(
                             onNavigateToAddExpense = { expId, isIncome ->
                                 backStack.add(AddExpenseRoute(expenseId = expId, initialIsIncome = isIncome))
                             },
+                            onNavigateToEditInvestment = { invId ->
+                                if (invId == null) {
+                                    backStack.add(AddExpenseRoute(initialCategory = "INVESTMENT"))
+                                } else {
+                                    backStack.add(AddExpenseRoute(investmentId = invId))
+                                }
+                            },
                             onNavigateToEditExpense = { expId ->
                                 backStack.add(AddExpenseRoute(expId))
                             },
@@ -861,6 +868,14 @@ fun SplitUpApp(
                                     backStack.add(DashboardRoute)
                                     backStack.add(SettingsRoute)
                                 }
+                            },
+                            onStartDemoTour = {
+                                val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
+                                prefs.edit().remove("has_seen_demo_tour").remove("demo_tour_step").apply()
+                                currentTourStep = 0
+                                showDemoTour = true
+                                backStack.clear()
+                                backStack.add(DashboardRoute)
                             }
                         )
                     }
@@ -1074,15 +1089,7 @@ fun SplitUpApp(
 }
 }
 
-fun hashSecurityPin(pin: String): String {
-    return try {
-        val digest = java.security.MessageDigest.getInstance("SHA-256")
-        val bytes = digest.digest(pin.toByteArray(Charsets.UTF_8))
-        bytes.joinToString("") { "%02x".format(it) }
-    } catch (_: Exception) {
-        pin
-    }
-}
+fun hashSecurityPin(pin: String): String = com.finance.splitup.data.PinSecurity.legacyHash(pin)
 
 @Composable
 fun BiometricLockOverlay(onUnlocked: () -> Unit) {
@@ -1178,7 +1185,7 @@ fun BiometricLockOverlay(onUnlocked: () -> Unit) {
             var isPinMode by remember { mutableStateOf(false) }
             var pinError by remember { mutableStateOf<String?>(null) }
             val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
-            val defaultHash = hashSecurityPin("1234")
+            val defaultHash = com.finance.splitup.data.PinSecurity.legacyHash("1234")
             val savedPin = prefs.getString("security_pin_hash", null) ?: prefs.getString("security_pin", defaultHash) ?: defaultHash
 
             if (isPinMode) {
@@ -1187,8 +1194,14 @@ fun BiometricLockOverlay(onUnlocked: () -> Unit) {
                     onValueChange = {
                         if (it.length <= 4 && it.all { char -> char.isDigit() }) {
                             pinInput = it
-                            val inputHash = hashSecurityPin(it)
-                            if (inputHash == savedPin || it == savedPin) {
+                            if (com.finance.splitup.data.PinSecurity.verify(it, savedPin)) {
+                                // Transparently upgrade legacy (unsalted) PIN storage
+                                // to the salted PBKDF2 format after a successful match.
+                                if (com.finance.splitup.data.PinSecurity.needsUpgrade(savedPin)) {
+                                    com.finance.splitup.data.PinSecurity.hash(it)?.let { upgraded ->
+                                        prefs.edit().putString("security_pin_hash", upgraded).apply()
+                                    }
+                                }
                                 onUnlocked()
                             } else if (it.length == 4) {
                                 pinError = "Incorrect PIN"

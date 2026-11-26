@@ -5,7 +5,6 @@ import com.finance.splitup.data.ExpenseCategories
 import com.finance.splitup.data.Group
 import com.finance.splitup.data.Settlement
 import kotlin.math.abs
-import kotlin.math.round
 
 data class SettlementResult(
     val netBalances: Map<String, Double>,
@@ -86,9 +85,9 @@ class CalculateGroupSettlementsUseCase {
                         val matchedMember = matchMember(member)
                         val ratio = if (totalRawShares > 0) abs(shareAmount) / totalRawShares else 1.0 / count
                         val convertedShare = if (index == count - 1) {
-                            round((convertedAmount - accumulatedShare) * 100) / 100.0
+                            MoneyMath.round2((convertedAmount - accumulatedShare))
                         } else {
-                            val rounded = round((convertedAmount * ratio) * 100) / 100.0
+                            val rounded = MoneyMath.round2((convertedAmount * ratio))
                             accumulatedShare += rounded
                             rounded
                         }
@@ -99,8 +98,8 @@ class CalculateGroupSettlementsUseCase {
                     val splitCount = cleanSplitAmong.size
                     if (splitCount > 0) {
                         val rawShare = convertedAmount / splitCount
-                        val roundedShare = round(rawShare * 100) / 100.0
-                        val remainder = round((convertedAmount - (roundedShare * splitCount)) * 100) / 100.0
+                        val roundedShare = MoneyMath.round2(rawShare)
+                        val remainder = MoneyMath.round2((convertedAmount - (roundedShare * splitCount)))
 
                         cleanSplitAmong.forEachIndexed { index, matchedMember ->
                             val finalShare = if (index == 0) roundedShare + remainder else roundedShare
@@ -120,9 +119,9 @@ class CalculateGroupSettlementsUseCase {
                         val matchedMember = matchMember(member)
                         val ratio = if (totalRawShares > 0) abs(shareAmount) / totalRawShares else 1.0 / count
                         val convertedShare = if (index == count - 1) {
-                            round((convertedAmount - accumulatedShare) * 100) / 100.0
+                            MoneyMath.round2((convertedAmount - accumulatedShare))
                         } else {
-                            val rounded = round((convertedAmount * ratio) * 100) / 100.0
+                            val rounded = MoneyMath.round2((convertedAmount * ratio))
                             accumulatedShare += rounded
                             rounded
                         }
@@ -133,8 +132,8 @@ class CalculateGroupSettlementsUseCase {
                     val splitCount = cleanSplitAmong.size
                     if (splitCount > 0) {
                         val rawShare = convertedAmount / splitCount
-                        val roundedShare = round(rawShare * 100) / 100.0
-                        val remainder = round((convertedAmount - (roundedShare * splitCount)) * 100) / 100.0
+                        val roundedShare = MoneyMath.round2(rawShare)
+                        val remainder = MoneyMath.round2((convertedAmount - (roundedShare * splitCount)))
 
                         cleanSplitAmong.forEachIndexed { index, matchedMember ->
                             val finalShare = if (index == 0) roundedShare + remainder else roundedShare
@@ -145,12 +144,12 @@ class CalculateGroupSettlementsUseCase {
             }
         }
 
-        val roundedBalances = balances.mapValues { round(it.value * 100) / 100.0 }.toMutableMap()
-        val totalResidual = round(roundedBalances.values.sum() * 100) / 100.0
+        val roundedBalances = balances.mapValues { MoneyMath.round2(it.value) }.toMutableMap()
+        val totalResidual = MoneyMath.round2(roundedBalances.values.sum())
         if (abs(totalResidual) in 0.009..0.05 && roundedBalances.isNotEmpty()) {
             val maxEntry = roundedBalances.maxByOrNull { abs(it.value) }
             if (maxEntry != null) {
-                roundedBalances[maxEntry.key] = round((maxEntry.value - totalResidual) * 100) / 100.0
+                roundedBalances[maxEntry.key] = MoneyMath.round2((maxEntry.value - totalResidual))
             }
         }
 
@@ -178,19 +177,19 @@ class CalculateGroupSettlementsUseCase {
             val creditor = maxCreditor.key
             val creditorAmount = maxCreditor.value
 
-            val settleAmount = round(minOf(debtorAmount, creditorAmount) * 100) / 100.0
+            val settleAmount = MoneyMath.round2(minOf(debtorAmount, creditorAmount))
             if (settleAmount > 0.009) {
                 settlements.add(Settlement(from = debtor, to = creditor, amount = settleAmount))
             }
 
-            val newDebtorBal = round((debtorAmount - settleAmount) * 100) / 100.0
+            val newDebtorBal = MoneyMath.round2((debtorAmount - settleAmount))
             if (newDebtorBal < 0.01) {
                 debtors.remove(debtor)
             } else {
                 debtors[debtor] = newDebtorBal
             }
 
-            val newCreditorBal = round((creditorAmount - settleAmount) * 100) / 100.0
+            val newCreditorBal = MoneyMath.round2((creditorAmount - settleAmount))
             if (newCreditorBal < 0.01) {
                 creditors.remove(creditor)
             } else {
@@ -204,7 +203,7 @@ class CalculateGroupSettlementsUseCase {
             combinedMap[key] = (combinedMap[key] ?: 0.0) + s.amount
         }
         return combinedMap.map { (key, amount) ->
-            Settlement(from = key.first, to = key.second, amount = round(amount * 100) / 100.0)
+            Settlement(from = key.first, to = key.second, amount = MoneyMath.round2(amount))
         }.filter { it.amount > 0.009 }
     }
 

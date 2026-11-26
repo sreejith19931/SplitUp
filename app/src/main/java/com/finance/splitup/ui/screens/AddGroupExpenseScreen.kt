@@ -110,13 +110,13 @@ fun AddGroupExpenseScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .imePadding()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Surface(
                 onClick = onNavigateToScanner,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 tonalElevation = 2.dp
@@ -124,7 +124,7 @@ fun AddGroupExpenseScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
@@ -177,7 +177,7 @@ fun AddGroupExpenseScreen(
                 },
                 label = { Text("Expense Title (e.g. Dinner, Hotel)") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 singleLine = true,
                 isError = errorMessage != null && title.isBlank()
             )
@@ -217,12 +217,13 @@ fun AddGroupExpenseScreen(
                     value = selectedCategory,
                     onValueChange = {},
                     readOnly = true,
+                    singleLine = true,
                     label = { Text("Category") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoryDropdown) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 )
                 ExposedDropdownMenu(
                     expanded = expandedCategoryDropdown,
@@ -245,7 +246,7 @@ fun AddGroupExpenseScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 OutlinedTextField(
                     value = amount,
@@ -255,7 +256,7 @@ fun AddGroupExpenseScreen(
                     },
                     label = { Text("Amount ($currencySymbol)") },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = errorMessage != null && amount.parseAmount() <= 0
@@ -265,18 +266,19 @@ fun AddGroupExpenseScreen(
                 ExposedDropdownMenuBox(
                     expanded = expandedCurrencyDropdown,
                     onExpandedChange = { expandedCurrencyDropdown = it },
-                    modifier = Modifier.widthIn(min = 125.dp, max = 160.dp)
+                    modifier = Modifier.widthIn(min = 135.dp, max = 175.dp)
                 ) {
                     OutlinedTextField(
                         value = "${Currencies.getFlag(selectedCurrency)} $selectedCurrency",
                         onValueChange = {},
                         readOnly = true,
+                        singleLine = true,
                         label = { Text("Currency") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCurrencyDropdown) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
                     ExposedDropdownMenu(
                         expanded = expandedCurrencyDropdown,

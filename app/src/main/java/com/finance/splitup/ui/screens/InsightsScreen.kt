@@ -32,6 +32,8 @@ fun InsightsScreen(
     val expenses by viewModel.expenses.collectAsState()
     val currencySymbol = Currencies.getSymbol(viewModel.defaultCurrency)
 
+    val investments by viewModel.investments.collectAsState()
+
     val totalSpent = remember(expenses, viewModel.defaultCurrency) {
         expenses.filter { it.amount > 0 && it.category != com.finance.splitup.data.ExpenseCategories.INCOME }
             .sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
@@ -40,6 +42,10 @@ fun InsightsScreen(
     val totalIncome = remember(expenses, viewModel.defaultCurrency) {
         expenses.filter { it.amount > 0 && it.category == com.finance.splitup.data.ExpenseCategories.INCOME }
             .sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+    }
+
+    val totalPortfolio = remember(investments, viewModel.defaultCurrency) {
+        investments.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
     }
 
     val categoryBreakdown = remember(expenses, viewModel.defaultCurrency) {
@@ -51,10 +57,19 @@ fun InsightsScreen(
             .entries.sortedByDescending { it.value }
     }
 
+    val investmentBreakdown = remember(investments, viewModel.defaultCurrency) {
+        investments
+            .groupBy { it.category }
+            .mapValues { entry ->
+                entry.value.sumOf { Currencies.convert(it.amount, it.currency, viewModel.defaultCurrency) }
+            }
+            .entries.sortedByDescending { it.value }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Spending Insights & Trends", fontWeight = FontWeight.Bold) },
+                title = { Text("Spending & Asset Insights", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -70,7 +85,7 @@ fun InsightsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp)
         ) {
             item {
@@ -79,24 +94,78 @@ fun InsightsScreen(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                     elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text("Monthly Overview", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                        Text("Financial Summary", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column {
                                 Text("Total Spending", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalSpent)}", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalSpent)}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            }
+                            Column {
+                                Text("Total Income", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalIncome)}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = EmeraldSuccess)
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("Total Income", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalIncome)}", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
+                                Text("Investments", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalPortfolio)}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (investmentBreakdown.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Portfolio Asset Allocation", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
+
+                items(investmentBreakdown) { (category, amount) ->
+                    val percentage = if (totalPortfolio > 0.0) (amount / totalPortfolio).toFloat() else 0f
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    com.finance.splitup.data.InvestmentCategories.getEmoji(category),
+                                    fontSize = 22.sp
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(category, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text("$currencySymbol${String.format(Locale.US, "%.2f", amount)} (${String.format(Locale.US, "%.1f", percentage * 100)}%)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    LinearProgressIndicator(
+                                        progress = { percentage },
+                                        modifier = Modifier.fillMaxWidth().height(6.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
@@ -104,12 +173,13 @@ fun InsightsScreen(
             }
 
             item {
-                Text("Category Breakdown", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Expense Category Breakdown", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
 
             if (categoryBreakdown.isEmpty()) {
                 item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                         Text("No spending records found to generate insights.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

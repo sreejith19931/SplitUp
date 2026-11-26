@@ -185,6 +185,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                             user.email?.substringBefore("@")?.let { userMap["name"] = it }
                         }
                         db.collection("users").document(user.uid).set(userMap, com.google.firebase.firestore.SetOptions.merge()).await()
+                        try { com.finance.splitup.data.CloudSyncManager.updateUserLookup(userMap["name"] as? String, user.email) } catch (_: Exception) {}
                     } catch (_: Exception) {}
                     if (user.isEmailVerified) {
                         syncOneSignalUser(user)

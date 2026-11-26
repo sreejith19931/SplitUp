@@ -19,8 +19,8 @@ android {
         applicationId = "com.finance.splitup"
         minSdk = 26
         targetSdk = 37
-        versionCode = 15
-        versionName = "1.4-alpha"
+        versionCode = 16
+        versionName = "1.5-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

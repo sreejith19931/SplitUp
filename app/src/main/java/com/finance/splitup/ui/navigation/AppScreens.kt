@@ -39,6 +39,7 @@ data object EditProfileRoute : NavKey
 @Serializable
 data class AddExpenseRoute(
     val expenseId: String? = null,
+    val investmentId: String? = null,
     val initialAmount: Double? = null,
     val initialTitle: String? = null,
     val initialCategory: String? = null,

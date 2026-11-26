@@ -21,6 +21,9 @@ interface FinanceDao {
     @Upsert
     suspend fun insertExpense(expense: ExpenseEntity)
 
+    @Query("SELECT * FROM expenses WHERE id = :id LIMIT 1")
+    suspend fun getExpenseById(id: String): ExpenseEntity?
+
     @Query("DELETE FROM expenses WHERE id = :id")
     suspend fun deleteExpense(id: String)
 
@@ -66,6 +69,9 @@ interface FinanceDao {
     @Upsert
     suspend fun upsertRecurringExpense(recurring: RecurringExpenseEntity)
 
+    @Query("SELECT * FROM recurring_expenses WHERE id = :id LIMIT 1")
+    suspend fun getRecurringExpenseById(id: String): RecurringExpenseEntity?
+
     @Query("DELETE FROM recurring_expenses WHERE id = :id")
     suspend fun deleteRecurringExpense(id: String)
 
@@ -78,8 +84,26 @@ interface FinanceDao {
     @Upsert
     suspend fun insertIncome(income: IncomeEntity)
 
+    @Query("SELECT * FROM incomes WHERE id = :id LIMIT 1")
+    suspend fun getIncomeById(id: String): IncomeEntity?
+
     @Query("DELETE FROM incomes WHERE id = :id")
     suspend fun deleteIncome(id: String)
+
+    @Query("SELECT * FROM investments")
+    fun getAllInvestments(): Flow<List<InvestmentEntity>>
+
+    @Query("SELECT COUNT(*) FROM investments")
+    suspend fun getInvestmentCount(): Int
+
+    @Upsert
+    suspend fun insertInvestment(investment: InvestmentEntity)
+
+    @Query("SELECT * FROM investments WHERE id = :id LIMIT 1")
+    suspend fun getInvestmentById(id: String): InvestmentEntity?
+
+    @Query("DELETE FROM investments WHERE id = :id")
+    suspend fun deleteInvestment(id: String)
 
     // Dirty state queries for Delta Sync
     @Query("SELECT * FROM expenses WHERE isDirty = 1")
@@ -99,6 +123,12 @@ interface FinanceDao {
 
     @Query("UPDATE incomes SET isDirty = 0 WHERE id IN (:ids)")
     suspend fun markIncomesClean(ids: List<String>)
+
+    @Query("SELECT * FROM investments WHERE isDirty = 1")
+    suspend fun getDirtyInvestments(): List<InvestmentEntity>
+
+    @Query("UPDATE investments SET isDirty = 0 WHERE id IN (:ids)")
+    suspend fun markInvestmentsClean(ids: List<String>)
 
     @Query("SELECT * FROM recurring_expenses WHERE isDirty = 1")
     suspend fun getDirtyRecurringExpenses(): List<RecurringExpenseEntity>
@@ -163,6 +193,9 @@ interface FinanceDao {
     @Query("DELETE FROM incomes")
     suspend fun deleteAllIncomes()
 
+    @Query("DELETE FROM investments")
+    suspend fun deleteAllInvestments()
+
     @androidx.room.Transaction
     suspend fun clearAllLocalData() {
         deleteAllExpenses()
@@ -173,11 +206,12 @@ interface FinanceDao {
         deleteAllActivityLogs()
         deleteAllRecurringExpenses()
         deleteAllIncomes()
+        deleteAllInvestments()
         deleteAllApprovalRequests()
     }
 }
 
-@Database(entities = [ExpenseEntity::class, GroupEntity::class, GroupExpenseEntity::class, BudgetEntity::class, UserProfileEntity::class, ActivityLogEntity::class, RecurringExpenseEntity::class, IncomeEntity::class, GroupApprovalRequestEntity::class], version = 21, exportSchema = true)
+@Database(entities = [ExpenseEntity::class, GroupEntity::class, GroupExpenseEntity::class, BudgetEntity::class, UserProfileEntity::class, ActivityLogEntity::class, RecurringExpenseEntity::class, IncomeEntity::class, GroupApprovalRequestEntity::class, InvestmentEntity::class], version = 23, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun financeDao(): FinanceDao
@@ -232,6 +266,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_21_22 = object : androidx.room.migration.Migration(21, 22) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS investments (id TEXT NOT NULL PRIMARY KEY, title TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0.0, category TEXT NOT NULL DEFAULT 'Stocks & Equities', date TEXT NOT NULL DEFAULT 'Today', description TEXT NOT NULL DEFAULT '', brokerOrPlatform TEXT NOT NULL DEFAULT '', currency TEXT NOT NULL DEFAULT 'EUR', updatedAt INTEGER NOT NULL DEFAULT 0, isDirty INTEGER NOT NULL DEFAULT 1)")
+            }
+        }
+
+        private val MIGRATION_22_23 = object : androidx.room.migration.Migration(22, 23) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE investments ADD COLUMN transactionType TEXT NOT NULL DEFAULT 'BUY'")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -239,7 +285,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "splitup_database"
                 )
-                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21)
+                .addMigrations(MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23)
                 .build()
                 INSTANCE = instance
                 instance

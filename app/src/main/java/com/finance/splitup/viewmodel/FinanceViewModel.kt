@@ -144,20 +144,23 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     suspend fun searchCloudUserByEmail(emailQuery: String): com.finance.splitup.data.AppContact? {
         return try {
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+
+            // Fast path: exact email doc in the bounded user_lookup collection.
+            val lookupDoc = try {
+                db.collection("user_lookup").document(emailQuery.trim().lowercase()).get().await()
+            } catch (_: Exception) { null }
+            if (lookupDoc != null && lookupDoc.exists()) {
+                val email = lookupDoc.getString("email") ?: emailQuery.trim().lowercase()
+                return toAppContact(lookupDoc.getString("name"), email, lookupDoc)
+            }
+
+            // Fallback: legacy scan over users collection (for members who
+            // haven't written a lookup doc yet).
             val snapshot = db.collection("users").get().await()
             for (doc in snapshot.documents) {
                 val email = doc.getString("email") ?: continue
                 if (email.equals(emailQuery.trim(), ignoreCase = true)) {
-                    val rawName = doc.getString("name") ?: doc.getString("displayName")
-                    val name = if (!rawName.isNullOrBlank() && rawName != email) {
-                        rawName
-                    } else {
-                        val prefix = email.substringBefore("@")
-                        prefix.replace(".", " ").replace("_", " ").split(" ").joinToString(" ") {
-                            if (it.isNotEmpty()) it.replaceFirstChar { c -> c.uppercase() } else ""
-                        }
-                    }
-                    return com.finance.splitup.data.AppContact(name = name, email = email, isSplitUpMember = true)
+                    return toAppContact(doc.getString("name") ?: doc.getString("displayName"), email, doc)
                 }
             }
             null
@@ -166,10 +169,51 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
     }
 
+    private fun toAppContact(
+        rawName: String?,
+        email: String,
+        doc: com.google.firebase.firestore.DocumentSnapshot
+    ): com.finance.splitup.data.AppContact {
+        val name = if (!rawName.isNullOrBlank() && rawName != email) {
+            rawName
+        } else {
+            val prefix = email.substringBefore("@")
+            prefix.replace(".", " ").replace("_", " ").split(" ").joinToString(" ") {
+                if (it.isNotEmpty()) it.replaceFirstChar { c -> c.uppercase() } else ""
+            }
+        }
+        return com.finance.splitup.data.AppContact(
+            name = name,
+            email = email,
+            isSplitUpMember = true,
+            upiVpa = doc.getString("upiVpa") ?: "",
+            paypalHandle = doc.getString("paypalHandle") ?: "",
+            venmoHandle = doc.getString("venmoHandle") ?: "",
+            revolutHandle = doc.getString("revolutHandle") ?: ""
+        )
+    }
+
     fun fetchRegisteredUsers() {
         viewModelScope.launch {
             try {
                 val db = try { com.google.firebase.firestore.FirebaseFirestore.getInstance() } catch (_: Exception) { null } ?: return@launch
+
+                // Preferred: bounded user_lookup collection (public fields only).
+                val lookupSnapshot = try {
+                    db.collection("user_lookup").get().await()
+                } catch (_: Exception) { null }
+
+                if (lookupSnapshot != null && !lookupSnapshot.isEmpty) {
+                    val users = lookupSnapshot.documents.mapNotNull { doc ->
+                        val email = doc.getString("email") ?: return@mapNotNull null
+                        toAppContact(doc.getString("name"), email, doc)
+                    }
+                    _registeredUsers.value = users
+                    _registeredUserEmails.value = users.map { it.email.lowercase() }.toSet()
+                    return@launch
+                }
+
+                // Fallback: legacy scan over the users collection.
                 val snapshot = db.collection("users").get().await()
                 val users = snapshot.documents.mapNotNull { doc ->
                     val email = doc.getString("email") ?: return@mapNotNull null
@@ -426,6 +470,17 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                     db.collection("users").document(currentUser.uid)
                         .set(profileData, com.google.firebase.firestore.SetOptions.merge())
                         .await()
+                    // Mirror payment handles into the public lookup doc.
+                    com.finance.splitup.data.CloudSyncManager.updateUserLookup(
+                        name = currentUser.displayName,
+                        email = currentUser.email,
+                        handles = mapOf(
+                            "upiVpa" to cleanUpi,
+                            "paypalHandle" to cleanPaypal,
+                            "venmoHandle" to cleanVenmo,
+                            "revolutHandle" to cleanRevolut
+                        )
+                    )
                 } catch (_: Exception) {}
             }
         }
@@ -494,6 +549,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     }
 
     private val _incomesFallback = MutableStateFlow<List<com.finance.splitup.data.db.IncomeEntity>>(emptyList())
+    private val _investmentsFallback = MutableStateFlow<List<com.finance.splitup.data.db.InvestmentEntity>>(emptyList())
     private val _recurringExpensesFallback = MutableStateFlow<List<com.finance.splitup.data.db.RecurringExpenseEntity>>(emptyList())
 
     val incomes: StateFlow<List<com.finance.splitup.data.db.IncomeEntity>> = if (repository != null) {
@@ -501,6 +557,13 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     } else {
         _incomesFallback.asStateFlow()
+    }
+
+    val investments: StateFlow<List<com.finance.splitup.data.db.InvestmentEntity>> = if (repository != null) {
+        repository.getAllInvestments()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    } else {
+        _investmentsFallback.asStateFlow()
     }
 
     val recurringExpenses: StateFlow<List<com.finance.splitup.data.db.RecurringExpenseEntity>> = if (repository != null) {
@@ -531,7 +594,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             currency = currency
         )
         val eurAmount = Currencies.convertToEUR(amount, currency)
-        if (eurAmount >= 200.0) {
+        if (eurAmount >= INCOME_ALERT_EUR_THRESHOLD) {
             postSystemNotification(
                 "High Income Recorded 💰",
                 "You logged income '${income.title}' of ${Currencies.getSymbol(currency)}${String.format(java.util.Locale.US, "%.2f", amount)}.",
@@ -558,6 +621,67 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             }
         } else {
             _incomesFallback.update { current -> current.filter { it.id != id } }
+        }
+    }
+
+    fun addInvestment(title: String, amount: Double, category: String, brokerOrPlatform: String = "", transactionType: String = "BUY", currency: String = defaultCurrency, date: String = "Today", description: String = "") {
+        val investment = com.finance.splitup.data.db.InvestmentEntity(
+            title = title.ifBlank { "Investment" },
+            amount = amount,
+            category = category.ifBlank { "Stocks & Equities" },
+            brokerOrPlatform = brokerOrPlatform,
+            transactionType = transactionType,
+            description = description,
+            date = com.finance.splitup.data.DateUtils.normalizeExpenseDate(date),
+            currency = currency
+        )
+        val eurAmount = Currencies.convertToEUR(amount, currency)
+        if (eurAmount >= INVESTMENT_ALERT_EUR_THRESHOLD) {
+            postSystemNotification(
+                "Investment Recorded 📈",
+                "You logged investment '${investment.title}' of ${Currencies.getSymbol(currency)}${String.format(java.util.Locale.US, "%.2f", amount)}.",
+                CHANNEL_FINANCIAL_ALERTS
+            )
+        }
+        if (repository != null) {
+            viewModelScope.launch {
+                repository.insertInvestment(investment)
+                com.finance.splitup.data.CloudSyncManager.syncInvestmentToCloud(investment)
+                triggerImmediateSync()
+            }
+        } else {
+            _investmentsFallback.update { current -> listOf(investment) + current }
+        }
+    }
+
+    fun deleteInvestment(id: String) {
+        if (repository != null) {
+            viewModelScope.launch {
+                repository.deleteInvestment(id)
+                com.finance.splitup.data.CloudSyncManager.deleteInvestmentFromCloud(id)
+                triggerImmediateSync()
+            }
+        } else {
+            _investmentsFallback.update { current -> current.filter { it.id != id } }
+        }
+    }
+
+    fun updateInvestment(investment: com.finance.splitup.data.db.InvestmentEntity) {
+        val normalized = investment.copy(
+            date = com.finance.splitup.data.DateUtils.normalizeExpenseDate(investment.date),
+            updatedAt = System.currentTimeMillis(),
+            isDirty = true
+        )
+        if (repository != null) {
+            viewModelScope.launch {
+                repository.insertInvestment(normalized)
+                com.finance.splitup.data.CloudSyncManager.syncInvestmentToCloud(normalized)
+                triggerImmediateSync()
+            }
+        } else {
+            _investmentsFallback.update { current ->
+                current.map { if (it.id == normalized.id) normalized else it }
+            }
         }
     }
 
@@ -953,6 +1077,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         budgets,
         incomes,
         recurringExpenses,
+        investments,
         _selectedDashboardDateRange
     ) { flows ->
         @Suppress("UNCHECKED_CAST")
@@ -961,7 +1086,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         val grpList = flows[1] as List<Group>
         @Suppress("UNCHECKED_CAST")
         val budgetMap = flows[2] as Map<String, Double>
-        val range = flows[5] as String
+        val range = flows[6] as String
 
         val selfName = currentUserName
         val selfEmail = currentUserEmail
@@ -969,6 +1094,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
 
         val filteredExp = expList.filter { com.finance.splitup.data.DateUtils.matchesDateRange(it.date, it.updatedAt, range) }
         val filteredInc = (flows[3] as List<com.finance.splitup.data.db.IncomeEntity>).filter { com.finance.splitup.data.DateUtils.matchesDateRange(it.date, it.updatedAt, range) }
+        val filteredInv = (flows[5] as List<com.finance.splitup.data.db.InvestmentEntity>).filter { com.finance.splitup.data.DateUtils.matchesDateRange(it.date, it.updatedAt, range) }
 
         val spent = filteredExp
             .filter { it.category != ExpenseCategories.INCOME }
@@ -979,6 +1105,9 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             .sumOf { Currencies.convert(it.amount, it.currency, targetCurr) }
 
         val registeredIncomes = filteredInc
+            .sumOf { Currencies.convert(it.amount, it.currency, targetCurr) }
+
+        val registeredInvestments = filteredInv
             .sumOf { Currencies.convert(it.amount, it.currency, targetCurr) }
 
         val income = registeredIncomes + expenseIncomes
@@ -1023,6 +1152,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 selectedDateRange = range,
                 totalSpent = spent,
                 totalIncome = income,
+                totalInvestments = registeredInvestments,
                 netCashFlow = cashFlow,
                 netGroupOwed = owedToUser,
                 netGroupOwes = userOwes,
@@ -1106,7 +1236,7 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
 
         val eurAmount = Currencies.convertToEUR(amount, currency)
-        if (eurAmount >= 200.0) {
+        if (eurAmount >= EXPENSE_ALERT_EUR_THRESHOLD) {
             if (category.equals(ExpenseCategories.INCOME, ignoreCase = true)) {
                 postSystemNotification(
                     "High Income Recorded 💰",
@@ -2328,6 +2458,12 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     }
 
     companion object {
+        // Large-amount alert thresholds (EUR-equivalent), centralized so the
+        // income/expense/investment notification policies stay consistent.
+        const val INCOME_ALERT_EUR_THRESHOLD = 200.0
+        const val EXPENSE_ALERT_EUR_THRESHOLD = 200.0
+        const val INVESTMENT_ALERT_EUR_THRESHOLD = 500.0
+
         const val CHANNEL_GROUP_ACTIVITY = "splitup_group_activity"
         const val CHANNEL_FINANCIAL_ALERTS = "splitup_financial_alerts"
         const val CHANNEL_RECURRING_BILLS = "splitup_recurring_bills"

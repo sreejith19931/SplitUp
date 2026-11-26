@@ -1,5 +1,6 @@
 package com.finance.splitup.ui.components
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -85,7 +86,7 @@ fun DemoTourOverlay(
                 stepIndex = 0,
                 title = "Dashboard & Net Worth",
                 badgeLabel = "🎯 Net Worth Overview",
-                description = "Track your total net worth, monthly income vs expenses, and real-time net cash flow summary at a glance.",
+                description = "Track your net worth, income, and cash flow summary at a glance.",
                 icon = Icons.Rounded.Dashboard,
                 highlightArea = TourHighlightArea.TOP_SUMMARY_CARD,
                 cardAlignment = Alignment.BottomCenter
@@ -94,7 +95,7 @@ fun DemoTourOverlay(
                 stepIndex = 1,
                 title = "Quick Actions & AI Scanner",
                 badgeLabel = "⚡ Floating Action Button",
-                description = "Tap the floating (+) button anytime to log personal expenses, create shared groups, or scan receipts with AI OCR.",
+                description = "Tap (+) anytime to log expenses, create groups, or scan receipts with AI.",
                 icon = Icons.Rounded.Bolt,
                 highlightArea = TourHighlightArea.BOTTOM_RIGHT_FAB,
                 cardAlignment = Alignment.TopCenter
@@ -103,7 +104,7 @@ fun DemoTourOverlay(
                 stepIndex = 2,
                 title = "Expense & Income Tracker",
                 badgeLabel = "🔍 Personal Finances",
-                description = "Search transactions instantly, filter by category (Food, Travel, Bills), and manage your spending habits.",
+                description = "Search transactions instantly and filter by category to manage spending habits.",
                 icon = Icons.Rounded.ReceiptLong,
                 highlightArea = TourHighlightArea.TOP_SEARCH_FILTERS,
                 cardAlignment = Alignment.BottomCenter
@@ -112,7 +113,7 @@ fun DemoTourOverlay(
                 stepIndex = 3,
                 title = "Group Splitting & Settlements",
                 badgeLabel = "👥 Shared Groups & Balances",
-                description = "Manage shared expenses with friends or roommates, view net balances, and calculate optimal debt settlements.",
+                description = "Manage shared expenses, view net balances, and calculate optimal debt settlements.",
                 icon = Icons.Rounded.Groups,
                 highlightArea = TourHighlightArea.CENTER_GROUPS_LIST,
                 cardAlignment = Alignment.BottomCenter
@@ -121,15 +122,13 @@ fun DemoTourOverlay(
                 stepIndex = 4,
                 title = "Preferences & Security",
                 badgeLabel = "⚙️ Currency & PDF Export",
-                description = "Customize your primary currency (€, $, £, ₹), enable biometric PIN security, and export PDF/CSV financial reports anytime.",
+                description = "Customize currency, enable PIN security, and export PDF/CSV financial reports.",
                 icon = Icons.Rounded.Security,
                 highlightArea = TourHighlightArea.SETTINGS_PREFERENCES,
                 cardAlignment = Alignment.BottomCenter
             )
         )
     }
-
-    val step = steps.getOrElse(currentStep) { steps.last() }
 
     val infiniteTransition = rememberInfiniteTransition(label = "spotlight_pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -155,11 +154,12 @@ fun DemoTourOverlay(
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
     val density = LocalDensity.current
 
+    val currentStepData = steps.getOrElse(currentStep) { steps.last() }
+    val measuredBounds = TourManager.getBounds(currentStepData.highlightArea)
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        val measuredBounds = TourManager.getBounds(step.highlightArea)
-
         // 1. Dynamic Canvas Darkened Overlay with True Measured Gap Cutout (BlendMode.Clear)
         Canvas(
             modifier = Modifier
@@ -182,7 +182,7 @@ fun DemoTourOverlay(
                     val height = measuredBounds.height + 16.dp.toPx()
                     val cornerRadius = CornerRadius(20.dp.toPx(), 20.dp.toPx())
 
-                    if (step.highlightArea == TourHighlightArea.BOTTOM_RIGHT_FAB) {
+                    if (currentStepData.highlightArea == TourHighlightArea.BOTTOM_RIGHT_FAB) {
                         val centerX = measuredBounds.center.x
                         val centerY = measuredBounds.center.y
                         val radius = (measuredBounds.width / 1.5f) * pulseScale
@@ -219,145 +219,177 @@ fun DemoTourOverlay(
             }
         }
 
-        // 2. Dynamic Badge Indicator Label centered above measured target
-        var badgeWidthPx by remember { mutableIntStateOf(0) }
-        if (measuredBounds != null) {
-            with(density) {
-                val badgeTopPx = (measuredBounds.top - 42.dp.toPx()).coerceAtLeast(16.dp.toPx())
-                val screenWidthPx = LocalConfiguration.current.screenWidthDp.dp.toPx()
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = primaryColor,
-                    modifier = Modifier
-                        .onSizeChanged { badgeWidthPx = it.width }
-                        .offset {
-                            val x = (measuredBounds.center.x - badgeWidthPx / 2f)
-                                .coerceIn(16.dp.toPx(), (screenWidthPx - badgeWidthPx - 16.dp.toPx()).coerceAtLeast(16.dp.toPx()))
-                            IntOffset(x.roundToInt(), badgeTopPx.roundToInt())
-                        }
-                ) {
-                    Text(
-                        text = step.badgeLabel,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
+        // Animated Page Transitions for Badge and Tooltip Card
+        AnimatedContent(
+            targetState = currentStep,
+            transitionSpec = {
+                if (targetState > initialState) {
+                    (slideInHorizontally(animationSpec = tween(350, easing = FastOutSlowInEasing)) { width -> width / 3 } +
+                            fadeIn(animationSpec = tween(350)))
+                        .togetherWith(
+                            slideOutHorizontally(animationSpec = tween(350, easing = FastOutSlowInEasing)) { width -> -width / 3 } +
+                                    fadeOut(animationSpec = tween(350))
+                        )
+                } else {
+                    (slideInHorizontally(animationSpec = tween(350, easing = FastOutSlowInEasing)) { width -> -width / 3 } +
+                            fadeIn(animationSpec = tween(350)))
+                        .togetherWith(
+                            slideOutHorizontally(animationSpec = tween(350, easing = FastOutSlowInEasing)) { width -> width / 3 } +
+                                    fadeOut(animationSpec = tween(350))
+                        )
                 }
-            }
-        }
+            },
+            label = "tour_page_transition",
+            modifier = Modifier.fillMaxSize()
+        ) { targetStep ->
+            val step = steps.getOrElse(targetStep) { steps.last() }
+            val targetBounds = TourManager.getBounds(step.highlightArea)
 
-        // 3. Persistent Tour Tooltip Card
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .padding(
-                    top = if (step.cardAlignment == Alignment.TopCenter) 80.dp else 0.dp,
-                    bottom = if (step.cardAlignment == Alignment.BottomCenter) 40.dp else 0.dp
-                ),
-            contentAlignment = step.cardAlignment
-        ) {
-            ElevatedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 18.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(22.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // 2. Dynamic Badge Indicator Label centered above measured target
+                var badgeWidthPx by remember { mutableIntStateOf(0) }
+                if (targetBounds != null) {
+                    with(density) {
+                        val badgeTopPx = (targetBounds.top - 42.dp.toPx()).coerceAtLeast(16.dp.toPx())
+                        val screenWidthPx = LocalConfiguration.current.screenWidthDp.dp.toPx()
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Text(
-                                text = "Step ${currentStep + 1} of $totalSteps",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        TextButton(onClick = onSkip) {
-                            Text("Skip Tour", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = primaryColor.copy(alpha = 0.15f),
-                            modifier = Modifier.size(52.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    step.icon,
-                                    contentDescription = null,
-                                    tint = primaryColor,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                            }
-                        }
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = step.title,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = step.description,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 20.sp
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (currentStep > 0) {
-                            OutlinedButton(
-                                onClick = onBack,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(vertical = 10.dp)
-                            ) {
-                                Text("Back", fontSize = 14.sp)
-                            }
-                        }
-                        Button(
-                            onClick = onNext,
-                            modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(vertical = 10.dp)
+                            color = primaryColor,
+                            modifier = Modifier
+                                .onSizeChanged { badgeWidthPx = it.width }
+                                .offset {
+                                    val x = (targetBounds.center.x - badgeWidthPx / 2f)
+                                        .coerceIn(16.dp.toPx(), (screenWidthPx - badgeWidthPx - 16.dp.toPx()).coerceAtLeast(16.dp.toPx()))
+                                    IntOffset(x.roundToInt(), badgeTopPx.roundToInt())
+                                }
                         ) {
                             Text(
-                                if (currentStep < totalSteps - 1) "Next ➔" else "Finish Tour 🚀",
+                                text = step.badgeLabel,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
+                        }
+                    }
+                }
+
+                // 3. Persistent Tour Tooltip Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                        .padding(
+                            top = if (step.cardAlignment == Alignment.TopCenter) 80.dp else 0.dp,
+                            bottom = if (step.cardAlignment == Alignment.BottomCenter) 40.dp else 0.dp
+                        ),
+                    contentAlignment = step.cardAlignment
+                ) {
+                    ElevatedCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Text(
+                                        text = "Step ${targetStep + 1} of $totalSteps",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                TextButton(
+                                    onClick = onSkip,
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Text("Skip Tour", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = primaryColor.copy(alpha = 0.15f),
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            step.icon,
+                                            contentDescription = null,
+                                            tint = primaryColor,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = step.title,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(1.dp))
+                                    Text(
+                                        text = step.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 17.sp
+                                    )
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (targetStep > 0) {
+                                    OutlinedButton(
+                                        onClick = onBack,
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(vertical = 8.dp)
+                                    ) {
+                                        Text("Back", fontSize = 13.sp)
+                                    }
+                                }
+                                Button(
+                                    onClick = onNext,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        if (targetStep < totalSteps - 1) "Next ➔" else "Finish Tour 🚀",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
                         }
                     }
                 }

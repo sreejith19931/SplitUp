@@ -29,7 +29,8 @@ import com.finance.splitup.ui.components.SplitUpLogo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onStartDemoTour: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -237,6 +238,20 @@ fun AboutScreen(
             }
 
             var showLicensesDialog by remember { mutableStateOf(false) }
+
+            Button(
+                onClick = onStartDemoTour,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            ) {
+                Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Replay Interactive Product Tour", fontWeight = FontWeight.Bold)
+            }
 
             OutlinedButton(
                 onClick = { showLicensesDialog = true },

@@ -143,8 +143,8 @@ fun CreateGroupScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .imePadding()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedTextField(
                 value = groupName,
@@ -154,7 +154,7 @@ fun CreateGroupScreen(
                 },
                 label = { Text("Group Name (e.g. Summer Vacation)") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 singleLine = true,
                 isError = errorMessage != null && groupName.isBlank()
             )

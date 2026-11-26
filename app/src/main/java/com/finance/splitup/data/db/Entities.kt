@@ -277,3 +277,20 @@ data class IncomeEntity(
     val updatedAt: Long = System.currentTimeMillis(),
     val isDirty: Boolean = true
 )
+
+@Serializable
+@Entity(tableName = "investments")
+data class InvestmentEntity(
+    @PrimaryKey
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val title: String = "",
+    val amount: Double = 0.0,
+    val category: String = "Stocks & Equities",
+    val date: String = "Today",
+    val description: String = "",
+    val brokerOrPlatform: String = "",
+    val transactionType: String = "BUY",
+    val currency: String = Currencies.EUR,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isDirty: Boolean = true
+)

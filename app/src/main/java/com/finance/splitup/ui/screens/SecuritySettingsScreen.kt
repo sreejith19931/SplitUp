@@ -282,7 +282,8 @@ fun SecuritySettingsScreen(
                     onClick = {
                         if (newPinInput.length == 4 && confirmPinInput.length == 4) {
                             if (newPinInput == confirmPinInput) {
-                                val hashed = com.finance.splitup.hashSecurityPin(newPinInput)
+                                val hashed = com.finance.splitup.data.PinSecurity.hash(newPinInput)
+                                    ?: com.finance.splitup.data.PinSecurity.legacyHash(newPinInput)
                                 val prefs = com.finance.splitup.data.EncryptedPrefs.getPreferences(context, "splitup_prefs")
                                 prefs.edit().putString("security_pin_hash", hashed).apply()
                                 

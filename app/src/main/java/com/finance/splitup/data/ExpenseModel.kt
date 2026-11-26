@@ -225,6 +225,36 @@ object ExpenseCategories {
     }
 }
 
+object InvestmentCategories {
+    const val STOCKS = "Stocks & Equities"
+    const val MUTUAL_FUNDS = "Mutual Funds & ETFs"
+    const val CRYPTO = "Cryptocurrency"
+    const val REAL_ESTATE = "Real Estate"
+    const val PROVIDENT_FUND = "Provident Fund / Pension"
+    const val GOLD = "Gold & Precious Metals"
+    const val BONDS = "Bonds & Fixed Income"
+    const val OTHER = "Other Investment"
+
+    val all = listOf(STOCKS, MUTUAL_FUNDS, CRYPTO, REAL_ESTATE, PROVIDENT_FUND, GOLD, BONDS, OTHER)
+
+    fun getEmoji(category: String): String {
+        return when (category) {
+            STOCKS -> "📈"
+            MUTUAL_FUNDS -> "📊"
+            CRYPTO -> "🪙"
+            REAL_ESTATE -> "🏠"
+            PROVIDENT_FUND -> "🏦"
+            GOLD -> "🥇"
+            BONDS -> "📜"
+            else -> "💼"
+        }
+    }
+
+    fun getDisplayName(category: String): String {
+        return "${getEmoji(category)} $category"
+    }
+}
+
 object DateUtils {
     private val dateFormats = listOf(
         java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy, h:mm a", java.util.Locale.US),

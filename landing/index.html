@@ -36,6 +36,18 @@
       "author": { "@type": "Organization", "name": "SplitUp", "url": "https://github.com/sreejith19931/SplitUp" }
     }
     </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Is SplitUp really free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes — 100% free, forever, with no ads and no premium tier. It is fully open source under the MIT License." } },
+        { "@type": "Question", "name": "Where can I download it?", "acceptedAnswer": { "@type": "Answer", "text": "From GitHub Releases. A public Google Play Store listing is being prepared." } },
+        { "@type": "Question", "name": "Does my data leave my phone?", "acceptedAnswer": { "@type": "Answer", "text": "No, not unless you choose to. Everything is stored encrypted on your device and cloud sync is entirely optional." } },
+        { "@type": "Question", "name": "Does receipt scanning need internet?", "acceptedAnswer": { "@type": "Answer", "text": "No. Text recognition runs entirely on-device with Google ML Kit." } }
+      ]
+    }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -296,6 +308,72 @@
         .howitworks-step p {
             color: var(--text-body);
             font-size: 0.88rem;
+        }
+
+        .faq-list {
+            max-width: 760px;
+            margin: 2.2rem auto 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .faq-item {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 0.2rem 1.2rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .faq-item:hover {
+            border-color: rgba(56, 189, 248, 0.35);
+        }
+
+        .faq-item summary {
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.98rem;
+            padding: 0.85rem 0;
+            list-style: none;
+            color: var(--text-heading);
+        }
+
+        .faq-item summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .faq-item summary::after {
+            content: '+';
+            float: right;
+            font-weight: 800;
+            color: var(--brand-cyan);
+            font-size: 1.1rem;
+            transition: transform 0.2s ease;
+        }
+
+        .faq-item[open] summary::after {
+            content: '\2212';
+        }
+
+        .faq-item p {
+            color: var(--text-body);
+            font-size: 0.9rem;
+            padding: 0 0 1rem;
+            line-height: 1.65;
+        }
+
+        .hero-social-proof {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            margin-top: 1.4rem;
+            font-size: 0.82rem;
+            color: var(--text-body);
+        }
+
+        .hero-social-proof .star {
+            color: #FACC15;
         }
 
         .hero h1 {
@@ -719,6 +797,13 @@
             <a href="https://github.com/sreejith19931/SplitUp/releases" target="_blank" class="btn btn-primary"><span id="hero-download-text">Download Android APK (v1.3)</span></a>
             <a href="https://github.com/sreejith19931/SplitUp" target="_blank" class="btn btn-secondary">View Source Code</a>
         </div>
+        <div class="hero-social-proof">
+            <span><span class="star">★</span> <span id="gh-stars">—</span> stars on GitHub</span>
+            <span aria-hidden="true">·</span>
+            <span>MIT License</span>
+            <span aria-hidden="true">·</span>
+            <span>Free forever</span>
+        </div>
     </section>
 
     <div class="container">
@@ -852,34 +937,65 @@
             <div class="screenshots-grid">
                 <div class="screenshot-card">
                     <div class="screenshot-frame">
-                        <img src="./screenshots/Groups.png" alt="Groups Screen" loading="lazy" width="1280" height="2772">
+                        <img src="./screenshots/Groups.webp" alt="Groups Screen" loading="lazy" width="720" height="1556">
                     </div>
                     <span class="screenshot-label">Groups</span>
                 </div>
                 <div class="screenshot-card">
                     <div class="screenshot-frame">
-                        <img src="./screenshots/Analysis.png" alt="Analytics & Charting" loading="lazy" width="1280" height="2772">
-                    </div>
-                    <span class="screenshot-label">Analysis</span>
-                </div>
-                <div class="screenshot-card">
-                    <div class="screenshot-frame">
-                        <img src="./screenshots/PersonalExpenses.png" alt="Personal Expense Manager" loading="lazy" width="1280" height="2772">
+                        <img src="./screenshots/PersonalExpenses.webp" alt="Personal Expense Manager" loading="lazy" width="720" height="1556">
                     </div>
                     <span class="screenshot-label">Personal Expenses</span>
                 </div>
                 <div class="screenshot-card">
                     <div class="screenshot-frame">
-                        <img src="./screenshots/Settings.png" alt="Settings & Data Controls" loading="lazy" width="1280" height="2772">
-                    </div>
-                    <span class="screenshot-label">Settings</span>
-                </div>
-                <div class="screenshot-card">
-                    <div class="screenshot-frame">
-                        <img src="./screenshots/Dashboard.png" alt="Dashboard Overview" loading="lazy" width="1280" height="2772">
+                        <img src="./screenshots/Dashboard.webp" alt="Dashboard Overview" loading="lazy" width="720" height="1556">
                     </div>
                     <span class="screenshot-label">Dashboard</span>
                 </div>
+                <div class="screenshot-card">
+                    <div class="screenshot-frame">
+                        <img src="./screenshots/Insights.webp" alt="Getting Started Onboarding" loading="lazy" width="720" height="1556">
+                    </div>
+                    <span class="screenshot-label">Get Started</span>
+                </div>
+                <div class="screenshot-card">
+                    <div class="screenshot-frame">
+                        <img src="./screenshots/Settings.webp" alt="Settings & Data Controls" loading="lazy" width="720" height="1556">
+                    </div>
+                    <span class="screenshot-label">Settings</span>
+                </div>
+            </div>
+
+            <!-- FAQ -->
+            <div class="section-header" style="margin-top: 3rem;">
+                <h2 class="section-title">Frequently asked questions</h2>
+            </div>
+            <div class="faq-list">
+                <details class="faq-item">
+                    <summary>Is SplitUp really free?</summary>
+                    <p>Yes — 100% free, forever, with no ads and no premium tier. It's fully open source under the MIT License, so you can even inspect exactly how it works.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Where can I download it?</summary>
+                    <p>Right now, straight from GitHub Releases (link above). A public Google Play Store listing is being prepared — watch the repo to hear about it first.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Does my data leave my phone?</summary>
+                    <p>No, not unless you choose to. Everything is stored encrypted on your device. Cloud sync is entirely optional, per-account, and only syncs your own data with your own sign-in.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Does receipt scanning need internet?</summary>
+                    <p>No. Text recognition runs entirely on-device with Google ML Kit — your receipt photos never leave your phone.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>How are currencies handled?</summary>
+                    <p>Live exchange rates are fetched automatically with a built-in offline fallback, so mixed-currency groups always settle fairly.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Is an iOS version planned?</summary>
+                    <p>SplitUp is Android-first today. Star or watch the GitHub repository — platform announcements will be posted there.</p>
+                </details>
             </div>
         </div>
 
@@ -944,11 +1060,27 @@
             // Keep the site version in lock-step with the latest GitHub release
             // (same source the app's in-app UpdateChecker uses). Falls back to
             // the static v1.3 content when the API is unreachable.
-            fetch('https://api.github.com/repos/sreejith19931/SplitUp/releases/latest', {
-                headers: { 'Accept': 'application/vnd.github+json' }
-            })
-                .then(function(r) { return r.ok ? r.json() : null; })
-                .then(function(release) {
+            Promise.all([
+                fetch('https://api.github.com/repos/sreejith19931/SplitUp/releases/latest', {
+                    headers: { 'Accept': 'application/vnd.github+json' }
+                }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
+                fetch('https://api.github.com/repos/sreejith19931/SplitUp', {
+                    headers: { 'Accept': 'application/vnd.github+json' }
+                }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
+            ])
+                .then(function(results) {
+                    const release = results[0];
+                    const repo = results[1];
+
+                    // Live star count for the hero social-proof line.
+                    if (repo && typeof repo.stargazers_count === 'number') {
+                        const starsEl = document.getElementById('gh-stars');
+                        if (starsEl) {
+                            const n = repo.stargazers_count;
+                            starsEl.textContent = n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
+                        }
+                    }
+
                     if (!release || !release.tag_name) return;
                     const ver = release.tag_name.replace(/^v/, '');
                     const heroVersion = document.getElementById('hero-version');

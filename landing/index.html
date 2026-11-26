@@ -5,6 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SplitUp — Simple Group Expense Splitting & Finance Manager for Android</title>
     <meta name="description" content="SplitUp helps roommates, group travelers, and friends track group bills, split expenses, scan receipts with OCR, and convert currencies offline and in real-time.">
+
+    <!-- Social sharing preview cards -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="SplitUp">
+    <meta property="og:title" content="SplitUp — No awkward calculations. Just settled up.">
+    <meta property="og:description" content="Split group bills with smart balance simplification, scan receipts with on-device OCR, convert currencies live, and settle up in 3 taps. Free & open source for Android.">
+    <meta property="og:url" content="https://splitupfin.vercel.app/">
+    <meta property="og:image" content="https://splitupfin.vercel.app/og-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SplitUp — No awkward calculations. Just settled up.">
+    <meta name="twitter:description" content="Split group bills, scan receipts, convert currencies. Free & open source for Android. Coming soon to Google Play.">
+    <meta name="twitter:image" content="https://splitupfin.vercel.app/og-card.png">
+    <link rel="canonical" href="https://splitupfin.vercel.app/">
+    <link rel="icon" href="./logo.svg" type="image/svg+xml">
+
+    <!-- Structured data for search engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "SplitUp",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Android",
+      "description": "Group expense splitting with smart balance simplification, on-device receipt OCR, live currency conversion, and encrypted offline-first storage. Free and open source.",
+      "url": "https://splitupfin.vercel.app/",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Organization", "name": "SplitUp", "url": "https://github.com/sreejith19931/SplitUp" }
+    }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -159,6 +191,111 @@
             font-weight: 700;
             margin-bottom: 1.5rem;
             letter-spacing: 0.01em;
+        }
+
+        .play-teaser-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.3rem 0.9rem;
+            border-radius: 999px;
+            background-color: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: #7DD3FC;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin: -0.7rem 0 1.6rem;
+            letter-spacing: 0.02em;
+            cursor: default;
+        }
+
+        .play-teaser-card {
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(29, 78, 216, 0.12));
+            border-radius: 18px;
+            padding: 1.6rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .play-teaser-inner {
+            display: flex;
+            align-items: center;
+            gap: 1.4rem;
+            flex-wrap: wrap;
+        }
+
+        .play-teaser-icon {
+            flex-shrink: 0;
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #38BDF8;
+        }
+
+        .play-teaser-text {
+            flex: 1 1 320px;
+        }
+
+        .play-teaser-text h3 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
+
+        .play-teaser-text p {
+            color: var(--text-body);
+            font-size: 0.92rem;
+        }
+
+        .play-teaser-actions {
+            display: flex;
+            gap: 0.7rem;
+            flex-wrap: wrap;
+        }
+
+        .howitworks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.2rem;
+            margin-top: 2.2rem;
+        }
+
+        .howitworks-step {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .howitworks-num {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--brand-blue), var(--brand-cyan));
+            color: #fff;
+            font-weight: 800;
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.9rem;
+        }
+
+        .howitworks-step h3 {
+            font-size: 1.02rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+
+        .howitworks-step p {
+            color: var(--text-body);
+            font-size: 0.88rem;
         }
 
         .hero h1 {
@@ -571,12 +708,15 @@
         <img src="./logo.svg" alt="SplitUp App Logo" class="hero-logo-svg">
 
         <div class="version-badge">
-            ⚡ SplitUp v1.3 is out
+            ⚡ <span id="hero-version">SplitUp v1.3 is out</span>
+        </div>
+        <div class="play-teaser-chip" title="Public Google Play launch is being prepared">
+            🔔 <span>Coming soon to Google Play</span>
         </div>
         <h1>No awkward calculations. <span>Just settled up.</span></h1>
         <p>Built for roommate bills, group trips, and dinner splits. Track who paid what, scan receipts, convert currencies, and keep your group finances clear.</p>
         <div class="hero-actions">
-            <a href="https://github.com/sreejith19931/SplitUp/releases" target="_blank" class="btn btn-primary">Download Android APK (v1.3)</a>
+            <a href="https://github.com/sreejith19931/SplitUp/releases" target="_blank" class="btn btn-primary"><span id="hero-download-text">Download Android APK (v1.3)</span></a>
             <a href="https://github.com/sreejith19931/SplitUp" target="_blank" class="btn btn-secondary">View Source Code</a>
         </div>
     </section>
@@ -585,11 +725,33 @@
         <!-- Dynamic Group Invite / User QR Code Banner -->
         <div id="invite-banner-container" style="display: none;"></div>
 
+        <!-- Google Play Teaser -->
+        <div class="play-teaser-card">
+            <div class="play-teaser-inner">
+                <div class="play-teaser-icon">
+                    <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M3.6 1.8L13.4 12 3.6 22.2c-.36-.3-.6-.78-.6-1.32V3.12c0-.54.24-1.02.6-1.32z" opacity="0.95"/>
+                        <path d="M15.8 13.9l-2.4-1.9-9.8-9.9c.36-.18.84-.24 1.32 0l13.2 7.5-2.32 4.3z" opacity="0.75"/>
+                        <path d="M17.8 10.6l3.3 1.9c.9.54.9 1.44 0 1.98l-3.3 1.9-2.7-2.9 2.7-2.88z" opacity="0.95"/>
+                        <path d="M15.8 13.9l2.32 4.3-13.2 7.5c-.48.24-.96.18-1.32 0l9.8-9.9 2.4-1.9z" opacity="0.75"/>
+                    </svg>
+                </div>
+                <div class="play-teaser-text">
+                    <h3>Coming soon to Google Play</h3>
+                    <p>The public Play Store launch is being prepared. Right now SplitUp ships first on GitHub — grab the latest build today, free and open source, and be among the first when the Play listing goes live.</p>
+                </div>
+                <div class="play-teaser-actions">
+                    <a href="https://github.com/sreejith19931/SplitUp/releases" target="_blank" class="btn btn-primary">Get the Latest Build</a>
+                    <a href="https://github.com/sreejith19931/SplitUp" target="_blank" class="btn btn-secondary">★ Watch for Launch News</a>
+                </div>
+            </div>
+        </div>
+
         <!-- What's New Section -->
         <div class="release-card">
             <div class="release-header">
                 <div class="release-title">
-                    <span>What's New in v1.3</span>
+                    <span id="whats-new-title">What's New in v1.3</span>
                 </div>
                 <div class="release-tag">Latest Release</div>
             </div>
@@ -654,12 +816,35 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                     </svg>
                 </div>
-                <h3>100% Offline First</h3>
-                <p>Your data stays on your device in encrypted storage with optional encrypted multi-user cloud backup.</p>
+                <h3>Offline-First &amp; Encrypted</h3>
+                <p>Your data stays on your device in encrypted storage with optional encrypted multi-user cloud sync.</p>
             </div>
         </div>
 
         <!-- Screenshots Gallery Section -->
+        <div class="screenshots-section">
+            <div class="section-header">
+                <h2 class="section-title">How it works</h2>
+            </div>
+            <div class="howitworks-grid">
+                <div class="howitworks-step">
+                    <div class="howitworks-num">1</div>
+                    <h3>Create a group</h3>
+                    <p>Add roommates, trip friends, or colleagues — by contact, email, or a shareable invite link.</p>
+                </div>
+                <div class="howitworks-step">
+                    <div class="howitworks-num">2</div>
+                    <h3>Scan &amp; split</h3>
+                    <p>Photograph the receipt — OCR reads the items and prices, then everyone's share is one tap away.</p>
+                </div>
+                <div class="howitworks-step">
+                    <div class="howitworks-num">3</div>
+                    <h3>Settle up</h3>
+                    <p>SplitUp simplifies every balance into the fewest possible payments. No spreadsheets, no Venmo spiral.</p>
+                </div>
+            </div>
+        </div>
+
         <div class="screenshots-section">
             <div class="section-header">
                 <h2 class="section-title">App Screenshots</h2>
@@ -667,31 +852,31 @@
             <div class="screenshots-grid">
                 <div class="screenshot-card">
                     <div class="screenshot-frame">
-                        <img src="./screenshots/Groups.png" alt="Groups Screen" loading="lazy">
+                        <img src="./screenshots/Groups.png" alt="Groups Screen" loading="lazy" width="1280" height="2772">
                     </div>
                     <span class="screenshot-label">Groups</span>
                 </div>
                 <div class="screenshot-card">
                     <div class="screenshot-frame">
-                        <img src="./screenshots/Analysis.png" alt="Analytics & Charting" loading="lazy">
+                        <img src="./screenshots/Analysis.png" alt="Analytics & Charting" loading="lazy" width="1280" height="2772">
                     </div>
                     <span class="screenshot-label">Analysis</span>
                 </div>
                 <div class="screenshot-card">
                     <div class="screenshot-frame">
-                        <img src="./screenshots/PersonalExpenses.png" alt="Personal Expense Manager" loading="lazy">
+                        <img src="./screenshots/PersonalExpenses.png" alt="Personal Expense Manager" loading="lazy" width="1280" height="2772">
                     </div>
                     <span class="screenshot-label">Personal Expenses</span>
                 </div>
                 <div class="screenshot-card">
                     <div class="screenshot-frame">
-                        <img src="./screenshots/Settings.png" alt="Settings & Data Controls" loading="lazy">
+                        <img src="./screenshots/Settings.png" alt="Settings & Data Controls" loading="lazy" width="1280" height="2772">
                     </div>
                     <span class="screenshot-label">Settings</span>
                 </div>
                 <div class="screenshot-card">
                     <div class="screenshot-frame">
-                        <img src="./screenshots/Dashboard.png" alt="Dashboard Overview" loading="lazy">
+                        <img src="./screenshots/Dashboard.png" alt="Dashboard Overview" loading="lazy" width="1280" height="2772">
                     </div>
                     <span class="screenshot-label">Dashboard</span>
                 </div>
@@ -742,14 +927,65 @@
                                 <p>${inviteDesc}</p>
                                 <div class="invite-card-actions">
                                     <a href="${openAppUrl}" class="btn btn-primary">Open in SplitUp App</a>
-                                    <a href="https://github.com/sreejith19931/SplitUp/releases" class="btn btn-secondary">Download App APK</a>
+                                    <a href="https://github.com/sreejith19931/SplitUp/releases" class="btn btn-secondary">Get the App — Play Store coming soon</a>
                                 </div>
                             </div>
                         </div>
                     `;
                     bannerContainer.style.display = 'block';
+                    // Invite links should land straight on the invitation, not the
+                    // full marketing pitch: jump to the card as soon as it renders.
+                    requestAnimationFrame(() => {
+                        bannerContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
                 }
             }
+
+            // Keep the site version in lock-step with the latest GitHub release
+            // (same source the app's in-app UpdateChecker uses). Falls back to
+            // the static v1.3 content when the API is unreachable.
+            fetch('https://api.github.com/repos/sreejith19931/SplitUp/releases/latest', {
+                headers: { 'Accept': 'application/vnd.github+json' }
+            })
+                .then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(release) {
+                    if (!release || !release.tag_name) return;
+                    const ver = release.tag_name.replace(/^v/, '');
+                    const heroVersion = document.getElementById('hero-version');
+                    const heroDownload = document.getElementById('hero-download-text');
+                    const whatsNew = document.getElementById('whats-new-title');
+                    if (heroVersion) heroVersion.textContent = 'SplitUp v' + ver + ' is out';
+                    if (heroDownload) heroDownload.textContent = 'Download Android APK (v' + ver + ')';
+                    if (whatsNew) whatsNew.textContent = "What's New in v" + ver;
+
+                    // Render release notes (top 4 bullet items) when available.
+                    if (release.body) {
+                        const bullets = release.body
+                            .split(/\r?\n/)
+                            .filter(function(l) { return /^[-*] \*\*/.test(l.trim()); })
+                            .slice(0, 4)
+                            .map(function(l) {
+                                const m = l.trim().replace(/^[-*] /, '').split(/\*\*/);
+                                const title = (m[1] || '').replace(/:$/, '');
+                                const desc = (m[2] || '').replace(/^[:\s]+/, '');
+                                if (!title) return null;
+                                return { title: title, desc: desc };
+                            })
+                            .filter(Boolean);
+                        if (bullets.length) {
+                            const grid = document.querySelector('.release-grid');
+                            if (grid) {
+                                grid.innerHTML = bullets.map(function(b) {
+                                    return '<div class="release-item">' +
+                                        '<span class="release-icon">\u2726</span>' +
+                                        '<div class="release-text"><strong>' + b.title + '</strong>' + (b.desc ? ' ' + b.desc : '') + '</div>' +
+                                        '</div>';
+                                }).join('');
+                            }
+                        }
+                    }
+                })
+                .catch(function() { /* keep static fallback */ });
         });
     </script>
 

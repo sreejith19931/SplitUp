@@ -89,6 +89,28 @@ fun ReceiptExtractionScreen(
                         }
                     }
 
+                    // OCR read almost nothing (e.g. blurry photo, faint print):
+                    // tell the user up front instead of a bare "Unrecognized Receipt".
+                    if (currentReceipt.merchantName == "Unrecognized Receipt" && currentReceipt.totalAmount == 0.0) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.errorContainer
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(18.dp))
+                                Text(
+                                    "We couldn't read much from this photo — please fill in the details below or retake it with better lighting.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+
                     OutlinedTextField(
                         value = merchant,
                         onValueChange = { merchant = it },

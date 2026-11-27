@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -746,6 +747,9 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
                 } catch (e: Exception) {
                     android.util.Log.e("FinanceViewModel", "Failed to perform initial cloud sync", e)
                 }
+                // After the initial sync completes, drop receipt image files no
+                // longer referenced by any expense.
+                cleanupOrphanedReceipts()
             }
         }
         startRealtimeGroupListeners()
@@ -1193,13 +1197,47 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
             val dir = java.io.File(app.filesDir, "receipts")
             if (!dir.exists()) dir.mkdirs()
             val file = java.io.File(dir, filename)
-            val stream = java.io.FileOutputStream(file)
-            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, stream)
-            stream.flush()
-            stream.close()
+            java.io.FileOutputStream(file).use { stream ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, stream)
+                stream.flush()
+            }
             file.absolutePath
         } catch (_: Exception) {
             null
+        }
+    }
+
+    /**
+     * Deletes receipt image files in filesDir/receipts that are no longer
+     * referenced by any expense (personal or group). Expenses are deleted and
+     * re-scanned over time; without this sweep the folder grows forever.
+     * Safe against in-flight saves: a file is only removed when no record
+     * points to it, and re-captures always create a new UUID filename.
+     */
+    fun cleanupOrphanedReceipts() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val repo = repository ?: return@launch
+                val referencedPaths = mutableSetOf<String>()
+                repo.getAllExpenses().first().forEach { exp -> exp.receiptImagePath?.let { referencedPaths.add(it) } }
+                repo.getAllGroups().first().forEach { group ->
+                    group.expenses.forEach { gExp -> gExp.receiptImagePath?.let { referencedPaths.add(it) } }
+                }
+                val dir = java.io.File(getApplication<Application>().filesDir, "receipts")
+                val files = dir.listFiles() ?: return@launch
+                var deleted = 0
+                for (file in files) {
+                    val path = file.absolutePath
+                    if (path !in referencedPaths) {
+                        if (file.delete()) deleted++
+                    }
+                }
+                if (deleted > 0) {
+                    android.util.Log.d("FinanceViewModel", "Cleaned up $deleted orphaned receipt image(s)")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("FinanceViewModel", "Receipt cleanup failed", e)
+            }
         }
     }
 

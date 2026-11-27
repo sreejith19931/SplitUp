@@ -47,19 +47,21 @@ import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.launch
 
 class LiveReceiptAnalyzer(
-    private val onBoundsDetected: (android.graphics.RectF?) -> Unit
+    private val onBoundsDetected: (LiveReceiptBounds?) -> Unit
 ) : androidx.camera.core.ImageAnalysis.Analyzer {
     private val recognizer = com.google.mlkit.vision.text.TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS)
     private var lastAnalyzedTime = 0L
+    private var isTaskInFlight = false
 
     @androidx.camera.core.ExperimentalGetImage
     override fun analyze(imageProxy: ImageProxy) {
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastAnalyzedTime < 250) {
+        if (currentTime - lastAnalyzedTime < 250 || isTaskInFlight) {
             imageProxy.close()
             return
         }
         lastAnalyzedTime = currentTime
+        isTaskInFlight = true
 
         val mediaImage = imageProxy.image
         if (mediaImage != null) {
@@ -67,6 +69,7 @@ class LiveReceiptAnalyzer(
             val inputImage = com.google.mlkit.vision.common.InputImage.fromMediaImage(mediaImage, rotationDegrees)
             recognizer.process(inputImage)
                 .addOnSuccessListener { visionText ->
+                    isTaskInFlight = false
                     if (visionText.textBlocks.isEmpty()) {
                         onBoundsDetected(null)
                     } else {
@@ -92,7 +95,7 @@ class LiveReceiptAnalyzer(
                             val normTop = (minY / imgHeight).coerceIn(0.02f, 0.9f)
                             val normRight = (maxX / imgWidth).coerceIn(normLeft + 0.05f, 0.98f)
                             val normBottom = (maxY / imgHeight).coerceIn(normTop + 0.05f, 0.98f)
-                            onBoundsDetected(android.graphics.RectF(normLeft, normTop, normRight, normBottom))
+                            onBoundsDetected(LiveReceiptBounds(android.graphics.RectF(normLeft, normTop, normRight, normBottom), imgWidth, imgHeight))
                         } else {
                             onBoundsDetected(null)
                         }
@@ -100,14 +103,27 @@ class LiveReceiptAnalyzer(
                     imageProxy.close()
                 }
                 .addOnFailureListener {
+                    isTaskInFlight = false
                     onBoundsDetected(null)
                     imageProxy.close()
                 }
         } else {
+            isTaskInFlight = false
             imageProxy.close()
         }
     }
 }
+
+/**
+ * Detected text bounds in image-normalized coordinates, plus the rotated
+ * image dimensions so the overlay can map them correctly onto the
+ * fill-center-cropped PreviewView (camera and screen aspect ratios differ).
+ */
+data class LiveReceiptBounds(
+    val rect: android.graphics.RectF,
+    val imageWidth: Int,
+    val imageHeight: Int
+)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -123,7 +139,7 @@ fun ReceiptScannerScreen(
     var isProcessing by remember { mutableStateOf(false) }
     var isTorchOn by remember { mutableStateOf(false) }
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var liveBounds by remember { mutableStateOf<android.graphics.RectF?>(null) }
+    var liveBounds by remember { mutableStateOf<LiveReceiptBounds?>(null) }
 
     val cameraController = remember {
         LifecycleCameraController(context).apply {
@@ -165,8 +181,14 @@ fun ReceiptScannerScreen(
         if (uri != null) {
             try {
                 val bitmap = decodeSampledBitmapFromUri(context, uri)
-                capturedBitmap = bitmap
-            } catch (_: Exception) {}
+                if (bitmap != null) {
+                    capturedBitmap = bitmap
+                } else {
+                    android.widget.Toast.makeText(context, "Couldn't load that image — try another photo", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } catch (_: Exception) {
+                android.widget.Toast.makeText(context, "Couldn't load that image — try another photo", android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -226,12 +248,21 @@ fun ReceiptScannerScreen(
                         val boxColor: Color
 
                         if (bounds != null) {
-                            val padX = (bounds.right - bounds.left) * 0.05f
-                            val padY = (bounds.bottom - bounds.top) * 0.05f
-                            left = ((bounds.left - padX).coerceAtLeast(0.05f)) * size.width
-                            top = ((bounds.top - padY).coerceAtLeast(0.05f)) * size.height
-                            val right = ((bounds.right + padX).coerceAtMost(0.95f)) * size.width
-                            val bottom = ((bounds.bottom + padY).coerceAtMost(0.95f)) * size.height
+                            // PreviewView scales the camera stream to FILL the view
+                            // (center-crop): compute that same scale + centering so
+                            // image-normalized bounds land exactly on the receipt.
+                            val scale = maxOf(
+                                size.width / bounds.imageWidth,
+                                size.height / bounds.imageHeight
+                            )
+                            val dx = (size.width - bounds.imageWidth * scale) / 2f
+                            val dy = (size.height - bounds.imageHeight * scale) / 2f
+                            val padX = (bounds.rect.right - bounds.rect.left) * 0.05f
+                            val padY = (bounds.rect.bottom - bounds.rect.top) * 0.05f
+                            left = dx + ((bounds.rect.left - padX).coerceAtLeast(0.02f)) * bounds.imageWidth * scale
+                            top = dy + ((bounds.rect.top - padY).coerceAtLeast(0.02f)) * bounds.imageHeight * scale
+                            val right = dx + ((bounds.rect.right + padX).coerceAtMost(0.98f)) * bounds.imageWidth * scale
+                            val bottom = dy + ((bounds.rect.bottom + padY).coerceAtMost(0.98f)) * bounds.imageHeight * scale
                             frameWidth = right - left
                             frameHeight = bottom - top
                             boxColor = Color.Green
@@ -357,8 +388,11 @@ fun ReceiptScannerScreen(
                                                 override fun onError(exception: ImageCaptureException) {
                                                     isProcessing = false
                                                     coroutineScope.launch {
-                                                        viewModel.currentExtractedReceipt = SampleReceipts.sampleWholeFoods
-                                                        onReceiptExtracted()
+                                                        android.widget.Toast.makeText(
+                                                            context,
+                                                            "Capture failed — please try again",
+                                                            android.widget.Toast.LENGTH_SHORT
+                                                        ).show()
                                                     }
                                                 }
                                             }
@@ -420,11 +454,35 @@ fun ReceiptScannerScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(24.dp))
+                    // After a permanent denial the request button becomes a no-op;
+                    // once the user has asked and still doesn't have the grant,
+                    // offer the Settings path instead of a dead end.
+                    var permissionRequested by remember { mutableStateOf(false) }
                     Button(
-                        onClick = { cameraPermissionState.launchPermissionRequest() },
+                        onClick = {
+                            permissionRequested = true
+                            cameraPermissionState.launchPermissionRequest()
+                        },
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Text("Grant Camera Permission")
+                    }
+                    if (permissionRequested && !cameraPermissionState.status.isGranted) {
+                        OutlinedButton(
+                            onClick = {
+                                try {
+                                    context.startActivity(
+                                        android.content.Intent(
+                                            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                            android.net.Uri.fromParts("package", context.packageName, null)
+                                        )
+                                    )
+                                } catch (_: Exception) {}
+                            },
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text("Open App Settings")
+                        }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedButton(
@@ -607,7 +665,8 @@ fun ReceiptInteractiveCropView(
                                         (offset - Offset(leftPx, bottomPx)).getDistance() < hitRadius -> CropMode.BottomLeft
                                         (offset - Offset(rightPx, bottomPx)).getDistance() < hitRadius -> CropMode.BottomRight
                                         offset.x in leftPx..rightPx && offset.y in topPx..bottomPx -> CropMode.Inside
-                                        else -> CropMode.Inside
+                                        // Touches outside the crop region must not move the box.
+                                        else -> CropMode.None
                                     }
                                 },
                                 onDrag = { change, dragAmount ->

@@ -2,12 +2,18 @@ package com.finance.splitup.data
 
 import android.graphics.Bitmap
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 object ReceiptProcessor {
+    // A single recognizer client is reused across scans: constructing an ML Kit
+    // detector costs ~100ms of warm-up per call and the client is thread-safe.
+    private val recognizer by lazy {
+        com.google.mlkit.vision.text.TextRecognition.getClient(
+            com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
+        )
+    }
+
     suspend fun processReceiptImage(bitmap: Bitmap?): ExtractedReceipt = suspendCancellableCoroutine { continuation ->
         val emptyResult = ExtractedReceipt(
             merchantName = "Unrecognized Receipt",
@@ -26,16 +32,8 @@ object ReceiptProcessor {
             return@suspendCancellableCoroutine
         }
 
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-
-        continuation.invokeOnCancellation {
-            try {
-                recognizer.close()
-            } catch (_: Exception) { }
-        }
-
         try {
-            val maxDimension = 1200
+            val maxDimension = 1600
             val scaledBitmap = if (bitmap.width > maxDimension || bitmap.height > maxDimension) {
                 val ratio = minOf(maxDimension.toFloat() / bitmap.width, maxDimension.toFloat() / bitmap.height)
                 Bitmap.createScaledBitmap(bitmap, (bitmap.width * ratio).toInt(), (bitmap.height * ratio).toInt(), true)
@@ -53,16 +51,13 @@ object ReceiptProcessor {
                     }
                     val reconstructedText = reconstructTextByLines(result)
                     val textToParse = if (reconstructedText.isNotBlank()) reconstructedText else rawText
-                    val extracted = parseReceiptText(textToParse)
+                    val extracted = parseReceiptText(textToParse, aggregateOcrConfidence(result))
                     continuation.resume(extracted)
                 }
                 .addOnFailureListener {
                     if (continuation.isActive) {
                         continuation.resume(emptyResult)
                     }
-                }
-                .addOnCompleteListener {
-                    try { recognizer.close() } catch (_: Exception) {}
                 }
         } catch (_: Exception) {
             if (continuation.isActive) {
@@ -71,12 +66,33 @@ object ReceiptProcessor {
         }
     }
 
+    /**
+     * Aggregates ML Kit's per-line recognition confidence into a single 0..1
+     * score, weighted by line length so long merchant/item lines count more
+     * than stray punctuation. Returns null when the model does not report
+     * confidence (caller then falls back to the parse-quality heuristic).
+     */
+    private fun aggregateOcrConfidence(visionText: com.google.mlkit.vision.text.Text): Float? {
+        var weightedSum = 0.0f
+        var totalWeight = 0.0f
+        for (block in visionText.textBlocks) {
+            for (line in block.lines) {
+                val conf = line.confidence
+                val weight = line.text.trim().length.toFloat()
+                if (conf != null && conf > 0f && weight > 0f) {
+                    weightedSum += conf * weight
+                    totalWeight += weight
+                }
+            }
+        }
+        return if (totalWeight > 0f) (weightedSum / totalWeight).coerceIn(0f, 1f) else null
+    }
+
     suspend fun detectReceiptBoundsInBitmap(bitmap: Bitmap?): android.graphics.RectF? = suspendCancellableCoroutine { continuation ->
         if (bitmap == null) {
             continuation.resume(null)
             return@suspendCancellableCoroutine
         }
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         val inputImage = InputImage.fromBitmap(bitmap, 0)
         recognizer.process(inputImage)
             .addOnSuccessListener { visionText ->
@@ -115,9 +131,6 @@ object ReceiptProcessor {
             }
             .addOnFailureListener {
                 continuation.resume(null)
-            }
-            .addOnCompleteListener {
-                try { recognizer.close() } catch (_: Exception) {}
             }
     }
 
@@ -191,7 +204,7 @@ object ReceiptProcessor {
         return if (isNegative) -value else value
     }
 
-    fun parseReceiptText(text: String): ExtractedReceipt {
+    fun parseReceiptText(text: String, ocrConfidence: Float? = null): ExtractedReceipt {
         val lines = text.split("\n").asSequence().map { it.trim() }.filter { it.isNotBlank() }.toList()
         if (lines.isEmpty()) {
             return ExtractedReceipt(
@@ -465,7 +478,14 @@ object ReceiptProcessor {
             extractedSubtotal = kotlin.math.round((extractedTotal - extractedTax - extractedTip) * 100) / 100.0
         }
 
-        val confidence = if (lines.size > 5 && extractedTotal > 0.0 && items.isNotEmpty()) 0.98f else 0.88f
+        val heuristicConfidence = if (lines.size > 5 && extractedTotal > 0.0 && items.isNotEmpty()) 0.98f else 0.88f
+        // Blend real OCR confidence (70%) with parse quality (30%); fall back
+        // to the heuristic alone when the model does not report confidence.
+        val confidence = if (ocrConfidence != null) {
+            (ocrConfidence * 0.7f + heuristicConfidence * 0.3f).coerceIn(0f, 1f)
+        } else {
+            heuristicConfidence
+        }
 
         return ExtractedReceipt(
             merchantName = merchant,

@@ -46,7 +46,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.finance.splitup.ui.theme.SplitUpTheme
+import com.finance.splitup.ui.theme.*
 
 enum class LogoStyle {
     REFINED_CARD_SPLITUP,    // Finalized Option 19: Ultra-refined split credit card & receipt wordmark with microchip & contactless waves
@@ -106,7 +106,7 @@ fun RefinedCardSplitUpWordmark(modifier: Modifier = Modifier) {
         ) {
             // Left side: "Split" + Gold Microchip + Security Hologram (Cobalt Card Half)
             Surface(
-                color = Color(0xFF1D4ED8), // Rich Cobalt Blue
+                color = LogoPrimaryBlue, // Rich Cobalt Blue
                 shape = RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp),
                 modifier = Modifier
                     .weight(1f)
@@ -127,20 +127,20 @@ fun RefinedCardSplitUpWordmark(modifier: Modifier = Modifier) {
                         Box(
                             modifier = Modifier
                                 .size(14.dp, 10.dp)
-                                .background(Color(0xFFFBBF24), RoundedCornerShape(2.dp)),
+                                .background(LogoGold, RoundedCornerShape(2.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(8.dp, 6.dp)
-                                    .background(Color(0xFF92400E), RoundedCornerShape(1f))
+                                    .background(LogoChipTextAmber, RoundedCornerShape(1f))
                             )
                         }
                         // Security Hologram Square
                         Box(
                             modifier = Modifier
                                 .size(8.dp, 10.dp)
-                                .background(Color(0xFF93C5FD).copy(alpha = 0.8f), RoundedCornerShape(2.dp))
+                                .background(LogoLightBlue.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
                         )
                     }
                     Text(
@@ -156,7 +156,7 @@ fun RefinedCardSplitUpWordmark(modifier: Modifier = Modifier) {
 
             // Right side: "Up" + Contactless Waves (Emerald Card Half)
             Surface(
-                color = Color(0xFF047857), // Deep Emerald Teal
+                color = LogoEmeraldTeal, // Deep Emerald Teal
                 shape = RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp),
                 modifier = Modifier
                     .weight(1f)
@@ -221,7 +221,7 @@ fun RefinedCardSplitUpWordmark(modifier: Modifier = Modifier) {
                 Box(
                     modifier = Modifier
                         .size(2.5.dp)
-                        .background(Color(0xFF38BDF8), CircleShape)
+                        .background(LogoCyan, CircleShape)
                 )
             }
         }
@@ -285,7 +285,7 @@ fun AnimatedSplitUpLaunchLogo(
                     .weight(if (expandProgress == 0f) 0.001f else expandProgress)
             ) {
                 Surface(
-                    color = Color(0xFF1D4ED8),
+                    color = LogoPrimaryBlue,
                     shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
                     modifier = Modifier
                         .fillMaxSize()
@@ -306,20 +306,20 @@ fun AnimatedSplitUpLaunchLogo(
                             Box(
                                 modifier = Modifier
                                     .size(16.dp, 12.dp)
-                                    .background(Color(0xFFFBBF24), RoundedCornerShape(2.dp)),
+                                    .background(LogoGold, RoundedCornerShape(2.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .size(10.dp, 8.dp)
-                                        .background(Color(0xFF92400E), RoundedCornerShape(1f))
+                                        .background(LogoChipTextAmber, RoundedCornerShape(1f))
                                 )
                             }
                             // Hologram
                             Box(
                                 modifier = Modifier
                                     .size(10.dp, 12.dp)
-                                    .background(Color(0xFF93C5FD).copy(alpha = 0.8f), RoundedCornerShape(2.dp))
+                                    .background(LogoLightBlue.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
                             )
                         }
                         Text(
@@ -341,7 +341,7 @@ fun AnimatedSplitUpLaunchLogo(
                     .weight(if (expandProgress == 0f) 0.001f else expandProgress)
             ) {
                 Surface(
-                    color = Color(0xFF047857),
+                    color = LogoEmeraldTeal,
                     shape = RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp),
                     modifier = Modifier
                         .fillMaxSize()
@@ -404,7 +404,7 @@ fun AnimatedSplitUpLaunchLogo(
                 Box(
                     modifier = Modifier
                         .size(2.5.dp)
-                        .background(Color(0xFF38BDF8), CircleShape)
+                        .background(LogoCyan, CircleShape)
                 )
             }
         }
@@ -415,7 +415,7 @@ fun AnimatedSplitUpLaunchLogo(
 @Composable
 fun PreviewPlatinumCardLogoDark() {
     SplitUpTheme(dynamicColor = false) {
-        Surface(color = Color(0xFF0F172A), modifier = Modifier.padding(24.dp)) {
+        Surface(color = DarkSlateBackground, modifier = Modifier.padding(24.dp)) {
             SplitUpLogo(style = LogoStyle.REFINED_CARD_SPLITUP)
         }
     }
@@ -429,11 +429,11 @@ fun CircularNavyPlatinumLogo(
     Box(
         modifier = modifier
             .size(size)
-            .background(Color(0xFF0F172A), CircleShape)
+            .background(DarkSlateBackground, CircleShape)
             .border(
                 width = 3.dp,
                 brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFF38BDF8), Color(0xFF93C5FD), Color(0xFF1D4ED8))
+                    colors = listOf(LogoCyan, LogoLightBlue, LogoPrimaryBlue)
                 ),
                 shape = CircleShape
             )
@@ -460,7 +460,7 @@ fun PreviewCircularNavyPlatinumLogo() {
 @Composable
 fun PreviewAnimatedLaunchLogo() {
     SplitUpTheme(dynamicColor = false) {
-        Surface(color = Color(0xFF0F172A), modifier = Modifier.padding(24.dp)) {
+        Surface(color = DarkSlateBackground, modifier = Modifier.padding(24.dp)) {
             SplitUpLogo(style = LogoStyle.ANIMATED_LAUNCH)
         }
     }

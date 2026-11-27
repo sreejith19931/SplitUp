@@ -56,6 +56,7 @@ fun GoogleLogo(modifier: Modifier = Modifier) {
         val scaleX = size.width / 24f
         val scaleY = size.height / 24f
         drawContext.transform.scale(scaleX, scaleY, Offset.Zero)
+        // Google brand colors — fixed by brand guidelines, intentionally not theme constants.
         drawPath(p1, Color(0xFF4285F4))
         drawPath(p2, Color(0xFF34A853))
         drawPath(p3, Color(0xFFFBBC05))

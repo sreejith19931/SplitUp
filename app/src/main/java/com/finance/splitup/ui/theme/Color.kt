@@ -30,6 +30,27 @@ val DarkSlateBorder = Color(0xFF475569)     // Slate 600 Border
 val EmeraldSuccess = Color(0xFF059669)
 val CrimsonDanger = Color(0xFFDC2626)
 
+// Category palette (semantic colors shared across budget rows, charts,
+// insights breakdowns and receipt allocation).
+val CategoryFood = Color(0xFF2563EB)          // Blue (Food & Dining)
+val CategoryGroceries = Color(0xFF0D9488)     // Teal (Groceries)
+val CategoryTransport = Color(0xFFD97706)     // Amber (Transport)
+val CategoryShopping = Color(0xFF7C3AED)      // Violet (Shopping)
+val CategoryBills = Color(0xFF0284C7)         // Sky Blue (Bills & Utilities)
+val CategoryEntertainment = Color(0xFFE11D48) // Rose (Entertainment)
+val CategoryHealth = Color(0xFFDC2626)        // Crimson Red (Health & Wellness)
+val CategoryTravel = Color(0xFF4F46E5)        // Indigo (Travel)
+val CategoryEducation = Color(0xFFCA8A04)     // Gold (Education)
+val CategorySettlement = Color(0xFF0891B2)    // Cyan (Settlement)
+val CategoryIncome = Color(0xFF059669)        // Emerald Green (Income)
+val CategoryOther = Color(0xFF475569)         // Slate (Other)
+
+// Logo micro-details
+val LogoChipTextAmber = Color(0xFF92400E)     // Amber-800 text on the gold chip
+
+// Third-party brand colors (must stay fixed regardless of theme)
+val PayPalBrandBlue = Color(0xFF003087)
+
 // Compatibility aliases
 val AppLogoBlue = LogoPrimaryBlue
 val PrimaryBlue = LogoPrimaryBlue

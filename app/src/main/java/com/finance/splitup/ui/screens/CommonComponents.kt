@@ -26,6 +26,19 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import com.finance.splitup.ui.theme.PayPalBrandBlue
+import com.finance.splitup.ui.theme.CategoryFood
+import com.finance.splitup.ui.theme.CategoryGroceries
+import com.finance.splitup.ui.theme.CategoryTransport
+import com.finance.splitup.ui.theme.CategoryShopping
+import com.finance.splitup.ui.theme.CategoryBills
+import com.finance.splitup.ui.theme.CategoryEntertainment
+import com.finance.splitup.ui.theme.CategoryHealth
+import com.finance.splitup.ui.theme.CategoryTravel
+import com.finance.splitup.ui.theme.CategoryEducation
+import com.finance.splitup.ui.theme.CategorySettlement
+import com.finance.splitup.ui.theme.CategoryIncome
+import com.finance.splitup.ui.theme.CategoryOther
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +60,7 @@ import com.finance.splitup.data.UiMessage
 @Composable
 fun ConfettiBurst(modifier: Modifier = Modifier) {
     val palette = listOf(
+        // Deliberate festive palette — needs distinct hues in both themes.
         Color(0xFF3B82F6), Color(0xFF22C55E), Color(0xFFFACC15),
         Color(0xFFF97316), Color(0xFFEC4899), Color(0xFF8B5CF6)
     )
@@ -296,18 +310,18 @@ fun SwipeableItemContainer(
 
 fun getCategoryColor(category: String): Color {
     return when (category) {
-        com.finance.splitup.data.ExpenseCategories.FOOD -> Color(0xFF2563EB)          // Blue (Food & Dining)
-        com.finance.splitup.data.ExpenseCategories.GROCERIES -> Color(0xFF0D9488)     // Teal (Groceries)
-        com.finance.splitup.data.ExpenseCategories.TRANSPORT -> Color(0xFFD97706)     // Amber (Transport)
-        com.finance.splitup.data.ExpenseCategories.SHOPPING -> Color(0xFF7C3AED)      // Violet (Shopping)
-        com.finance.splitup.data.ExpenseCategories.BILLS -> Color(0xFF0284C7)         // Sky Blue (Bills & Utilities)
-        com.finance.splitup.data.ExpenseCategories.ENTERTAINMENT -> Color(0xFFE11D48) // Rose (Entertainment)
-        com.finance.splitup.data.ExpenseCategories.HEALTH -> Color(0xFFDC2626)        // Crimson Red (Health & Wellness)
-        com.finance.splitup.data.ExpenseCategories.TRAVEL -> Color(0xFF4F46E5)        // Indigo (Travel)
-        com.finance.splitup.data.ExpenseCategories.EDUCATION -> Color(0xFFCA8A04)     // Gold (Education)
-        com.finance.splitup.data.ExpenseCategories.SETTLEMENT -> Color(0xFF0891B2)    // Cyan (Settlement)
-        com.finance.splitup.data.ExpenseCategories.INCOME -> Color(0xFF059669)        // Emerald Green (Income)
-        else -> Color(0xFF475569)                                                     // Slate (Other)
+        com.finance.splitup.data.ExpenseCategories.FOOD -> CategoryFood
+        com.finance.splitup.data.ExpenseCategories.GROCERIES -> CategoryGroceries
+        com.finance.splitup.data.ExpenseCategories.TRANSPORT -> CategoryTransport
+        com.finance.splitup.data.ExpenseCategories.SHOPPING -> CategoryShopping
+        com.finance.splitup.data.ExpenseCategories.BILLS -> CategoryBills
+        com.finance.splitup.data.ExpenseCategories.ENTERTAINMENT -> CategoryEntertainment
+        com.finance.splitup.data.ExpenseCategories.HEALTH -> CategoryHealth
+        com.finance.splitup.data.ExpenseCategories.TRAVEL -> CategoryTravel
+        com.finance.splitup.data.ExpenseCategories.EDUCATION -> CategoryEducation
+        com.finance.splitup.data.ExpenseCategories.SETTLEMENT -> CategorySettlement
+        com.finance.splitup.data.ExpenseCategories.INCOME -> CategoryIncome
+        else -> CategoryOther
     }
 }
 
@@ -810,7 +824,7 @@ fun PayPalLoginDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF003087), contentColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(containerColor = PayPalBrandBlue, contentColor = Color.White)
                 ) {
                     Icon(Icons.Rounded.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))

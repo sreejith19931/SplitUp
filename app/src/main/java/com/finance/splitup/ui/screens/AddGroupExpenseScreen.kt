@@ -29,6 +29,7 @@ import com.finance.splitup.ui.theme.*
 import com.finance.splitup.viewmodel.FinanceViewModel
 import java.util.Locale
 import kotlin.math.abs
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,7 +95,7 @@ fun AddGroupExpenseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (existingExpense != null) "Edit Shared Expense" else "Add Shared Expense", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text(if (existingExpense != null) "Edit Shared Expense" else "Add Shared Expense", style = SplitUpType.ScreenSubtitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -144,12 +145,7 @@ fun AddGroupExpenseScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Scan Receipt",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
+                            Text(text = "Scan Receipt", style = SplitUpType.RowTitle, color = MaterialTheme.colorScheme.onTertiaryContainer)
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
@@ -202,7 +198,7 @@ fun AddGroupExpenseScreen(
                                 title = suggestion
                                 selectedCategory = detectCategoryFromTitle(suggestion)
                             },
-                            label = { Text(suggestion, fontSize = 12.sp) }
+                            label = { Text(suggestion, style = SplitUpType.Caption) }
                         )
                     }
                 }
@@ -291,7 +287,7 @@ fun AddGroupExpenseScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text(Currencies.getFlag(currency), fontSize = 16.sp)
+                                        Text(Currencies.getFlag(currency), style = SplitUpType.BodyRegular)
                                         Text(currency)
                                     }
                                 },
@@ -306,7 +302,7 @@ fun AddGroupExpenseScreen(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Expense Date", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Expense Date", style = SplitUpType.SectionTitle)
                 DatePickerFieldToModal(
                     selectedDateText = com.finance.splitup.data.DateUtils.formatDisplayDate(expenseDate),
                     onDateSelected = { expenseDate = it },
@@ -323,14 +319,14 @@ fun AddGroupExpenseScreen(
                         FilterChip(
                             selected = isSelected,
                             onClick = { expenseDate = quickDate },
-                            label = { Text(quickDate, fontSize = 12.sp) },
+                            label = { Text(quickDate, style = SplitUpType.Caption) },
                             shape = RoundedCornerShape(10.dp)
                         )
                     }
                 }
             }
 
-            Text("Paid By", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Paid By", style = SplitUpType.SectionTitle)
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -350,7 +346,7 @@ fun AddGroupExpenseScreen(
 
             // Split Mode Toggle
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Split Method", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Split Method", style = SplitUpType.SectionTitle)
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     SegmentedButton(
                         selected = splitMode == "EQUAL",
@@ -372,7 +368,7 @@ fun AddGroupExpenseScreen(
             }
 
             if (splitMode == "EQUAL") {
-                Text("Split Among Members", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Split Among Members", style = SplitUpType.SectionTitle)
                 group?.allMembers?.forEach { member ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -405,7 +401,7 @@ fun AddGroupExpenseScreen(
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter Exact Split Amounts", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("Enter Exact Split Amounts", style = SplitUpType.SectionTitle)
                     Row(
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -435,7 +431,7 @@ fun AddGroupExpenseScreen(
                             },
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("Split Equally", fontSize = 12.sp)
+                            Text("Split Equally", style = SplitUpType.Caption)
                         }
 
                         OutlinedButton(
@@ -450,7 +446,7 @@ fun AddGroupExpenseScreen(
                             },
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("Assign Rest to Payer", fontSize = 12.sp)
+                            Text("Assign Rest to Payer", style = SplitUpType.Caption)
                         }
 
                         OutlinedButton(
@@ -461,7 +457,7 @@ fun AddGroupExpenseScreen(
                             },
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("Clear All", fontSize = 12.sp)
+                            Text("Clear All", style = SplitUpType.Caption)
                         }
                     }
                 }
@@ -591,11 +587,7 @@ fun AddGroupExpenseScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                "Receipt Line Items (${editableLineItems.size})",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
+                            Text("Receipt Line Items (${editableLineItems.size})", style = SplitUpType.RowTitle)
                             TextButton(
                                 onClick = {
                                     val newId = java.util.UUID.randomUUID().toString()
@@ -610,7 +602,7 @@ fun AddGroupExpenseScreen(
                             ) {
                                 Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Add Item", fontSize = 12.sp)
+                                Text("Add Item", style = SplitUpType.Caption)
                             }
                         }
 
@@ -774,7 +766,7 @@ fun AddGroupExpenseScreen(
             ) {
                 Icon(Icons.Rounded.Check, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (existingExpense != null) "Save Changes" else "Save Shared Expense", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(if (existingExpense != null) "Save Changes" else "Save Shared Expense", style = SplitUpType.CardTitle)
             }
         }
     }

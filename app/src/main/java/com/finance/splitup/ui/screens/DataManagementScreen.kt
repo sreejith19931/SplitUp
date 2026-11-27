@@ -29,6 +29,7 @@ import com.finance.splitup.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
 import java.io.File
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,14 +135,7 @@ fun DataManagementScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Rounded.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text(
-                                text = "Cloud Sync Status",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                            )
+                            Text(text = "Cloud Sync Status", style = SplitUpType.RowTitle, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         }
                         OutlinedButton(
                             onClick = {
@@ -167,11 +161,11 @@ fun DataManagementScreen(
                             if (isSyncingNow) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Syncing", fontSize = 12.sp, maxLines = 1)
+                                Text("Syncing", style = SplitUpType.Caption, maxLines = 1)
                             } else {
                                 Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Sync Now", fontSize = 12.sp, maxLines = 1)
+                                Text("Sync Now", style = SplitUpType.Caption, maxLines = 1)
                             }
                         }
                     }
@@ -198,7 +192,7 @@ fun DataManagementScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Rounded.Download, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Column {
-                            Text("Data Reports & Backup", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("Data Reports & Backup", style = SplitUpType.CardTitle)
                             Text("Export PDF, CSV, or JSON database backups", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -288,7 +282,7 @@ fun DataManagementScreen(
                         ) {
                             Icon(Icons.Rounded.Backup, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Backup JSON", fontSize = 13.sp)
+                            Text("Backup JSON", style = SplitUpType.BodySmallAlt)
                         }
 
                         // Restore JSON
@@ -299,7 +293,7 @@ fun DataManagementScreen(
                         ) {
                             Icon(Icons.Rounded.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Restore JSON", fontSize = 13.sp)
+                            Text("Restore JSON", style = SplitUpType.BodySmallAlt)
                         }
                     }
                 }
@@ -321,7 +315,7 @@ fun DataManagementScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                         Column {
-                            Text("Danger Zone", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.error)
+                            Text("Danger Zone", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.error)
                             Text("Permanently erase records or reset app data", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }

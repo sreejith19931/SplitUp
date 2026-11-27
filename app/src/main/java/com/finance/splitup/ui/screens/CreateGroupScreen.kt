@@ -27,6 +27,7 @@ import com.finance.splitup.viewmodel.FinanceViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -127,7 +128,7 @@ fun CreateGroupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create New Group", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text("Create New Group", style = SplitUpType.ScreenSubtitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -159,7 +160,7 @@ fun CreateGroupScreen(
                 isError = errorMessage != null && groupName.isBlank()
             )
 
-            Text("Group Type", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Group Type", style = SplitUpType.SectionTitle)
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -175,7 +176,7 @@ fun CreateGroupScreen(
                 }
             }
 
-            Text("Group Icon / Emoji", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Group Icon / Emoji", style = SplitUpType.SectionTitle)
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -197,7 +198,7 @@ fun CreateGroupScreen(
                 }
             }
 
-            Text("Add Members", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Add Members", style = SplitUpType.SectionTitle)
 
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -322,7 +323,7 @@ fun CreateGroupScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Text(contact.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(contact.name, style = SplitUpType.ItemTitle)
                                     if (isCreator) {
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
@@ -424,7 +425,7 @@ fun CreateGroupScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Add '${memberSearchQuery.trim()}'", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text("Add '${memberSearchQuery.trim()}'", style = SplitUpType.ItemTitle, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                 Text(if (isCustomSelfOrExisting) "You (Creator) or member already in group" else "Custom member • Generates WhatsApp invite link", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                             }
                             if (!isCustomSelfOrExisting) {
@@ -477,7 +478,7 @@ fun CreateGroupScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Require Owner Approval", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("Require Owner Approval", style = SplitUpType.RowTitle)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             "Require owner approval when non-owners edit/delete expenses or remove members",
@@ -519,7 +520,7 @@ fun CreateGroupScreen(
             ) {
                 Icon(Icons.Rounded.GroupAdd, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Create Group", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("Create Group", style = SplitUpType.CardTitle)
             }
         }
     }

@@ -62,6 +62,7 @@ import com.finance.splitup.viewmodel.FinanceViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -233,17 +234,12 @@ fun DashboardScreen(
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Icon(Icons.Rounded.CloudOff, contentDescription = null, modifier = Modifier.size(12.dp))
-                                            Text("Offline", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            Text("Offline", style = SplitUpType.MicroLabel)
                                         }
                                     }
                                 }
                             }
-                            Text(
-                                text = displayedGreeting,
-                                fontSize = 15.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text(text = displayedGreeting, style = SplitUpType.RowTitle, color = MaterialTheme.colorScheme.onSurface)
                         }
                     },
                     actions = {
@@ -335,7 +331,7 @@ fun DashboardScreen(
                                 FilterChip(
                                     selected = selectedDateRange == range,
                                     onClick = { viewModel.updateDashboardDateRange(range) },
-                                    label = { Text(range, fontSize = 12.sp, fontWeight = if (selectedDateRange == range) FontWeight.Bold else FontWeight.Medium) },
+                                    label = { Text(range, style = SplitUpType.Caption, fontWeight = if (selectedDateRange == range) FontWeight.Bold else FontWeight.Medium) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = MaterialTheme.colorScheme.primary,
                                         selectedLabelColor = MaterialTheme.colorScheme.onPrimary
@@ -445,18 +441,8 @@ fun DashboardScreen(
                                                     Text("••••••", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                                 } else {
                                                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                                        Text(
-                                                            text = "Owed: +$currencySymbol${String.format(Locale.US, "%.2f", dashboardData.netGroupOwed)}",
-                                                            fontSize = 15.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = EmeraldSuccess
-                                                        )
-                                                        Text(
-                                                            text = "Owe: -$currencySymbol${String.format(Locale.US, "%.2f", dashboardData.netGroupOwes)}",
-                                                            fontSize = 15.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = CrimsonDanger
-                                                        )
+                                                        Text(text = "Owed: +$currencySymbol${String.format(Locale.US, "%.2f", dashboardData.netGroupOwed)}", style = SplitUpType.RowTitle, color = EmeraldSuccess)
+                                                        Text(text = "Owe: -$currencySymbol${String.format(Locale.US, "%.2f", dashboardData.netGroupOwes)}", style = SplitUpType.RowTitle, color = CrimsonDanger)
                                                     }
                                                 }
                                             }
@@ -561,12 +547,7 @@ fun DashboardScreen(
                                             Column(horizontalAlignment = Alignment.End) {
                                                 Text("Asset Allocation", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
                                                 Spacer(modifier = Modifier.height(2.dp))
-                                                Text(
-                                                    text = "📈 Portfolio Growth",
-                                                    fontSize = 15.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                                )
+                                                Text(text = "📈 Portfolio Growth", style = SplitUpType.RowTitle, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                             }
                                         }
                                         Spacer(modifier = Modifier.height(10.dp))
@@ -627,7 +608,7 @@ fun DashboardScreen(
                         item {
                             SuggestionChip(
                                 onClick = onNavigateToBudgets,
-                                label = { Text("⚠️ $exceededBudgetsCount budget exceeded", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
+                                label = { Text("⚠️ $exceededBudgetsCount budget exceeded", style = SplitUpType.ChipLabelMedium) },
                                 colors = SuggestionChipDefaults.suggestionChipColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, labelColor = CrimsonDanger),
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                             )
@@ -637,7 +618,7 @@ fun DashboardScreen(
                         item {
                             SuggestionChip(
                                 onClick = onNavigateToInsights,
-                                label = { Text("💡 Positive cash flow", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
+                                label = { Text("💡 Positive cash flow", style = SplitUpType.ChipLabelMedium) },
                                 colors = SuggestionChipDefaults.suggestionChipColors(
                                     containerColor = EmeraldSuccess.copy(alpha = 0.15f),
                                     labelColor = EmeraldSuccess
@@ -649,7 +630,7 @@ fun DashboardScreen(
                         item {
                             SuggestionChip(
                                 onClick = onNavigateToInsights,
-                                label = { Text("⚠️ Negative cash flow", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
+                                label = { Text("⚠️ Negative cash flow", style = SplitUpType.ChipLabelMedium) },
                                 colors = SuggestionChipDefaults.suggestionChipColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                     labelColor = CrimsonDanger
@@ -662,7 +643,7 @@ fun DashboardScreen(
                         item {
                             SuggestionChip(
                                 onClick = onNavigateToSubscriptions,
-                                label = { Text("🔔 $recurringCount subscriptions active", fontWeight = FontWeight.SemiBold, fontSize = 12.sp) },
+                                label = { Text("🔔 $recurringCount subscriptions active", style = SplitUpType.ChipLabelMedium) },
                                 colors = SuggestionChipDefaults.suggestionChipColors(containerColor = MaterialTheme.colorScheme.primaryContainer, labelColor = MaterialTheme.colorScheme.primary),
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                             )
@@ -963,7 +944,7 @@ fun NotificationTraySheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(Icons.Rounded.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("Notifications & Alerts", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text("Notifications & Alerts", style = SplitUpType.ScreenSubtitleStrong)
                 }
                 if (activeNotifications.isNotEmpty() || pendingApprovalRequests.isNotEmpty()) {
                     TextButton(
@@ -1001,7 +982,7 @@ fun NotificationTraySheet(
                         ) {
                             Icon(Icons.Rounded.Refresh, contentDescription = "Reset cleared alerts", modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Reset Cleared Alerts", fontSize = 13.sp)
+                            Text("Reset Cleared Alerts", style = SplitUpType.BodySmallAlt)
                         }
                     }
                 }
@@ -1012,7 +993,7 @@ fun NotificationTraySheet(
                 ) {
                     if (pendingApprovalRequests.isNotEmpty()) {
                         item {
-                            Text("Pending Group Approval Requests ✋", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                            Text("Pending Group Approval Requests ✋", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.primary)
                         }
                         items(pendingApprovalRequests, key = { "req_${it.id}" }) { req ->
                             Card(
@@ -1032,9 +1013,9 @@ fun NotificationTraySheet(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("Approval Needed • ${req.groupName}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                        Text("Approval Needed • ${req.groupName}", style = SplitUpType.ItemTitle, color = MaterialTheme.colorScheme.onTertiaryContainer)
                                         Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primary) {
-                                            Text(req.requestType.replace("_", " "), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 10.sp, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                                            Text(req.requestType.replace("_", " "), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = SplitUpType.MicroLabel, color = MaterialTheme.colorScheme.onPrimary)
                                         }
                                     }
                                     Text("${req.requestedBy} requested ${req.requestType.lowercase().replace("_", " ")} in '${req.groupName}'.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
@@ -1072,7 +1053,7 @@ fun NotificationTraySheet(
                         if (pendingApprovalRequests.isNotEmpty()) {
                             item {
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text("Active Alerts", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground)
+                                Text("Active Alerts", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.onBackground)
                             }
                         }
                         items(activeNotifications, key = { it.first }) { (key, note) ->
@@ -1320,7 +1301,7 @@ fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () 
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = expense.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(text = expense.title, style = SplitUpType.ItemTitleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         if (expense.description.isNotBlank()) {
                             Text(text = expense.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         }
@@ -1339,12 +1320,7 @@ fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () 
                         val expCurrencySymbol = Currencies.getSymbol(expense.currency)
                         val isIncome = expense.category == ExpenseCategories.INCOME
                         val amountColor = if (isIncome) EmeraldSuccess else CrimsonDanger
-                        Text(
-                            text = if (isIncome) "+$expCurrencySymbol${String.format(Locale.US, "%.2f", expense.amount)}" else "-$expCurrencySymbol${String.format(Locale.US, "%.2f", expense.amount)}",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = amountColor
-                        )
+                        Text(text = if (isIncome) "+$expCurrencySymbol${String.format(Locale.US, "%.2f", expense.amount)}" else "-$expCurrencySymbol${String.format(Locale.US, "%.2f", expense.amount)}", style = SplitUpType.ItemTitle, color = amountColor)
                         Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
                                 Icon(Icons.Rounded.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(16.dp))

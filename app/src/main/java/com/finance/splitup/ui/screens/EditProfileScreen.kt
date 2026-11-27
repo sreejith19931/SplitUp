@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.finance.splitup.viewmodel.AuthViewModel
 import com.finance.splitup.viewmodel.FinanceViewModel
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +63,7 @@ fun EditProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Profile", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text("Edit Profile", style = SplitUpType.ScreenSubtitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -106,23 +107,18 @@ fun EditProfileScreen(
                             modifier = Modifier.size(60.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = userInitials,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text(text = userInitials, color = MaterialTheme.colorScheme.onPrimary, style = SplitUpType.ScreenSubtitleStrong)
                             }
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = displayName.ifBlank { "User" }, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            Text(text = displayName.ifBlank { "User" }, style = SplitUpType.SectionTitle, color = MaterialTheme.colorScheme.onPrimaryContainer, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                             Text(text = userEmail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         }
                     }
                 }
             }
 
-            Text("Account Details", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Account Details", style = SplitUpType.SectionTitle)
 
             OutlinedTextField(
                 value = displayName,
@@ -165,7 +161,7 @@ fun EditProfileScreen(
                     }
                 }
             } else {
-                Text("Change Password", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Change Password", style = SplitUpType.SectionTitle)
 
                 OutlinedTextField(
                     value = newPassword,
@@ -212,7 +208,7 @@ fun EditProfileScreen(
                 }
             }
 
-            Text("Payment Handles for 'Settle Up'", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Payment Handles for 'Settle Up'", style = SplitUpType.SectionTitle)
 
             OutlinedTextField(
                 value = upiVpa,
@@ -275,7 +271,7 @@ fun EditProfileScreen(
                 ) {
                     Icon(Icons.Rounded.Login, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Connect", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Connect", style = SplitUpType.ChipLabel)
                 }
             }
 
@@ -398,7 +394,7 @@ fun EditProfileScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(Icons.Rounded.Save, contentDescription = null)
-                        Text("Save Changes", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Save Changes", style = SplitUpType.CardTitle)
                     }
                 }
             }

@@ -36,6 +36,7 @@ import com.finance.splitup.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,7 +101,7 @@ fun PersonalExpensesScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Personal Expenses", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text("Personal Expenses", style = SplitUpType.ScreenSubtitle) },
                 actions = {
                     // Budgets Button on Top Right
                     IconButton(onClick = { showBudgetsDialog = true }) {
@@ -315,14 +316,7 @@ fun PersonalExpensesScreen(
                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                         )
                     ) {
-                        Text(
-                            text = "Expenses",
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(text = "Expenses", maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, style = SplitUpType.ChipLabelMedium)
                     }
                     SegmentedButton(
                         selected = selectedPersonalTab == 1,
@@ -336,14 +330,7 @@ fun PersonalExpensesScreen(
                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                         )
                     ) {
-                        Text(
-                            text = "Incomes",
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(text = "Incomes", maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, style = SplitUpType.ChipLabelMedium)
                     }
                     SegmentedButton(
                         selected = selectedPersonalTab == 2,
@@ -357,14 +344,7 @@ fun PersonalExpensesScreen(
                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                         )
                     ) {
-                        Text(
-                            text = "Investments",
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(text = "Investments", maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, style = SplitUpType.ChipLabelMedium)
                     }
                 }
             }
@@ -461,17 +441,12 @@ fun PersonalExpensesScreen(
                                         }
                                     }
                                     Column {
-                                        Text(income.title, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                        Text(income.title, style = SplitUpType.RowTitle, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                         Text("${income.source} • ${com.finance.splitup.data.DateUtils.formatDisplayDate(income.date, income.updatedAt)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                     }
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(
-                                        text = "+${Currencies.getSymbol(income.currency)}${String.format(Locale.US, "%.2f", income.amount)}",
-                                        fontWeight = FontWeight.Bold,
-                                        color = EmeraldSuccess,
-                                        fontSize = 16.sp
-                                    )
+                                    Text(text = "+${Currencies.getSymbol(income.currency)}${String.format(Locale.US, "%.2f", income.amount)}", style = SplitUpType.CardTitle, color = EmeraldSuccess)
                                     IconButton(onClick = { viewModel.deleteIncome(income.id) }) {
                                         Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete Income", tint = MaterialTheme.colorScheme.error)
                                     }
@@ -544,17 +519,12 @@ fun PersonalExpensesScreen(
                                         }
                                     }
                                     Column {
-                                        Text(recInc.title, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                        Text(recInc.title, style = SplitUpType.RowTitle, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                         Text("${recInc.frequency} • Next: ${recInc.nextDueDate}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                     }
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(
-                                        text = "+${Currencies.getSymbol(recInc.currency)}${String.format(Locale.US, "%.2f", recInc.amount)}",
-                                        fontWeight = FontWeight.Bold,
-                                        color = EmeraldSuccess,
-                                        fontSize = 16.sp
-                                    )
+                                    Text(text = "+${Currencies.getSymbol(recInc.currency)}${String.format(Locale.US, "%.2f", recInc.amount)}", style = SplitUpType.CardTitle, color = EmeraldSuccess)
                                     IconButton(onClick = { viewModel.deleteRecurringExpense(recInc.id) }) {
                                         Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete Recurring Income", tint = MaterialTheme.colorScheme.error)
                                     }
@@ -661,18 +631,13 @@ fun PersonalExpensesScreen(
                                         }
                                     }
                                     Column {
-                                        Text(inv.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        Text(inv.title, style = SplitUpType.CardTitle)
                                         val subtitle = inv.category + (if (inv.brokerOrPlatform.isNotBlank()) " • ${inv.brokerOrPlatform}" else "")
                                         Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                     }
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(
-                                        text = "${Currencies.getSymbol(inv.currency)}${String.format(Locale.US, "%.2f", inv.amount)}",
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontSize = 16.sp
-                                    )
+                                    Text(text = "${Currencies.getSymbol(inv.currency)}${String.format(Locale.US, "%.2f", inv.amount)}", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.primary)
                                     IconButton(onClick = { viewModel.deleteInvestment(inv.id) }) {
                                         Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete Investment", tint = MaterialTheme.colorScheme.error)
                                     }
@@ -697,7 +662,7 @@ fun PersonalExpensesScreen(
                             FilterChip(
                                 selected = selectedDateRange == range,
                                 onClick = { selectedDateRange = range },
-                                label = { Text(range, fontSize = 12.sp) },
+                                label = { Text(range, style = SplitUpType.Caption) },
                                 shape = RoundedCornerShape(10.dp)
                             )
                         }
@@ -765,7 +730,7 @@ fun PersonalExpensesScreen(
                                     }
                                 }
                                 Column {
-                                    Text("Recurring Bills & Subscriptions", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                    Text("Recurring Bills & Subscriptions", style = SplitUpType.RowTitle)
                                     Text("${recurringSubs.size} active commitments • $currencySymbol${String.format(Locale.US, "%.2f", totalSubsAmt)}/mo", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
@@ -864,7 +829,7 @@ fun PersonalExpensesScreen(
                     item {
                         var totalMonthlyInput by remember(budgets) { mutableStateOf(formatInputNumber(budgets.values.sum())) }
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Monthly Budget Allocation", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Monthly Budget Allocation", style = SplitUpType.RowTitle)
                             OutlinedTextField(
                                 value = totalMonthlyInput,
                                 onValueChange = { totalMonthlyInput = it },
@@ -904,7 +869,7 @@ fun PersonalExpensesScreen(
 
                     item {
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Category Monthly Limits", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("Category Monthly Limits", style = SplitUpType.RowTitle)
                     }
 
                     items(ExpenseCategories.expenseCategories, key = { it }) { category ->
@@ -916,7 +881,7 @@ fun PersonalExpensesScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = ExpenseCategories.getDisplayName(category), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                            Text(text = ExpenseCategories.getDisplayName(category), style = SplitUpType.ItemTitleMedium, modifier = Modifier.weight(1f))
                             OutlinedTextField(
                                 value = limitText,
                                 onValueChange = { newVal ->

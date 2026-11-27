@@ -44,6 +44,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @Composable
 fun GoogleLogo(modifier: Modifier = Modifier) {
@@ -388,7 +389,7 @@ fun AuthScreen(
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                 } else {
-                    Text(if (isSignUp) "Sign Up & Verify Email" else "Sign In", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(if (isSignUp) "Sign Up & Verify Email" else "Sign In", style = SplitUpType.CardTitle)
                 }
             }
 
@@ -442,7 +443,7 @@ fun AuthScreen(
             ) {
                 GoogleLogo(modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(10.dp))
-                Text("Sign in with Google", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Text("Sign in with Google", style = SplitUpType.RowTitleMedium)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -458,7 +459,7 @@ fun AuthScreen(
             ) {
                 Icon(Icons.Rounded.Explore, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Try SplitUp as Guest", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Text("Try SplitUp as Guest", style = SplitUpType.RowTitleMedium)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -471,12 +472,7 @@ fun AuthScreen(
                 enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = if (isSignUp) "Already have an account? Sign In" else "Don't have an account? Sign Up",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Text(text = if (isSignUp) "Already have an account? Sign In" else "Don't have an account? Sign Up", style = SplitUpType.RowTitle, color = MaterialTheme.colorScheme.primary)
             }
 
 
@@ -582,7 +578,7 @@ fun EmailVerificationScreen(
                     .height(50.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("I've Verified, Continue", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("I've Verified, Continue", style = SplitUpType.CardTitle)
             }
 
             Spacer(modifier = Modifier.height(12.dp))

@@ -52,6 +52,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 /**
  * One-shot confetti burst used by celebratory dialogs. Runs for ~1.4s,
@@ -460,7 +461,7 @@ fun ReceiptImageViewerDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.AutoMirrored.Rounded.ReceiptLong, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Text("Receipt Photo (Zoom & Pan)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Receipt Photo (Zoom & Pan)", style = SplitUpType.SectionTitle)
             }
         },
         text = {
@@ -638,7 +639,7 @@ fun ProfileQRCodeDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 MemberAvatar(name = name, size = 64.dp)
-                Text(name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(name, style = SplitUpType.SectionTitle)
                 Text(email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 
                 val currentQr = qrBitmap
@@ -703,21 +704,9 @@ fun ReceiptLineItemsBreakdownView(
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
-                    Text(
-                        text = "Receipt Breakdown (${lineItems.size} items)",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text(text = "Receipt Breakdown (${lineItems.size} items)", style = SplitUpType.ChipLabel, color = MaterialTheme.colorScheme.primary)
                 }
-                Text(
-                    text = "$currencySymbol${String.format(Locale.US, "%.2f", lineItems.sumOf { it.price })}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    softWrap = false
-                )
+                Text(text = "$currencySymbol${String.format(Locale.US, "%.2f", lineItems.sumOf { it.price })}", style = SplitUpType.ChipLabel, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, softWrap = false)
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -747,12 +736,7 @@ fun ReceiptLineItemsBreakdownView(
                             )
                         }
                     }
-                    Text(
-                        text = if (item.price < 0) "-$currencySymbol${String.format(Locale.US, "%.2f", kotlin.math.abs(item.price))}" else "$currencySymbol${String.format(Locale.US, "%.2f", item.price)}",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (item.price < 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
-                    )
+                    Text(text = if (item.price < 0) "-$currencySymbol${String.format(Locale.US, "%.2f", kotlin.math.abs(item.price))}" else "$currencySymbol${String.format(Locale.US, "%.2f", item.price)}", style = SplitUpType.ChipLabelMedium, color = if (item.price < 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -785,7 +769,7 @@ fun PayPalLoginDialog(
                         )
                     }
                 }
-                Text("Connect PayPal Account", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Connect PayPal Account", style = SplitUpType.SectionTitle)
             }
         },
         text = {

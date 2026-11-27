@@ -23,6 +23,7 @@ import com.finance.splitup.data.Currencies
 import com.finance.splitup.ui.theme.*
 import com.finance.splitup.viewmodel.FinanceViewModel
 import java.util.Locale
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,7 +142,7 @@ fun InsightsScreen(
             if (investmentBreakdown.isNotEmpty()) {
                 item {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("Portfolio Asset Allocation", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("Portfolio Asset Allocation", style = SplitUpType.SectionTitle)
                 }
 
                 items(investmentBreakdown) { (category, amount) ->
@@ -171,8 +172,8 @@ fun InsightsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text(category, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        Text("$currencySymbol${String.format(Locale.US, "%.2f", amount)} (${String.format(Locale.US, "%.1f", percentage * 100)}%)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                                        Text(category, style = SplitUpType.ItemTitle)
+                                        Text("$currencySymbol${String.format(Locale.US, "%.2f", amount)} (${String.format(Locale.US, "%.1f", percentage * 100)}%)", style = SplitUpType.BadgeLabel, color = MaterialTheme.colorScheme.primary)
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     LinearProgressIndicator(
@@ -190,7 +191,7 @@ fun InsightsScreen(
 
             item {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Expense Category Breakdown", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Expense Category Breakdown", style = SplitUpType.SectionTitle)
             }
 
             if (categoryBreakdown.isEmpty()) {
@@ -238,8 +239,8 @@ fun InsightsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text(category, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        Text("$currencySymbol${String.format(Locale.US, "%.2f", amount)}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text(category, style = SplitUpType.ItemTitle)
+                                        Text("$currencySymbol${String.format(Locale.US, "%.2f", amount)}", style = SplitUpType.ItemTitle)
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     LinearProgressIndicator(

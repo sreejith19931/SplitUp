@@ -40,6 +40,7 @@ import com.finance.splitup.data.Expense
 import com.finance.splitup.data.ExpenseCategories
 import com.finance.splitup.ui.theme.*
 import java.util.Locale
+import com.finance.splitup.ui.theme.SplitUpType
 
 @Composable
 fun SpendingDonutChart(
@@ -317,7 +318,7 @@ fun BudgetAndCategoryAnalyticsCard(
                         }
                     }
                     Column {
-                        Text("Budget & Category Analytics", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Budget & Category Analytics", style = SplitUpType.CardTitle)
                         Text(
                             text = "$currencySymbol${String.format(Locale.US, "%.2f", totalSpent)} spent of $currencySymbol${String.format(Locale.US, "%.2f", totalLimit)} limit",
                             style = MaterialTheme.typography.bodySmall,
@@ -448,38 +449,19 @@ fun BudgetAndCategoryAnalyticsCard(
                                                         .clip(CircleShape)
                                                         .background(color)
                                                 )
-                                                Text(
-                                                    text = category,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 14.sp,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                                )
+                                                Text(text = category, style = SplitUpType.ItemTitleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                             }
                                             if (rawProgress >= 1.0f) {
                                                 Surface(
                                                     shape = RoundedCornerShape(4.dp),
                                                     color = CrimsonDanger.copy(alpha = 0.15f)
                                                 ) {
-                                                    Text(
-                                                        text = "Exceeded",
-                                                        fontSize = 10.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = CrimsonDanger,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    )
+                                                    Text(text = "Exceeded", style = SplitUpType.MicroLabel, color = CrimsonDanger, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                                 }
                                             }
                                         }
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "$currencySymbol${String.format(Locale.US, "%.2f", spent)} / $currencySymbol${String.format(Locale.US, "%.0f", limit)} ($percentOfTotal%)",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (rawProgress >= 1.0f) CrimsonDanger else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1
-                                        )
+                                        Text(text = "$currencySymbol${String.format(Locale.US, "%.2f", spent)} / $currencySymbol${String.format(Locale.US, "%.0f", limit)} ($percentOfTotal%)", style = SplitUpType.ChipLabel, color = if (rawProgress >= 1.0f) CrimsonDanger else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                                     }
 
                                     LinearProgressIndicator(
@@ -534,12 +516,7 @@ fun BudgetAndCategoryAnalyticsCard(
                                                                 fontSize = 11.sp
                                                             )
                                                         }
-                                                        Text(
-                                                            text = "$currencySymbol${String.format(Locale.US, "%.2f", exp.amount)}",
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 13.sp,
-                                                            color = MaterialTheme.colorScheme.primary
-                                                        )
+                                                        Text(text = "$currencySymbol${String.format(Locale.US, "%.2f", exp.amount)}", style = SplitUpType.BadgeLabel, color = MaterialTheme.colorScheme.primary)
                                                     }
                                                 }
                                             }

@@ -27,6 +27,7 @@ import com.finance.splitup.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +79,7 @@ fun SettingsScreen(
         Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings & Profile", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text("Settings & Profile", style = SplitUpType.ScreenSubtitle) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
@@ -117,17 +118,12 @@ fun SettingsScreen(
                                 modifier = Modifier.size(60.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = userInitials,
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    Text(text = userInitials, color = MaterialTheme.colorScheme.onPrimary, style = SplitUpType.ScreenSubtitleStrong)
                                 }
                             }
                             Spacer(modifier = Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(text = userName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Text(text = userName, style = SplitUpType.SectionTitle, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                 Text(text = userEmail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
@@ -143,12 +139,7 @@ fun SettingsScreen(
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Icon(Icons.Rounded.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                                            Text(
-                                                text = "Edit Profile",
-                                                fontSize = 12.sp,
-                                                maxLines = 2,
-                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                            )
+                                            Text(text = "Edit Profile", style = SplitUpType.Caption, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                         }
                                     }
                                     Button(
@@ -166,14 +157,7 @@ fun SettingsScreen(
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Icon(Icons.Rounded.QrCode, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
-                                            Text(
-                                                text = "My QR Code",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                maxLines = 2,
-                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                            )
+                                            Text(text = "My QR Code", style = SplitUpType.ChipLabel, color = MaterialTheme.colorScheme.primary, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                         }
                                     }
                                 }
@@ -198,7 +182,7 @@ fun SettingsScreen(
                                 .padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text("Preferences & General", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                            Text("Preferences & General", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.primary)
 
                             // Currency Selector
                             Row(
@@ -212,7 +196,7 @@ fun SettingsScreen(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Rounded.CurrencyExchange, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                    Text("Default Currency", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text("Default Currency", style = SplitUpType.ItemTitleMedium)
                                 }
                                 var expandedCurrencyDropdown by remember { mutableStateOf(false) }
                                 Box {
@@ -263,14 +247,7 @@ fun SettingsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = "Live Exchange Rates",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp,
-                                        modifier = Modifier.weight(1f),
-                                        maxLines = 2,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                    )
+                                    Text(text = "Live Exchange Rates", style = SplitUpType.ItemTitleMedium, modifier = Modifier.weight(1f), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                     OutlinedButton(
                                         onClick = {
                                             isRefreshingRates = true
@@ -292,11 +269,11 @@ fun SettingsScreen(
                                         if (isRefreshingRates) {
                                             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                                             Spacer(modifier = Modifier.width(6.dp))
-                                            Text("Updating...", fontSize = 12.sp, maxLines = 1)
+                                            Text("Updating...", style = SplitUpType.Caption, maxLines = 1)
                                         } else {
                                             Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Refresh", fontSize = 12.sp, maxLines = 1)
+                                            Text("Refresh", style = SplitUpType.Caption, maxLines = 1)
                                         }
                                     }
                                 }
@@ -329,11 +306,7 @@ fun SettingsScreen(
                                     ) {
                                         ratesList.forEach { (curr, rate) ->
                                             Box(modifier = Modifier.widthIn(min = 76.dp)) {
-                                                Text(
-                                                    text = "${Currencies.getFlag(curr)} $curr: ${String.format(Locale.US, "%.2f", rate)}",
-                                                    fontSize = 13.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                                Text(text = "${Currencies.getFlag(curr)} $curr: ${String.format(Locale.US, "%.2f", rate)}", style = SplitUpType.BodySmallAlt, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             }
                                         }
                                     }
@@ -347,7 +320,7 @@ fun SettingsScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Icon(Icons.Rounded.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                    Text("App Theme", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text("App Theme", style = SplitUpType.ItemTitleMedium)
                                 }
                                 SingleChoiceSegmentedButtonRow(
                                     modifier = Modifier.fillMaxWidth()
@@ -364,7 +337,7 @@ fun SettingsScreen(
                                             inactiveContainerColor = MaterialTheme.colorScheme.surface,
                                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                                         )
-                                    ) { Text("System", fontSize = 12.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+                                    ) { Text("System", style = SplitUpType.Caption, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                                     SegmentedButton(
                                         selected = viewModel.themeMode == ThemeMode.LIGHT,
                                         onClick = { viewModel.updateThemeMode(ThemeMode.LIGHT) },
@@ -377,7 +350,7 @@ fun SettingsScreen(
                                             inactiveContainerColor = MaterialTheme.colorScheme.surface,
                                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                                         )
-                                    ) { Text("Light", fontSize = 12.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+                                    ) { Text("Light", style = SplitUpType.Caption, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                                     SegmentedButton(
                                         selected = viewModel.themeMode == ThemeMode.DARK,
                                         onClick = { viewModel.updateThemeMode(ThemeMode.DARK) },
@@ -390,7 +363,7 @@ fun SettingsScreen(
                                             inactiveContainerColor = MaterialTheme.colorScheme.surface,
                                             inactiveContentColor = MaterialTheme.colorScheme.onSurface
                                         )
-                                    ) { Text("Dark", fontSize = 12.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+                                    ) { Text("Dark", style = SplitUpType.Caption, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                                 }
                             }
 
@@ -408,7 +381,7 @@ fun SettingsScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Icon(Icons.Rounded.Subscriptions, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                     Column {
-                                        Text("Subscriptions & Recurring Bills", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                        Text("Subscriptions & Recurring Bills", style = SplitUpType.ItemTitleMedium)
                                         Text("Manage automated bills & reminders", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
@@ -427,7 +400,7 @@ fun SettingsScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Icon(Icons.Rounded.Insights, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                     Column {
-                                        Text("Spending Insights & Trends", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                        Text("Spending Insights & Trends", style = SplitUpType.ItemTitleMedium)
                                         Text("Monthly overview & category breakdown", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
@@ -461,7 +434,7 @@ fun SettingsScreen(
                             ) {
                                 Icon(Icons.Rounded.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 Column {
-                                    Text("Security & App Protection", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                    Text("Security & App Protection", style = SplitUpType.RowTitle)
                                     Text("Biometric lock, PIN & payment notification detector", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
@@ -494,7 +467,7 @@ fun SettingsScreen(
                             ) {
                                 Icon(Icons.Rounded.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 Column {
-                                    Text("Data Management, Reports & Backups", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                    Text("Data Management, Reports & Backups", style = SplitUpType.RowTitle)
                                     Text("PDF/CSV exports, JSON backups & danger zone", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
@@ -522,7 +495,7 @@ fun SettingsScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Text("About SplitUp", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Text("About SplitUp", style = SplitUpType.RowTitle)
                             }
                             Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }

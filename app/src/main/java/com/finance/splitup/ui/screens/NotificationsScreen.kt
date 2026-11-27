@@ -33,6 +33,7 @@ import com.finance.splitup.ui.theme.CrimsonDanger
 import com.finance.splitup.ui.theme.EmeraldSuccess
 import com.finance.splitup.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
+import com.finance.splitup.ui.theme.SplitUpType
 
 private sealed class AlertItem {
     abstract val key: String
@@ -225,19 +226,13 @@ fun NotificationsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Notifications Hub", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("Notifications Hub", style = SplitUpType.ScreenSubtitleStrong)
                         if (hasAnyAlerts) {
                             Surface(
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.primaryContainer
                             ) {
-                                Text(
-                                    "$totalActiveAlertsCount",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
+                                Text("$totalActiveAlertsCount", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = SplitUpType.ChipLabel, color = MaterialTheme.colorScheme.onPrimaryContainer)
                             }
                         }
                     }
@@ -337,12 +332,7 @@ fun NotificationsScreen(
                                 }
                             }
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "Financial Activity Hub 🔔",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
+                                Text("Financial Activity Hub 🔔", style = SplitUpType.SectionTitle, color = MaterialTheme.colorScheme.onPrimary)
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     if (hasAnyAlerts)
@@ -398,12 +388,7 @@ fun NotificationsScreen(
             // Section: Pending Group Approval Requests
             if (filteredApprovalRequests.isNotEmpty()) {
                 item {
-                    Text(
-                        "Pending Group Requests (${filteredApprovalRequests.size})",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text("Pending Group Requests (${filteredApprovalRequests.size})", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.primary)
                 }
                 items(filteredApprovalRequests, key = { "req_${it.id}" }) { req ->
                     AnimatedVisibility(
@@ -439,23 +424,11 @@ fun NotificationsScreen(
                                             modifier = Modifier.size(34.dp)
                                         ) {
                                             Box(contentAlignment = Alignment.Center) {
-                                                Text(
-                                                    req.requestedBy.take(1).uppercase(),
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onPrimary,
-                                                    fontSize = 14.sp
-                                                )
+                                                Text(req.requestedBy.take(1).uppercase(), style = SplitUpType.ItemTitle, color = MaterialTheme.colorScheme.onPrimary)
                                             }
                                         }
                                         Column {
-                                            Text(
-                                                req.groupName,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 15.sp,
-                                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+                                            Text(req.groupName, style = SplitUpType.RowTitle, color = MaterialTheme.colorScheme.onTertiaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                             Text(
                                                 "From ${req.requestedBy}",
                                                 style = MaterialTheme.typography.labelSmall,
@@ -518,12 +491,7 @@ fun NotificationsScreen(
             // Section: Active Alerts
             if (filteredAlertItems.isNotEmpty()) {
                 item {
-                    Text(
-                        "Active Alerts (${filteredAlertItems.size})",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+                    Text("Active Alerts (${filteredAlertItems.size})", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.onBackground)
                 }
 
                 items(filteredAlertItems, key = { it.key }) { item ->
@@ -621,18 +589,11 @@ fun NotificationsScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Text(
-                                            when (item) {
+                                        Text(when (item) {
                                                 is AlertItem.GroupBalance -> if (item.isOwed) "Owed Money • ${item.groupName}" else "Balance Owed • ${item.groupName}"
                                                 is AlertItem.Budget -> if (item.isExceeded) "Budget Exceeded • ${item.category}" else "Budget Warning • ${item.category}"
                                                 is AlertItem.Subscription -> if (item.isIncome) "Recurring Income • ${item.title}" else "Subscription Due • ${item.title}"
-                                            },
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                            }, style = SplitUpType.ItemTitle, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
@@ -689,12 +650,7 @@ fun NotificationsScreen(
                                     )
                                 }
                             }
-                            Text(
-                                "All Caught Up! ✨",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            Text("All Caught Up! ✨", style = SplitUpType.SectionTitle, color = MaterialTheme.colorScheme.onSurface)
                             Text(
                                 if (selectedFilter == NotificationFilter.ALL)
                                     "No pending group approval requests, budget alerts, or upcoming subscription reminders."

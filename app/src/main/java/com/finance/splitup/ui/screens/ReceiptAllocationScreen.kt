@@ -20,6 +20,7 @@ import com.finance.splitup.data.Currencies
 import com.finance.splitup.data.ExpenseCategories
 import com.finance.splitup.viewmodel.FinanceViewModel
 import java.util.Locale
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +87,7 @@ fun ReceiptAllocationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Receipt Cost Allocation", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text("Receipt Cost Allocation", style = SplitUpType.ScreenSubtitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -133,7 +134,7 @@ fun ReceiptAllocationScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Expense Type", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Expense Type", style = SplitUpType.SectionTitle)
                 SingleChoiceSegmentedButtonRow {
                     SegmentedButton(
                         selected = isPersonalExpense,
@@ -159,7 +160,7 @@ fun ReceiptAllocationScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Tip, Tax & Discount Calculator", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Tip, Tax & Discount Calculator", style = SplitUpType.RowTitle)
 
                     Text("Tip", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     FlowRow(
@@ -361,7 +362,7 @@ fun ReceiptAllocationScreen(
             }
 
             if (isPersonalExpense) {
-                Text("Category", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Category", style = SplitUpType.SectionTitle)
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -376,7 +377,7 @@ fun ReceiptAllocationScreen(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Expense Date", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("Expense Date", style = SplitUpType.SectionTitle)
                     DatePickerFieldToModal(
                         selectedDateText = expenseDate,
                         onDateSelected = { expenseDate = it },
@@ -385,9 +386,9 @@ fun ReceiptAllocationScreen(
                     )
                 }
 
-                Text("Extracted Line Items", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Extracted Line Items", style = SplitUpType.SectionTitle)
             } else {
-                Text("Select Group", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Select Group", style = SplitUpType.SectionTitle)
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -404,7 +405,7 @@ fun ReceiptAllocationScreen(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Expense Date", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("Expense Date", style = SplitUpType.SectionTitle)
                     DatePickerFieldToModal(
                         selectedDateText = expenseDate,
                         onDateSelected = { expenseDate = it },
@@ -413,7 +414,7 @@ fun ReceiptAllocationScreen(
                     )
                 }
 
-                Text("Paid By", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Paid By", style = SplitUpType.SectionTitle)
                 selectedGroup?.let { group ->
                     LazyRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -437,12 +438,7 @@ fun ReceiptAllocationScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Split Mode",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Text(text = "Split Mode", style = SplitUpType.SectionTitle, modifier = Modifier.weight(1f))
                     SingleChoiceSegmentedButtonRow {
                         SegmentedButton(
                             selected = splitModeEqual,
@@ -479,7 +475,7 @@ fun ReceiptAllocationScreen(
                         ) {
                             Icon(Icons.Rounded.Balance, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Split Evenly", fontSize = 13.sp)
+                            Text("Split Evenly", style = SplitUpType.BodySmallAlt)
                         }
                         OutlinedButton(
                             onClick = {
@@ -501,7 +497,7 @@ fun ReceiptAllocationScreen(
                         ) {
                             Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Smart Match AI", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Smart Match AI", style = SplitUpType.BadgeLabel)
                         }
                     }
                 }
@@ -638,11 +634,7 @@ fun ReceiptAllocationScreen(
             ) {
                 Icon(Icons.Rounded.Receipt, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (isPersonalExpense) "Add as Personal Expense" else "Add as Group Expense",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = if (isPersonalExpense) "Add as Personal Expense" else "Add as Group Expense", style = SplitUpType.CardTitle)
             }
         }
     }

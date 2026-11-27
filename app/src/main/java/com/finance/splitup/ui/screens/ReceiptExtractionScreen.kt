@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.finance.splitup.data.Currencies
 import com.finance.splitup.viewmodel.FinanceViewModel
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +51,7 @@ fun ReceiptExtractionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Extracted Receipt Details", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text("Extracted Receipt Details", style = SplitUpType.ScreenSubtitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -175,12 +176,7 @@ fun ReceiptExtractionScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = if (isTotalMatched) "✅ Total matches item prices" else "⚠️ Discrepancy: $currencySymbol${String.format(java.util.Locale.US, "%.2f", diff)}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (isTotalMatched) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                                )
+                                Text(text = if (isTotalMatched) "✅ Total matches item prices" else "⚠️ Discrepancy: $currencySymbol${String.format(java.util.Locale.US, "%.2f", diff)}", style = SplitUpType.BadgeLabel, color = if (isTotalMatched) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
                                 Text(
                                     text = "Items Sum: $currencySymbol${String.format(java.util.Locale.US, "%.2f", itemsSum)}" + (if (parsedTax > 0 || parsedTip > 0) " (+ Tax/Tip: $currencySymbol${String.format(java.util.Locale.US, "%.2f", parsedTax + parsedTip)})" else ""),
                                     style = MaterialTheme.typography.bodySmall,
@@ -197,7 +193,7 @@ fun ReceiptExtractionScreen(
                                 ) {
                                     Icon(Icons.Rounded.Calculate, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Match Total", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("Match Total", style = SplitUpType.ChipLabel)
                                 }
                             }
                         }
@@ -210,12 +206,7 @@ fun ReceiptExtractionScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Detected Line Items (${lineItems.size})",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    modifier = Modifier.weight(1f)
-                )
+                Text(text = "Detected Line Items (${lineItems.size})", style = SplitUpType.SectionTitle, modifier = Modifier.weight(1f))
                 OutlinedButton(
                     onClick = {
                         val newId = java.util.UUID.randomUUID().toString()
@@ -232,7 +223,7 @@ fun ReceiptExtractionScreen(
                 ) {
                     Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Item", fontSize = 12.sp, maxLines = 1, softWrap = false)
+                    Text("Add Item", style = SplitUpType.Caption, maxLines = 1, softWrap = false)
                 }
             }
 
@@ -329,7 +320,7 @@ fun ReceiptExtractionScreen(
             ) {
                 Icon(Icons.Rounded.Group, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Proceed to Cost Allocation", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("Proceed to Cost Allocation", style = SplitUpType.CardTitle)
             }
         }
     }

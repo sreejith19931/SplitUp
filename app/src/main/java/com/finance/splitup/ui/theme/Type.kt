@@ -119,3 +119,28 @@ val Typography = Typography(
         letterSpacing = 0.5.sp
     )
 )
+
+/**
+ * SplitUp type tokens — the app's de-facto text scale, extracted from the
+ * ~350 inline `fontSize`/`fontWeight` pairs so screens reference named
+ * styles instead of raw values. Sizes and weights mirror the previous
+ * inline values exactly (no color, no lineHeight) so visuals are unchanged.
+ * Bespoke one-off sizes (hero numbers, emoji) intentionally stay inline.
+ */
+object SplitUpType {
+    val SectionTitle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp)          // card section headers
+    val CardTitle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)             // card titles
+    val RowTitle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp)              // list row titles
+    val ItemTitle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 14.sp)             // compact item titles
+    val ItemTitleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+    val ScreenSubtitle = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+    val ScreenSubtitleStrong = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp)
+    val BodyRegular = TextStyle(fontSize = 16.sp)
+    val BodySmallAlt = TextStyle(fontSize = 13.sp)
+    val RowTitleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+    val BadgeLabel = TextStyle(fontWeight = FontWeight.Bold, fontSize = 13.sp)
+    val ChipLabel = TextStyle(fontWeight = FontWeight.Bold, fontSize = 12.sp)
+    val ChipLabelMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+    val Caption = TextStyle(fontSize = 12.sp)
+    val MicroLabel = TextStyle(fontWeight = FontWeight.Bold, fontSize = 10.sp)
+}

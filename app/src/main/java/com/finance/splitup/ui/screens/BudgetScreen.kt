@@ -27,6 +27,7 @@ import com.finance.splitup.data.SampleData
 import com.finance.splitup.ui.theme.*
 import com.finance.splitup.viewmodel.FinanceViewModel
 import java.util.Locale
+import com.finance.splitup.ui.theme.SplitUpType
 
 @Composable
 fun BudgetScreen(
@@ -166,7 +167,7 @@ fun BudgetScreen(
                                     }
                                 }
                                 Column {
-                                    Text(ExpenseCategories.getDisplayName(category), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Text(ExpenseCategories.getDisplayName(category), style = SplitUpType.CardTitle)
                                     Text(
                                         if (hasBudget) "$currencySymbol${String.format(Locale.US, "%.2f", spent)} spent of $currencySymbol${String.format(Locale.US, "%.2f", limit)} limit" else "$currencySymbol${String.format(Locale.US, "%.2f", spent)} spent · no budget set",
                                         style = MaterialTheme.typography.bodySmall,
@@ -183,7 +184,7 @@ fun BudgetScreen(
                                 shape = RoundedCornerShape(10.dp),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                             ) {
-                                Text("Edit Limit", fontSize = 12.sp, maxLines = 1, softWrap = false)
+                                Text("Edit Limit", style = SplitUpType.Caption, maxLines = 1, softWrap = false)
                             }
                         }
 

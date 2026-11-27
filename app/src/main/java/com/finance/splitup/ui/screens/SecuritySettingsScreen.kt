@@ -23,6 +23,7 @@ import com.finance.splitup.ui.components.DisclosureType
 import com.finance.splitup.ui.components.ProminentDisclosureDialog
 import com.finance.splitup.viewmodel.FinanceViewModel
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,7 +82,7 @@ fun SecuritySettingsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Rounded.Security, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Column {
-                            Text("Biometric & PIN Lock", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("Biometric & PIN Lock", style = SplitUpType.CardTitle)
                             Text("Secure app access on launch", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -94,7 +95,7 @@ fun SecuritySettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Biometric Security Lock", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("Biometric Security Lock", style = SplitUpType.ItemTitleMedium)
                             Text("Require unlock on app launch", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(
@@ -166,7 +167,7 @@ fun SecuritySettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("4-Digit Security PIN", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("4-Digit Security PIN", style = SplitUpType.ItemTitleMedium)
                             Text("Fallback PIN for unlocking", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         OutlinedButton(
@@ -194,7 +195,7 @@ fun SecuritySettingsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Rounded.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Column {
-                            Text("Payment Auto-Detector", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("Payment Auto-Detector", style = SplitUpType.CardTitle)
                             Text("Detect bank/UPI payment notifications", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -273,7 +274,7 @@ fun SecuritySettingsScreen(
                         visualTransformation = PasswordVisualTransformation()
                     )
                     if (pinError != null) {
-                        Text(pinError!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(pinError!!, color = MaterialTheme.colorScheme.error, style = SplitUpType.ChipLabel)
                     }
                 }
             },

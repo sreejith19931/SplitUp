@@ -25,6 +25,7 @@ import com.finance.splitup.data.db.RecurringExpenseEntity
 import com.finance.splitup.viewmodel.FinanceViewModel
 import java.util.Locale
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +51,7 @@ fun SubscriptionsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Subscriptions & Bills", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text("Subscriptions & Bills", style = SplitUpType.ScreenSubtitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -149,12 +150,7 @@ fun SubscriptionsScreen(
             }
 
             item {
-                Text(
-                    "Your Subscriptions",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Text("Your Subscriptions", style = SplitUpType.SectionTitle, color = MaterialTheme.colorScheme.onBackground)
             }
 
             val expenseSubscriptions = subscriptions.filter { !it.isIncome && it.category != ExpenseCategories.INCOME }
@@ -173,7 +169,7 @@ fun SubscriptionsScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(Icons.Rounded.Subscriptions, contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
-                            Text("No Subscriptions Tracked Yet", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("No Subscriptions Tracked Yet", style = SplitUpType.CardTitle)
                             Text("Tap '+ Add Subscription' to track recurring bills like Netflix, Spotify, Rent, or Wi-Fi.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -291,7 +287,7 @@ fun SubscriptionCard(
                 }
 
                 Column {
-                    Text(item.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(item.title, style = SplitUpType.CardTitle)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically

@@ -25,6 +25,7 @@ import com.finance.splitup.data.Currencies
 import com.finance.splitup.ui.theme.*
 import com.finance.splitup.viewmodel.FinanceViewModel
 import java.util.Locale
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,13 +161,7 @@ fun GlobalSearchScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "Recent Searches",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                Text(text = "Recent Searches", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
                                 TextButton(
                                     onClick = {
                                         recentSearches = emptyList()
@@ -174,7 +169,7 @@ fun GlobalSearchScreen(
                                     },
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
-                                    Text("Clear", fontSize = 12.sp, maxLines = 1, softWrap = false)
+                                    Text("Clear", style = SplitUpType.Caption, maxLines = 1, softWrap = false)
                                 }
                             }
                             LazyRow(
@@ -237,7 +232,7 @@ fun GlobalSearchScreen(
 
                 if (showPersonal && matchedPersonalExpenses.isNotEmpty()) {
                     item {
-                        Text("Personal Expenses (${matchedPersonalExpenses.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                        Text("Personal Expenses (${matchedPersonalExpenses.size})", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.primary)
                     }
                     items(matchedPersonalExpenses, key = { "per_${it.id}" }) { expense ->
                         Surface(
@@ -267,16 +262,11 @@ fun GlobalSearchScreen(
                                         }
                                     }
                                     Column {
-                                        Text(expense.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                        Text(expense.title, style = SplitUpType.ItemTitleMedium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                         Text("Personal • ${expense.category} • ${com.finance.splitup.data.DateUtils.formatDisplayDate(expense.date, expense.updatedAt)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                     }
                                 }
-                                Text(
-                                    text = "$currencySymbol${String.format(Locale.US, "%.2f", expense.amount)}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = if (expense.amount < 0) CrimsonDanger else MaterialTheme.colorScheme.onSurface
-                                )
+                                Text(text = "$currencySymbol${String.format(Locale.US, "%.2f", expense.amount)}", style = SplitUpType.ItemTitle, color = if (expense.amount < 0) CrimsonDanger else MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
@@ -284,7 +274,7 @@ fun GlobalSearchScreen(
 
                 if (showGroups && matchedGroups.isNotEmpty()) {
                     item {
-                        Text("Groups (${matchedGroups.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                        Text("Groups (${matchedGroups.size})", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.primary)
                     }
                     items(matchedGroups, key = { "grp_${it.id}" }) { group ->
                         Surface(
@@ -313,7 +303,7 @@ fun GlobalSearchScreen(
                                         }
                                     }
                                     Column {
-                                        Text(group.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                        Text(group.name, style = SplitUpType.ItemTitleMedium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                         Text("Group • Type: ${group.type} • ${group.members.size} members", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                     }
                                 }
@@ -325,7 +315,7 @@ fun GlobalSearchScreen(
 
                 if (showShared && matchedGroupExpenses.isNotEmpty()) {
                     item {
-                        Text("Group Expenses (${matchedGroupExpenses.size})", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                        Text("Group Expenses (${matchedGroupExpenses.size})", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.primary)
                     }
                     items(matchedGroupExpenses, key = { "gexp_${it.second.id}" }) { (group, ge) ->
                         Surface(
@@ -355,17 +345,12 @@ fun GlobalSearchScreen(
                                         }
                                     }
                                     Column {
-                                        Text(ge.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                        Text(ge.title, style = SplitUpType.ItemTitleMedium)
                                         Text("Group: ${group.name} • Paid by ${ge.paidBy} • ${com.finance.splitup.data.DateUtils.formatDisplayDate(ge.date)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                                 val gSym = Currencies.getSymbol(ge.currency)
-                                Text(
-                                    text = "$gSym${String.format(Locale.US, "%.2f", ge.amount)}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = if (ge.amount < 0) CrimsonDanger else MaterialTheme.colorScheme.onSurface
-                                )
+                                Text(text = "$gSym${String.format(Locale.US, "%.2f", ge.amount)}", style = SplitUpType.ItemTitle, color = if (ge.amount < 0) CrimsonDanger else MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }

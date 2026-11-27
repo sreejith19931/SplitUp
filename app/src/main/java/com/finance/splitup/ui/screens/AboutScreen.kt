@@ -25,6 +25,7 @@ import com.finance.splitup.R
 import com.finance.splitup.data.UpdateChecker
 import com.finance.splitup.ui.components.LogoStyle
 import com.finance.splitup.ui.components.SplitUpLogo
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,12 +151,7 @@ fun AboutScreen(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                        text = "Architecture & Build",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text(text = "Architecture & Build", style = SplitUpType.SectionTitle, color = MaterialTheme.colorScheme.primary)
                     Text(
                         text = "Engineered with modern Android best practices: Jetpack Compose, Material 3, Navigation 3, Kotlin Coroutines & StateFlow, Room Database, and WorkManager.",
                         fontSize = 14.sp,
@@ -174,12 +170,7 @@ fun AboutScreen(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                        text = "Privacy & Local-First Security",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text(text = "Privacy & Local-First Security", style = SplitUpType.SectionTitle, color = MaterialTheme.colorScheme.primary)
                     Text(
                         text = "Your data stays private. SplitUp operates on a local-first model where your records remain securely on your device unless you explicitly enable cloud sync.",
                         fontSize = 14.sp,
@@ -198,12 +189,7 @@ fun AboutScreen(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                        text = "Legal & Financial Disclaimers",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Text(text = "Legal & Financial Disclaimers", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.onSurface)
                     Text(
                         text = "• Financial Disclaimer: SplitUp is a personal expense calculation and tracking tool. SplitUp is not a bank, escrow service, or licensed money transmitter, and does not hold, transmit, or process financial payments directly.\n\n• Trademark Notice: PayPal, Venmo, Revolut, and UPI are registered trademarks of their respective owners. SplitUp is an independent app and is not affiliated with or endorsed by these entities.",
                         style = MaterialTheme.typography.bodySmall,
@@ -223,7 +209,7 @@ fun AboutScreen(
                 ) {
                     Icon(Icons.Rounded.PrivacyTip, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Privacy Policy", fontSize = 12.sp)
+                    Text("Privacy Policy", style = SplitUpType.Caption)
                 }
 
                 OutlinedButton(
@@ -233,7 +219,7 @@ fun AboutScreen(
                 ) {
                     Icon(Icons.Rounded.Gavel, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Terms", fontSize = 12.sp)
+                    Text("Terms", style = SplitUpType.Caption)
                 }
             }
 
@@ -370,12 +356,7 @@ fun LicenseItem(name: String, license: String, desc: String) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = name,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                modifier = Modifier.weight(1f)
-            )
+            Text(text = name, style = SplitUpType.ItemTitle, modifier = Modifier.weight(1f))
             Text(
                 text = license,
                 style = MaterialTheme.typography.labelSmall,

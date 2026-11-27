@@ -46,6 +46,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.launch
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 class LiveReceiptAnalyzer(
     private val onBoundsDetected: (LiveReceiptBounds?) -> Unit
@@ -204,7 +205,7 @@ fun ReceiptScannerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Receipt Scanner & OCR", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text("Receipt Scanner & OCR", style = SplitUpType.ScreenSubtitle) },
                 actions = {
                     IconButton(onClick = {
                         isTorchOn = !isTorchOn
@@ -596,7 +597,7 @@ fun ReceiptInteractiveCropView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Editor", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("Editor", style = SplitUpType.ScreenSubtitleStrong)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedButton(
                         onClick = { autoStraighten() },
@@ -605,7 +606,7 @@ fun ReceiptInteractiveCropView(
                     ) {
                         Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Rotate", fontSize = 12.sp)
+                        Text("Rotate", style = SplitUpType.Caption)
                     }
                     Button(
                         onClick = { performAutoCrop() },
@@ -614,7 +615,7 @@ fun ReceiptInteractiveCropView(
                     ) {
                         Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Auto Crop", fontSize = 12.sp, maxLines = 1)
+                        Text("Auto Crop", style = SplitUpType.Caption, maxLines = 1)
                     }
                 }
             }

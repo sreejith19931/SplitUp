@@ -26,6 +26,7 @@ import com.finance.splitup.data.Currencies
 import com.finance.splitup.data.ExpenseCategories
 import com.finance.splitup.viewmodel.FinanceViewModel
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,18 +105,10 @@ fun OnboardingSetupScreen(
                         modifier = Modifier.size(28.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "✨",
-                                fontSize = 12.sp
-                            )
+                            Text(text = "✨", style = SplitUpType.Caption)
                         }
                     }
-                    Text(
-                        text = "Quick Setup",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Text(text = "Quick Setup", style = SplitUpType.RowTitle, color = MaterialTheme.colorScheme.onSurface)
                 }
                 TextButton(onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -175,7 +168,7 @@ fun OnboardingSetupScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("1. Default Currency", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("1. Default Currency", style = SplitUpType.RowTitle)
                         ExposedDropdownMenuBox(
                             expanded = expandedCurrency,
                             onExpandedChange = { expandedCurrency = it }
@@ -220,7 +213,7 @@ fun OnboardingSetupScreen(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                                 ) {
-                                                    Text(Currencies.getFlag(currency), fontSize = 16.sp)
+                                                    Text(Currencies.getFlag(currency), style = SplitUpType.BodyRegular)
                                                     Text(currency)
                                                 }
                                             },
@@ -244,14 +237,14 @@ fun OnboardingSetupScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("2. Set Monthly Category Budgets", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("2. Set Monthly Category Budgets", style = SplitUpType.RowTitle)
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = foodBudget,
                                 onValueChange = { foodBudget = it.filter { c -> c.isDigit() } },
                                 label = { Text("Food & Dining") },
-                                leadingIcon = { Text("🍔", fontSize = 16.sp) },
+                                leadingIcon = { Text("🍔", style = SplitUpType.BodyRegular) },
                                 prefix = { Text(currencySymbol) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
@@ -262,7 +255,7 @@ fun OnboardingSetupScreen(
                                 value = transportBudget,
                                 onValueChange = { transportBudget = it.filter { c -> c.isDigit() } },
                                 label = { Text("Transport") },
-                                leadingIcon = { Text("🚗", fontSize = 16.sp) },
+                                leadingIcon = { Text("🚗", style = SplitUpType.BodyRegular) },
                                 prefix = { Text(currencySymbol) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
@@ -275,7 +268,7 @@ fun OnboardingSetupScreen(
                                 value = shoppingBudget,
                                 onValueChange = { shoppingBudget = it.filter { c -> c.isDigit() } },
                                 label = { Text("Shopping") },
-                                leadingIcon = { Text("🛒", fontSize = 16.sp) },
+                                leadingIcon = { Text("🛒", style = SplitUpType.BodyRegular) },
                                 prefix = { Text(currencySymbol) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
@@ -286,7 +279,7 @@ fun OnboardingSetupScreen(
                                 value = billsBudget,
                                 onValueChange = { billsBudget = it.filter { c -> c.isDigit() } },
                                 label = { Text("Bills") },
-                                leadingIcon = { Text("⚡", fontSize = 16.sp) },
+                                leadingIcon = { Text("⚡", style = SplitUpType.BodyRegular) },
                                 prefix = { Text(currencySymbol) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
@@ -298,7 +291,7 @@ fun OnboardingSetupScreen(
                             value = entertainmentBudget,
                             onValueChange = { entertainmentBudget = it.filter { c -> c.isDigit() } },
                             label = { Text("Entertainment") },
-                            leadingIcon = { Text("🎬", fontSize = 16.sp) },
+                            leadingIcon = { Text("🎬", style = SplitUpType.BodyRegular) },
                             prefix = { Text(currencySymbol) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
@@ -314,7 +307,7 @@ fun OnboardingSetupScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("3. Settlement Handles (Optional)", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("3. Settlement Handles (Optional)", style = SplitUpType.RowTitle)
                         OutlinedTextField(
                             value = upiVpa,
                             onValueChange = { upiVpa = it },
@@ -339,7 +332,7 @@ fun OnboardingSetupScreen(
                                 modifier = Modifier.height(56.dp),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
-                                Text("Connect", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("Connect", style = SplitUpType.ChipLabel)
                             }
                         }
 
@@ -367,7 +360,7 @@ fun OnboardingSetupScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("4. Biometric / Security Lock", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("4. Biometric / Security Lock", style = SplitUpType.RowTitle)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 "Require biometrics or device PIN when opening app",
@@ -422,7 +415,7 @@ fun OnboardingSetupScreen(
                                     visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation()
                                 )
                                 if (pinError != null) {
-                                    Text(pinError!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text(pinError!!, color = MaterialTheme.colorScheme.error, style = SplitUpType.ChipLabel)
                                 }
                             }
                         },
@@ -478,7 +471,7 @@ fun OnboardingSetupScreen(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Complete Setup & Get Started", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Complete Setup & Get Started", style = SplitUpType.CardTitle)
                         Icon(Icons.Rounded.RocketLaunch, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
                 }

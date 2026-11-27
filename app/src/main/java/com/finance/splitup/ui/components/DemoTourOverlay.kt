@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import com.finance.splitup.ui.theme.SplitUpType
 
 enum class TourHighlightArea {
     TOP_SUMMARY_CARD,
@@ -263,13 +264,7 @@ fun DemoTourOverlay(
                                     IntOffset(x.roundToInt(), badgeTopPx.roundToInt())
                                 }
                         ) {
-                            Text(
-                                text = step.badgeLabel,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
+                            Text(text = step.badgeLabel, color = MaterialTheme.colorScheme.onPrimary, style = SplitUpType.ChipLabel, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                         }
                     }
                 }
@@ -321,7 +316,7 @@ fun DemoTourOverlay(
                                     onClick = onSkip,
                                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                                 ) {
-                                    Text("Skip Tour", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                                    Text("Skip Tour", color = MaterialTheme.colorScheme.onSurfaceVariant, style = SplitUpType.BodySmallAlt)
                                 }
                             }
 
@@ -346,12 +341,7 @@ fun DemoTourOverlay(
                                 }
 
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = step.title,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
+                                    Text(text = step.title, style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.onSurface)
                                     Spacer(modifier = Modifier.height(1.dp))
                                     Text(
                                         text = step.description,
@@ -374,7 +364,7 @@ fun DemoTourOverlay(
                                         shape = RoundedCornerShape(10.dp),
                                         contentPadding = PaddingValues(vertical = 8.dp)
                                     ) {
-                                        Text("Back", fontSize = 13.sp)
+                                        Text("Back", style = SplitUpType.BodySmallAlt)
                                     }
                                 }
                                 Button(
@@ -383,11 +373,7 @@ fun DemoTourOverlay(
                                     shape = RoundedCornerShape(10.dp),
                                     contentPadding = PaddingValues(vertical = 8.dp)
                                 ) {
-                                    Text(
-                                        if (targetStep < totalSteps - 1) "Next ➔" else "Finish Tour 🚀",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
-                                    )
+                                    Text(if (targetStep < totalSteps - 1) "Next ➔" else "Finish Tour 🚀", style = SplitUpType.BadgeLabel)
                                 }
                             }
                         }

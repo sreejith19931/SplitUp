@@ -38,6 +38,7 @@ import com.finance.splitup.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -81,7 +82,7 @@ fun GroupsScreen(
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Groups", fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                            title = { Text("Groups", style = SplitUpType.ScreenSubtitle) },
                             actions = {
                                 IconButton(onClick = onNavigateToGlobalSearch) {
                                     Icon(Icons.Rounded.Search, contentDescription = "Global Search", tint = MaterialTheme.colorScheme.onSurface)
@@ -239,7 +240,7 @@ fun GroupsScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    Text(group.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                                    Text(group.name, style = SplitUpType.RowTitle, color = MaterialTheme.colorScheme.onTertiaryContainer)
                                                     Text("Invited by ${group.createdBy}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f))
                                                 }
                                                 Text("${group.members.size} active members", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
@@ -434,19 +435,13 @@ fun GroupCard(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(text = group.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Text(text = group.name, style = SplitUpType.ItemTitle, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     if (group.isArchived) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
                         ) {
-                            Text(
-                                text = "Archived",
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Text(text = "Archived", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = SplitUpType.MicroLabel, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

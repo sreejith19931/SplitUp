@@ -66,6 +66,7 @@ import com.finance.splitup.ui.theme.*
 import com.finance.splitup.viewmodel.FinanceViewModel
 import java.util.Locale
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -176,7 +177,7 @@ fun GroupDetailContent(
             TopAppBar(
                 title = {
                     Column {
-                        Text(group.name, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+                        Text(group.name, style = SplitUpType.ScreenSubtitle)
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Icon(Icons.Rounded.Person, contentDescription = "Members", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             val selfName = viewModel.currentUserName
@@ -329,7 +330,7 @@ fun GroupDetailContent(
                         color = MaterialTheme.colorScheme.tertiaryContainer
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("Group Invitation Request 📩", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                            Text("Group Invitation Request 📩", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.onTertiaryContainer)
                             Text("You were invited to join '${group.name}' by ${group.createdBy}. Accept to participate in group expenses and settlements.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(
@@ -453,7 +454,7 @@ fun GroupDetailContent(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     MemberAvatar(name = member, size = 28.dp)
-                                    Text(displayName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text(displayName, style = SplitUpType.ItemTitleMedium)
                                 }
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
@@ -463,21 +464,15 @@ fun GroupDetailContent(
                                         else -> EmeraldSuccess.copy(alpha = 0.15f)
                                     }
                                 ) {
-                                    Text(
-                                        text = when {
+                                    Text(text = when {
                                             bal > 0.01 -> "+$currencySymbol${String.format(Locale.US, "%.2f", bal)}"
                                             bal < -0.01 -> "-$currencySymbol${String.format(Locale.US, "%.2f", -bal)}"
                                             else -> "${currencySymbol}0.00"
-                                        },
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = when {
+                                        }, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = SplitUpType.ChipLabel, color = when {
                                             bal > 0.01 -> EmeraldSuccess
                                             bal < -0.01 -> CrimsonDanger
                                             else -> EmeraldSuccess
-                                        }
-                                    )
+                                        })
                                 }
                             }
                         }
@@ -508,7 +503,7 @@ fun GroupDetailContent(
                         ) {
                             Icon(Icons.Rounded.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add Member", fontSize = 13.sp, maxLines = 1, softWrap = false)
+                            Text("Add Member", style = SplitUpType.BodySmallAlt, maxLines = 1, softWrap = false)
                         }
                     }
 
@@ -630,7 +625,7 @@ fun GroupDetailContent(
                             colors = CardDefaults.cardColors(containerColor = EmeraldSuccess.copy(alpha = 0.15f))
                         ) {
                             Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("✨ All Members Are Fully Settled Up! 🎉", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = EmeraldSuccess)
+                                Text("✨ All Members Are Fully Settled Up! 🎉", style = SplitUpType.RowTitle, color = EmeraldSuccess)
                             }
                         }
                     }
@@ -650,7 +645,7 @@ fun GroupDetailContent(
                             ) {
                                 Icon(Icons.Rounded.Handshake, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Settle Up", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text("Settle Up", style = SplitUpType.BadgeLabel)
                             }
                             OutlinedButton(
                                 onClick = {
@@ -663,7 +658,7 @@ fun GroupDetailContent(
                             ) {
                                 Icon(Icons.Rounded.Payment, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Pay Member", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text("Pay Member", style = SplitUpType.BadgeLabel)
                             }
                         }
                     }
@@ -721,25 +716,13 @@ fun GroupDetailContent(
                                                 shape = RoundedCornerShape(8.dp),
                                                 color = if (isMyDebt) CrimsonDanger.copy(alpha = 0.12f) else if (isOwedToMe) EmeraldSuccess.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                             ) {
-                                                Text(
-                                                    text = "$currencySymbol${String.format(Locale.US, "%.2f", settlement.amount)}",
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp,
-                                                    color = if (isMyDebt) CrimsonDanger else if (isOwedToMe) EmeraldSuccess else MaterialTheme.colorScheme.primary
-                                                )
+                                                Text(text = "$currencySymbol${String.format(Locale.US, "%.2f", settlement.amount)}", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = SplitUpType.ChipLabel, color = if (isMyDebt) CrimsonDanger else if (isOwedToMe) EmeraldSuccess else MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                         MemberAvatar(name = settlement.to, size = 38.dp)
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            text = "${formatNameToFirstAndLastInitial(settlement.from, selfName)} → ${formatNameToFirstAndLastInitial(settlement.to, selfName)}",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            maxLines = 1,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                        )
+                                        Text(text = "${formatNameToFirstAndLastInitial(settlement.from, selfName)} → ${formatNameToFirstAndLastInitial(settlement.to, selfName)}", style = SplitUpType.ItemTitle, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
                                             color = when {
@@ -780,7 +763,7 @@ fun GroupDetailContent(
                                     ) {
                                         Icon(Icons.Rounded.Payment, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Settle Up Now", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        Text("Settle Up Now", style = SplitUpType.BadgeLabel)
                                     }
                                 } else if (isOwedToMe) {
                                     Surface(
@@ -915,19 +898,13 @@ fun GroupDetailContent(
                                             }
                                             Column {
                                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                    Text(expense.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                                    Text(expense.title, style = SplitUpType.CardTitle, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                                     if (isCustomSplit) {
                                                         Surface(
                                                             shape = RoundedCornerShape(6.dp),
                                                             color = MaterialTheme.colorScheme.tertiaryContainer
                                                         ) {
-                                                            Text(
-                                                                text = "Custom",
-                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                                                fontSize = 10.sp,
-                                                                fontWeight = FontWeight.Bold,
-                                                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                                                            )
+                                                            Text(text = "Custom", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = SplitUpType.MicroLabel, color = MaterialTheme.colorScheme.onTertiaryContainer)
                                                         }
                                                     }
                                                 }
@@ -951,16 +928,11 @@ fun GroupDetailContent(
                                             }
                                         }
                                         Column(horizontalAlignment = Alignment.End) {
-                                            Text(
-                                                text = "$currencySym${String.format(Locale.US, "%.2f", expense.amount)}",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 16.sp,
-                                                color = when {
+                                            Text(text = "$currencySym${String.format(Locale.US, "%.2f", expense.amount)}", style = SplitUpType.CardTitle, color = when {
                                                     expense.category == ExpenseCategories.INCOME -> EmeraldSuccess
                                                     isSettlement -> MaterialTheme.colorScheme.primary
                                                     else -> CrimsonDanger
-                                                }
-                                            )
+                                                })
                                             if (!isSettlement) {
                                                 Surface(
                                                     shape = RoundedCornerShape(6.dp),
@@ -1109,10 +1081,10 @@ fun GroupDetailContent(
                                 val reqBadge = if (req.requestType == "SETTLEMENT_RECORD") "SETTLEMENT" else req.requestType.replace("_", " ")
 
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    Text(reqText, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.weight(1f))
+                                    Text(reqText, style = SplitUpType.ItemTitle, color = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.weight(1f))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primary) {
-                                        Text(reqBadge, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 10.sp, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                                        Text(reqBadge, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = SplitUpType.MicroLabel, color = MaterialTheme.colorScheme.onPrimary)
                                     }
                                 }
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1124,7 +1096,7 @@ fun GroupDetailContent(
                                     ) {
                                         Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text(if (req.requestType == "SETTLEMENT_RECORD") "Confirm Receipt" else "Approve", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text(if (req.requestType == "SETTLEMENT_RECORD") "Confirm Receipt" else "Approve", style = SplitUpType.ChipLabel)
                                     }
                                     OutlinedButton(
                                         onClick = { viewModel.rejectGroupRequest(req) },
@@ -1134,7 +1106,7 @@ fun GroupDetailContent(
                                     ) {
                                         Icon(Icons.Rounded.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Decline", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text("Decline", style = SplitUpType.ChipLabel)
                                     }
                                 }
                             }
@@ -1194,7 +1166,7 @@ fun GroupDetailContent(
                                     }
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = log.description, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text(text = log.description, style = SplitUpType.ItemTitleMedium)
                                     Text(text = "By ${log.actorName} • $timeFormatted", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
 
                                     val canUndo = !log.isUndone && (log.payloadJson.isNotBlank() || (log.actionType == "EXPENSE_ADDED" && log.referenceId.isNotBlank() && group.expenses.any { it.id == log.referenceId }))
@@ -1215,7 +1187,7 @@ fun GroupDetailContent(
                                         ) {
                                             Icon(Icons.AutoMirrored.Rounded.Undo, contentDescription = null, modifier = Modifier.size(14.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Undo", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Text("Undo", style = SplitUpType.ChipLabel)
                                         }
                                     } else if (log.isUndone) {
                                         Spacer(modifier = Modifier.height(4.dp))
@@ -1272,7 +1244,7 @@ fun GroupDetailContent(
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    Text("Group Type", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text("Group Type", style = SplitUpType.ItemTitleMedium)
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1282,7 +1254,7 @@ fun GroupDetailContent(
                             FilterChip(
                                 selected = editGroupType == type,
                                 onClick = { editGroupType = type },
-                                label = { Text(type, fontSize = 12.sp) },
+                                label = { Text(type, style = SplitUpType.Caption) },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = when (type) {
@@ -1321,7 +1293,7 @@ fun GroupDetailContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Require Owner Approval", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Require Owner Approval", style = SplitUpType.BadgeLabel)
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     if (isCreator) "Require owner approval when non-owners edit/delete expenses or remove members" else "Only group creator (${group.createdBy.ifBlank { "Creator" }}) can change this setting",
@@ -1524,11 +1496,7 @@ fun GroupDetailContent(
                 }
             },
             title = {
-                Text(
-                    text = "Payment: $customPayer → $customPayee",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
+                Text(text = "Payment: $customPayer → $customPayee", style = SplitUpType.SectionTitle)
             },
             text = {
                 Column(
@@ -1550,7 +1518,7 @@ fun GroupDetailContent(
                                 FilterChip(
                                     selected = customPayer == member,
                                     onClick = { customPayer = member },
-                                    label = { Text(member, fontSize = 12.sp) }
+                                    label = { Text(member, style = SplitUpType.Caption) }
                                 )
                             }
                         }
@@ -1567,7 +1535,7 @@ fun GroupDetailContent(
                                 FilterChip(
                                     selected = customPayee == member,
                                     onClick = { customPayee = member },
-                                    label = { Text(member, fontSize = 12.sp) }
+                                    label = { Text(member, style = SplitUpType.Caption) }
                                 )
                             }
                         }
@@ -1650,7 +1618,7 @@ fun GroupDetailContent(
                     val upiVpa = if (isSelfPayee) userProfile.upiVpa.trim() else payeeContact?.upiVpa?.trim() ?: ""
 
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("2. Direct App Payment to $customPayee", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Text("2. Direct App Payment to $customPayee", style = SplitUpType.RowTitleMedium)
                         Text("Launch payment app for $customPayee:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                         Button(
@@ -1673,7 +1641,7 @@ fun GroupDetailContent(
                         ) {
                             Icon(Icons.Rounded.Payment, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Pay with PayPal", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("Pay with PayPal", style = SplitUpType.ItemTitle)
                         }
 
                         Button(
@@ -1696,7 +1664,7 @@ fun GroupDetailContent(
                         ) {
                             Icon(Icons.Rounded.Payment, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Pay with Venmo", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("Pay with Venmo", style = SplitUpType.ItemTitle)
                         }
 
                         Button(
@@ -1717,7 +1685,7 @@ fun GroupDetailContent(
                         ) {
                             Icon(Icons.Rounded.Payment, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Pay with Revolut", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("Pay with Revolut", style = SplitUpType.ItemTitle)
                         }
 
                         Button(
@@ -1740,7 +1708,7 @@ fun GroupDetailContent(
                         ) {
                             Icon(Icons.Rounded.Smartphone, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Pay via UPI / Banking App", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("Pay via UPI / Banking App", style = SplitUpType.ItemTitle)
                         }
                     }
                 }
@@ -1786,11 +1754,7 @@ fun GroupDetailContent(
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        if (isSettlementPendingApproval) "Settlement Request Sent!" else "Settlement Recorded!",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
+                    Text(if (isSettlementPendingApproval) "Settlement Request Sent!" else "Settlement Recorded!", style = SplitUpType.ScreenSubtitleStrong)
                 }
             },
             text = {
@@ -2023,7 +1987,7 @@ fun MemberSearchAndAddDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("➕ Add '${searchQuery.trim()}'", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                        Text("➕ Add '${searchQuery.trim()}'", style = SplitUpType.RowTitle, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                         Text("Tap to add as custom group member", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                                     }
                                     Button(
@@ -2035,7 +1999,7 @@ fun MemberSearchAndAddDialog(
                                         modifier = Modifier.height(36.dp),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Text("Add", fontSize = 12.sp)
+                                        Text("Add", style = SplitUpType.Caption)
                                     }
                                 }
                             }
@@ -2043,7 +2007,7 @@ fun MemberSearchAndAddDialog(
                     }
                     if (searchQuery.isBlank() && recentFiltered.isNotEmpty()) {
                         item {
-                            Text("Recent Friends ⏱️", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.primary)
+                            Text("Recent Friends ⏱️", style = SplitUpType.ItemTitle, color = MaterialTheme.colorScheme.primary)
                         }
                         items(recentFiltered, key = { "recent_${it.email}" }) { contact ->
                             Surface(
@@ -2063,7 +2027,7 @@ fun MemberSearchAndAddDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(contact.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                        Text(contact.name, style = SplitUpType.RowTitle)
                                         Text("${contact.email} • Recent Friend", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Button(
@@ -2074,7 +2038,7 @@ fun MemberSearchAndAddDialog(
                                         modifier = Modifier.height(36.dp),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Text("Invite", fontSize = 12.sp)
+                                        Text("Invite", style = SplitUpType.Caption)
                                     }
                                 }
                             }
@@ -2117,7 +2081,7 @@ fun MemberSearchAndAddDialog(
                         }
                         item {
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("Device Contacts 📱", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.primary)
+                            Text("Device Contacts 📱", style = SplitUpType.ItemTitle, color = MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -2142,11 +2106,11 @@ fun MemberSearchAndAddDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("✨ Found on SplitUp: ${cloudSearchedContact!!.name}", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                        Text("✨ Found on SplitUp: ${cloudSearchedContact!!.name}", style = SplitUpType.RowTitle)
                                         Text(cloudSearchedContact!!.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                     }
                                     if (isCloudUserSelfOrExisting) {
-                                        Text("Already in Group", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                        Text("Already in Group", style = SplitUpType.ChipLabel, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                     } else {
                                         Button(
                                             onClick = {
@@ -2156,7 +2120,7 @@ fun MemberSearchAndAddDialog(
                                             modifier = Modifier.height(36.dp),
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
-                                            Text("Invite", fontSize = 12.sp)
+                                            Text("Invite", style = SplitUpType.Caption)
                                         }
                                     }
                                 }
@@ -2204,7 +2168,7 @@ fun MemberSearchAndAddDialog(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                         verticalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        Text(contact.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                        Text(contact.name, style = SplitUpType.RowTitle)
                                         if (isAlreadyMember) {
                                             Surface(
                                                 shape = RoundedCornerShape(6.dp),
@@ -2260,7 +2224,7 @@ fun MemberSearchAndAddDialog(
                                         modifier = Modifier.height(36.dp),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Text("Invite", fontSize = 12.sp)
+                                        Text("Invite", style = SplitUpType.Caption)
                                     }
                                 }
                             }
@@ -2289,7 +2253,7 @@ fun MemberSearchAndAddDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Add '${searchQuery.trim()}'", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                        Text("Add '${searchQuery.trim()}'", style = SplitUpType.RowTitle, color = MaterialTheme.colorScheme.onPrimaryContainer)
                                         Text(if (isCustomSelfOrExisting) "Already in group / Cannot add yourself" else "Custom Member • Generates WhatsApp Invite", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
                                     }
                                     if (!isCustomSelfOrExisting) {
@@ -2301,7 +2265,7 @@ fun MemberSearchAndAddDialog(
                                             modifier = Modifier.height(36.dp),
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
-                                            Text("Add & Invite", fontSize = 12.sp)
+                                            Text("Add & Invite", style = SplitUpType.Caption)
                                         }
                                     }
                                 }
@@ -2435,7 +2399,7 @@ fun ExportPdfPreviewDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Text("PDF Statement Preview", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("PDF Statement Preview", style = SplitUpType.SectionTitle)
             }
         },
         text = {

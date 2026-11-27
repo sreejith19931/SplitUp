@@ -43,6 +43,7 @@ import com.finance.splitup.ui.screens.*
 import com.finance.splitup.ui.theme.SplitUpTheme
 import com.finance.splitup.viewmodel.FinanceViewModel
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 class MainActivity : FragmentActivity() {
     private val currentIntentState = mutableStateOf<android.content.Intent?>(null)
@@ -1267,7 +1268,7 @@ fun BiometricLockOverlay(onUnlocked: () -> Unit) {
                 ) {
                     Icon(Icons.Rounded.Fingerprint, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Unlock with Biometrics", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Unlock with Biometrics", style = SplitUpType.CardTitle)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedButton(

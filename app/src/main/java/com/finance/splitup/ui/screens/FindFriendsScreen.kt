@@ -24,6 +24,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.finance.splitup.data.UiMessage
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -87,7 +88,7 @@ fun FindFriendsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Find Friends on SplitUp", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+                title = { Text("Find Friends on SplitUp", style = SplitUpType.ScreenSubtitleStrong) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -146,7 +147,7 @@ fun FindFriendsScreen(
             ) {
                 if (onSplitUp.isNotEmpty()) {
                     item {
-                        Text("On SplitUp (${onSplitUp.size}) 🎉", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                        Text("On SplitUp (${onSplitUp.size}) 🎉", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.primary)
                     }
                     items(onSplitUp, key = { it.email }) { contact ->
                         Surface(
@@ -164,7 +165,7 @@ fun FindFriendsScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                                     MemberAvatar(name = contact.name, size = 40.dp)
                                     Column {
-                                        Text(contact.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                        Text(contact.name, style = SplitUpType.RowTitle)
                                         Text(contact.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
@@ -188,7 +189,7 @@ fun FindFriendsScreen(
                 if (inviteOthers.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Invite to SplitUp (${inviteOthers.size}) 🔗", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Invite to SplitUp (${inviteOthers.size}) 🔗", style = SplitUpType.CardTitle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     items(inviteOthers, key = { it.email }) { contact ->
                         Surface(
@@ -206,7 +207,7 @@ fun FindFriendsScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                                     MemberAvatar(name = contact.name, size = 40.dp)
                                     Column {
-                                        Text(contact.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                        Text(contact.name, style = SplitUpType.RowTitle)
                                         Text(contact.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
@@ -228,7 +229,7 @@ fun FindFriendsScreen(
                                 ) {
                                     Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Invite", fontSize = 12.sp)
+                                    Text("Invite", style = SplitUpType.Caption)
                                 }
                             }
                         }

@@ -28,6 +28,7 @@ import com.finance.splitup.ui.theme.SplitUpTheme
 import com.finance.splitup.viewmodel.FinanceViewModel
 
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.finance.splitup.ui.theme.SplitUpType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,7 +92,7 @@ fun AddExpenseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isInvestment) (if (existingInvestment != null) "Edit Investment" else "Add Investment") else if (isIncome) (if (existingExpense != null) "Edit Income" else "Add Income") else (if (existingExpense != null) "Edit Personal Expense" else "Add Personal Expense"), fontWeight = FontWeight.SemiBold, fontSize = 20.sp) },
+                title = { Text(if (isInvestment) (if (existingInvestment != null) "Edit Investment" else "Add Investment") else if (isIncome) (if (existingExpense != null) "Edit Income" else "Add Income") else (if (existingExpense != null) "Edit Personal Expense" else "Add Personal Expense"), style = SplitUpType.ScreenSubtitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -114,7 +115,7 @@ fun AddExpenseScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text("Entry Type", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Entry Type", style = SplitUpType.RowTitle)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -137,14 +138,7 @@ fun AddExpenseScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = option,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 12.sp,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                    )
+                                    Text(text = option, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, style = SplitUpType.Caption, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -184,12 +178,7 @@ fun AddExpenseScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Scan Receipt",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
+                            Text(text = "Scan Receipt", style = SplitUpType.RowTitle, color = MaterialTheme.colorScheme.onTertiaryContainer)
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
@@ -247,7 +236,7 @@ fun AddExpenseScreen(
                                     selectedCategory = detectCategoryFromTitle(suggestion)
                                 }
                             },
-                            label = { Text(suggestion, fontSize = 12.sp) }
+                            label = { Text(suggestion, style = SplitUpType.Caption) }
                         )
                     }
                 }
@@ -269,12 +258,7 @@ fun AddExpenseScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                        Text(
-                            text = "Auto-detected category: $selectedCategory",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        Text(text = "Auto-detected category: $selectedCategory", style = SplitUpType.ChipLabelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
             }
@@ -326,7 +310,7 @@ fun AddExpenseScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text(Currencies.getFlag(currency), fontSize = 16.sp)
+                                        Text(Currencies.getFlag(currency), style = SplitUpType.BodyRegular)
                                         Text(currency)
                                     }
                                 },
@@ -421,21 +405,21 @@ fun AddExpenseScreen(
                         FilterChip(
                             selected = investmentType == "BUY",
                             onClick = { investmentType = "BUY" },
-                            label = { Text("📈 Buy / Contribution", fontSize = 12.sp) },
+                            label = { Text("📈 Buy / Contribution", style = SplitUpType.Caption) },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp)
                         )
                         FilterChip(
                             selected = investmentType == "SELL",
                             onClick = { investmentType = "SELL" },
-                            label = { Text("📉 Sell / Withdrawal", fontSize = 12.sp) },
+                            label = { Text("📉 Sell / Withdrawal", style = SplitUpType.Caption) },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp)
                         )
                         FilterChip(
                             selected = investmentType == "DIVIDEND_RETURN",
                             onClick = { investmentType = "DIVIDEND_RETURN" },
-                            label = { Text("💰 Dividend / Return", fontSize = 12.sp) },
+                            label = { Text("💰 Dividend / Return", style = SplitUpType.Caption) },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp)
                         )
@@ -501,7 +485,7 @@ fun AddExpenseScreen(
                                 onClick = {
                                     selectedSubCategory = if (selectedSubCategory == subCat) "" else subCat
                                 },
-                                label = { Text(subCat, fontSize = 12.sp) }
+                                label = { Text(subCat, style = SplitUpType.Caption) }
                             )
                         }
                     }
@@ -579,7 +563,7 @@ fun AddExpenseScreen(
                         FilterChip(
                             selected = isSelected,
                             onClick = { expenseDate = quickDate },
-                            label = { Text(quickDate, fontSize = 12.sp) },
+                            label = { Text(quickDate, style = SplitUpType.Caption) },
                             shape = RoundedCornerShape(10.dp)
                         )
                     }
@@ -611,11 +595,7 @@ fun AddExpenseScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                "Receipt Line Items (${editableLineItems.size})",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
+                            Text("Receipt Line Items (${editableLineItems.size})", style = SplitUpType.RowTitle)
                             TextButton(
                                 onClick = {
                                     val newId = java.util.UUID.randomUUID().toString()
@@ -630,7 +610,7 @@ fun AddExpenseScreen(
                             ) {
                                 Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Add Item", fontSize = 12.sp)
+                                Text("Add Item", style = SplitUpType.Caption)
                             }
                         }
 
@@ -684,7 +664,7 @@ fun AddExpenseScreen(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Payment Method", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text("Payment Method", style = SplitUpType.ItemTitleMedium)
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -693,7 +673,7 @@ fun AddExpenseScreen(
                         FilterChip(
                             selected = selectedPaymentMethod == method,
                             onClick = { selectedPaymentMethod = method },
-                            label = { Text(method, fontSize = 12.sp) },
+                            label = { Text(method, style = SplitUpType.Caption) },
                             shape = RoundedCornerShape(10.dp)
                         )
                     }
@@ -718,7 +698,7 @@ fun AddExpenseScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Recurring Income", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Text("Recurring Income", style = SplitUpType.RowTitleMedium)
                         Text("Auto-log this income periodically", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Switch(
@@ -871,11 +851,7 @@ fun AddExpenseScreen(
             ) {
                 Icon(Icons.Rounded.Check, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (isInvestment) (if (existingInvestment != null) "Save Investment" else "Add Investment") else if (isIncome) (if (existingExpense != null) "Save Income" else "Add Income") else (if (existingExpense != null) "Save Changes" else "Save Expense"),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = if (isInvestment) (if (existingInvestment != null) "Save Investment" else "Add Investment") else if (isIncome) (if (existingExpense != null) "Save Income" else "Add Income") else (if (existingExpense != null) "Save Changes" else "Save Expense"), style = SplitUpType.CardTitle)
             }
         }
     }

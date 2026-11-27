@@ -1,6 +1,5 @@
 package com.finance.splitup.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -26,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.finance.splitup.data.Currencies
 import com.finance.splitup.data.ExpenseCategories
 import com.finance.splitup.viewmodel.FinanceViewModel
+import com.finance.splitup.data.UiMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +76,7 @@ fun OnboardingSetupScreen(
             .putBoolean("has_completed_onboarding_$currentUserId", true)
             .putBoolean("has_completed_onboarding", true)
             .apply()
-        Toast.makeText(context, "Setup complete! Welcome to SplitUp.", Toast.LENGTH_SHORT).show()
+        UiMessage.show("Setup complete! Welcome to SplitUp.")
         onSetupComplete()
     }
 
@@ -440,7 +440,7 @@ fun OnboardingSetupScreen(
                                             newPinInput = ""
                                             confirmPinInput = ""
                                             pinError = null
-                                            Toast.makeText(context, "Fallback PIN set & biometrics enabled!", Toast.LENGTH_SHORT).show()
+                                            UiMessage.show("Fallback PIN set & biometrics enabled!")
                                         } else {
                                             pinError = "PINs do not match. Please try again."
                                         }

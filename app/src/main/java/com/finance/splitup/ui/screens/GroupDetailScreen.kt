@@ -2,7 +2,6 @@ package com.finance.splitup.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -66,6 +65,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.finance.splitup.ui.theme.*
 import com.finance.splitup.viewmodel.FinanceViewModel
 import java.util.Locale
+import com.finance.splitup.data.UiMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -248,7 +248,7 @@ fun GroupDetailContent(
                                         }
                                         context.startActivity(Intent.createChooser(intent, "Export Group Expenses CSV"))
                                     } catch (e: Exception) {
-                                        Toast.makeText(context, "CSV export error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                        UiMessage.show("CSV export error: ${e.localizedMessage}")
                                     }
                                 },
                                 leadingIcon = { Icon(Icons.Rounded.TableChart, contentDescription = null) }
@@ -267,7 +267,7 @@ fun GroupDetailContent(
                                     onClick = {
                                         showMenu = false
                                         viewModel.unarchiveGroup(group.id)
-                                        android.widget.Toast.makeText(context, "Group '${group.name}' unarchived", android.widget.Toast.LENGTH_SHORT).show()
+                                        UiMessage.show("Group '${group.name}' unarchived")
                                         onBack?.invoke()
                                     },
                                     leadingIcon = { Icon(Icons.Rounded.Unarchive, contentDescription = null) }
@@ -278,7 +278,7 @@ fun GroupDetailContent(
                                     onClick = {
                                         showMenu = false
                                         viewModel.archiveGroup(group.id)
-                                        android.widget.Toast.makeText(context, "Group '${group.name}' archived", android.widget.Toast.LENGTH_SHORT).show()
+                                        UiMessage.show("Group '${group.name}' archived")
                                         onBack?.invoke()
                                     },
                                     leadingIcon = { Icon(Icons.Rounded.Archive, contentDescription = null) }
@@ -1207,7 +1207,7 @@ fun GroupDetailContent(
                                                 } else {
                                                     viewModel.undoActivityLog(log)
                                                 }
-                                                Toast.makeText(context, "Action undone!", Toast.LENGTH_SHORT).show()
+                                                UiMessage.show("Action undone!")
                                             },
                                             modifier = Modifier.height(30.dp),
                                             shape = RoundedCornerShape(8.dp),
@@ -1609,9 +1609,9 @@ fun GroupDetailContent(
                             onResult = { isPending ->
                                 isSettlementPendingApproval = isPending
                                 if (isPending) {
-                                    Toast.makeText(context, "Settlement payment request sent to $customPayee for approval! ✉️", Toast.LENGTH_LONG).show()
+                                    UiMessage.showLong("Settlement payment request sent to $customPayee for approval! ✉️")
                                 } else {
-                                    Toast.makeText(context, "Payment of $currencySymbol${String.format(Locale.US, "%.2f", paidAmt)} from $customPayer to $customPayee recorded!", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("Payment of $currencySymbol${String.format(Locale.US, "%.2f", paidAmt)} from $customPayer to $customPayee recorded!")
                                 }
                                 selectedSettlementForPayment = null
                                 showSettlementCelebration = true
@@ -1859,10 +1859,10 @@ fun GroupDetailContent(
                         }
                         context.startActivity(Intent.createChooser(intent, "Export Group PDF Statement"))
                     } else {
-                        Toast.makeText(context, "Failed to generate group statement PDF", Toast.LENGTH_SHORT).show()
+                        UiMessage.show("Failed to generate group statement PDF")
                     }
                 } catch (e: Exception) {
-                    Toast.makeText(context, "PDF export failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    UiMessage.show("PDF export failed: ${e.localizedMessage}")
                 }
             }
         )
@@ -2393,7 +2393,7 @@ fun GroupQrCodeDialog(
                             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             val clip = android.content.ClipData.newPlainText("Group Invite", inviteUrl)
                             clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "Invite link copied to clipboard!", Toast.LENGTH_SHORT).show()
+                            UiMessage.show("Invite link copied to clipboard!")
                         }
                 ) {
                     Column(

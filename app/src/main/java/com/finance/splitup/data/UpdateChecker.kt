@@ -4,13 +4,13 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.widget.Toast
 import com.finance.splitup.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import com.finance.splitup.data.UiMessage
 
 object UpdateChecker {
     private const val PLAY_STORE_PACKAGE = "com.android.vending"
@@ -93,7 +93,7 @@ object UpdateChecker {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(context, "Could not open browser", Toast.LENGTH_SHORT).show()
+            UiMessage.show("Could not open browser")
         }
     }
 }

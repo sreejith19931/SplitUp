@@ -1,7 +1,6 @@
 package com.finance.splitup.ui.screens
 
 import android.content.Intent
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -29,6 +28,7 @@ import com.finance.splitup.viewmodel.AuthViewModel
 import com.finance.splitup.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
 import java.io.File
+import com.finance.splitup.data.UiMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,10 +80,10 @@ fun DataManagementScreen(
                     val jsonStr = inputStream?.bufferedReader()?.readText()
                     if (!jsonStr.isNullOrBlank()) {
                         viewModel.importBackupJson(jsonStr)
-                        Toast.makeText(context, "Backup restored successfully!", Toast.LENGTH_SHORT).show()
+                        UiMessage.show("Backup restored successfully!")
                     }
                 } catch (e: Exception) {
-                    Toast.makeText(context, "Restore failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    UiMessage.show("Restore failed: ${e.localizedMessage}")
                 } finally {
                     isRestoringJson = false
                 }
@@ -152,9 +152,9 @@ fun DataManagementScreen(
                                         val repository = com.finance.splitup.data.repository.OfflineFirstFinanceRepository(database.financeDao())
                                         CloudSyncManager.performCloudSync(repository, context)
                                         hasUnsyncedChanges = false
-                                        Toast.makeText(context, "Cloud sync completed successfully!", Toast.LENGTH_SHORT).show()
+                                        UiMessage.show("Cloud sync completed successfully!")
                                     } catch (e: Exception) {
-                                        Toast.makeText(context, "Sync failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                        UiMessage.show("Sync failed: ${e.localizedMessage}")
                                     } finally {
                                         isSyncingNow = false
                                     }
@@ -223,10 +223,10 @@ fun DataManagementScreen(
                                     }
                                     context.startActivity(intent)
                                 } else {
-                                    Toast.makeText(context, "Failed to generate PDF report", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("Failed to generate PDF report")
                                 }
                             } catch (e: Exception) {
-                                Toast.makeText(context, "PDF export failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                UiMessage.show("PDF export failed: ${e.localizedMessage}")
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -248,9 +248,9 @@ fun DataManagementScreen(
                                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
                                 context.startActivity(intent)
-                                Toast.makeText(context, "CSV exported successfully!", Toast.LENGTH_SHORT).show()
+                                UiMessage.show("CSV exported successfully!")
                             } catch (e: Exception) {
-                                Toast.makeText(context, "CSV Export failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                UiMessage.show("CSV Export failed: ${e.localizedMessage}")
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -280,7 +280,7 @@ fun DataManagementScreen(
                                     }
                                     context.startActivity(Intent.createChooser(intent, "Share Database Backup"))
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Backup export failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("Backup export failed: ${e.localizedMessage}")
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -419,13 +419,13 @@ fun DataManagementScreen(
                                     val database = com.finance.splitup.data.db.AppDatabase.getDatabase(context)
                                     val repository = com.finance.splitup.data.repository.OfflineFirstFinanceRepository(database.financeDao())
                                     CloudSyncManager.performCloudSync(repository, context)
-                                    Toast.makeText(context, "Sync completed successfully!", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("Sync completed successfully!")
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Sync failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("Sync failed: ${e.localizedMessage}")
                                 }
                             }
                             viewModel.clearAllData()
-                            Toast.makeText(context, "All app data cleared.", Toast.LENGTH_SHORT).show()
+                            UiMessage.show("All app data cleared.")
                             showClearDataDialog = false
                         }
                     },
@@ -529,11 +529,11 @@ fun DataManagementScreen(
                                     scope.launch {
                                         viewModel.clearAllData()
                                     }
-                                    Toast.makeText(context, "Account and all data deleted successfully.", Toast.LENGTH_LONG).show()
+                                    UiMessage.showLong("Account and all data deleted successfully.")
                                     showDeleteAccountDialog = false
                                 },
                                 onError = { errorMsg ->
-                                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                    UiMessage.showLong(errorMsg)
                                 }
                             )
                         }

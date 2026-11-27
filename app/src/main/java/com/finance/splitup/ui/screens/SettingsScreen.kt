@@ -1,6 +1,5 @@
 package com.finance.splitup.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,6 +26,7 @@ import com.finance.splitup.viewmodel.AuthViewModel
 import com.finance.splitup.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.finance.splitup.data.UiMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -277,9 +277,9 @@ fun SettingsScreen(
                                             scope.launch {
                                                 try {
                                                     com.finance.splitup.data.CurrencyApiService.updateLiveRates()
-                                                    Toast.makeText(context, "Live exchange rates updated successfully!", Toast.LENGTH_SHORT).show()
+                                                    UiMessage.show("Live exchange rates updated successfully!")
                                                 } catch (_: Exception) {
-                                                    Toast.makeText(context, "Failed to update rates. Check internet connection.", Toast.LENGTH_SHORT).show()
+                                                    UiMessage.show("Failed to update rates. Check internet connection.")
                                                 } finally {
                                                     isRefreshingRates = false
                                                 }
@@ -593,10 +593,10 @@ fun SettingsScreen(
                                                 val database = com.finance.splitup.data.db.AppDatabase.getDatabase(context)
                                                 val repository = com.finance.splitup.data.repository.OfflineFirstFinanceRepository(database.financeDao())
                                                 com.finance.splitup.data.CloudSyncManager.performCloudSync(repository, context)
-                                                Toast.makeText(context, "Sync completed successfully!", Toast.LENGTH_SHORT).show()
+                                                UiMessage.show("Sync completed successfully!")
                                                 hasUnsyncedChanges = false
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, "Sync failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                                UiMessage.show("Sync failed: ${e.localizedMessage}")
                                             }
                                         }
                                     }

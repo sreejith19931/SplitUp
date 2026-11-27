@@ -43,6 +43,7 @@ import com.finance.splitup.viewmodel.AuthViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
+import com.finance.splitup.data.UiMessage
 
 @Composable
 fun GoogleLogo(modifier: Modifier = Modifier) {
@@ -290,10 +291,10 @@ fun AuthScreen(
                                     authViewModel.sendPasswordResetEmail(
                                         email = email,
                                         onSuccess = { msg ->
-                                            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                                            UiMessage.showLong(msg)
                                         },
                                         onError = { err ->
-                                            android.widget.Toast.makeText(context, err, android.widget.Toast.LENGTH_LONG).show()
+                                            UiMessage.showLong(err)
                                         }
                                     )
                                 }

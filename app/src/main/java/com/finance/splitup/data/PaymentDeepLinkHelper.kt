@@ -3,8 +3,8 @@ package com.finance.splitup.data
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import java.util.Locale
+import com.finance.splitup.data.UiMessage
 
 object PaymentDeepLinkHelper {
 
@@ -19,7 +19,7 @@ object PaymentDeepLinkHelper {
         val cleanVpa = vpa.trim()
         if (cleanVpa.isBlank()) {
             val displayName = payeeName.ifBlank { "Recipient" }
-            Toast.makeText(context, "$displayName has not set up a UPI VPA.", Toast.LENGTH_LONG).show()
+            UiMessage.showLong("$displayName has not set up a UPI VPA.")
             return false
         }
         return try {
@@ -32,7 +32,7 @@ object PaymentDeepLinkHelper {
             context.startActivity(chooser)
             true
         } catch (e: Exception) {
-            Toast.makeText(context, "No UPI payment app found: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            UiMessage.show("No UPI payment app found: ${e.localizedMessage}")
             false
         }
     }
@@ -47,7 +47,7 @@ object PaymentDeepLinkHelper {
         val cleanHandle = paypalHandle.trim().removePrefix("@")
         if (cleanHandle.isBlank()) {
             val displayName = payeeName.ifBlank { "Recipient" }
-            Toast.makeText(context, "$displayName has not set up their PayPal username.", Toast.LENGTH_LONG).show()
+            UiMessage.showLong("$displayName has not set up their PayPal username.")
             return false
         }
         return try {
@@ -61,7 +61,7 @@ object PaymentDeepLinkHelper {
             context.startActivity(intent)
             true
         } catch (e: Exception) {
-            Toast.makeText(context, "Could not launch PayPal: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            UiMessage.show("Could not launch PayPal: ${e.localizedMessage}")
             false
         }
     }
@@ -76,7 +76,7 @@ object PaymentDeepLinkHelper {
         val cleanHandle = venmoHandle.trim().removePrefix("@")
         if (cleanHandle.isBlank()) {
             val displayName = payeeName.ifBlank { "Recipient" }
-            Toast.makeText(context, "$displayName has not set up their Venmo username.", Toast.LENGTH_LONG).show()
+            UiMessage.showLong("$displayName has not set up their Venmo username.")
             return false
         }
         return try {
@@ -86,7 +86,7 @@ object PaymentDeepLinkHelper {
             context.startActivity(intent)
             true
         } catch (e: Exception) {
-            Toast.makeText(context, "Could not launch Venmo: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            UiMessage.show("Could not launch Venmo: ${e.localizedMessage}")
             false
         }
     }
@@ -99,7 +99,7 @@ object PaymentDeepLinkHelper {
         val cleanTag = revolutTag.trim().removePrefix("@")
         if (cleanTag.isBlank()) {
             val displayName = payeeName.ifBlank { "Recipient" }
-            Toast.makeText(context, "$displayName has not set up their Revolut tag.", Toast.LENGTH_LONG).show()
+            UiMessage.showLong("$displayName has not set up their Revolut tag.")
             return false
         }
         return try {
@@ -108,7 +108,7 @@ object PaymentDeepLinkHelper {
             context.startActivity(intent)
             true
         } catch (e: Exception) {
-            Toast.makeText(context, "Could not launch Revolut: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            UiMessage.show("Could not launch Revolut: ${e.localizedMessage}")
             false
         }
     }

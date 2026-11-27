@@ -2,7 +2,6 @@ package com.finance.splitup.ui.screens
 
 import android.content.Intent
 import android.provider.Settings
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +22,7 @@ import com.finance.splitup.data.PaymentNotificationListenerService
 import com.finance.splitup.ui.components.DisclosureType
 import com.finance.splitup.ui.components.ProminentDisclosureDialog
 import com.finance.splitup.viewmodel.FinanceViewModel
+import com.finance.splitup.data.UiMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,14 +110,14 @@ fun SecuritySettingsScreen(
                                             object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
                                                 override fun onAuthenticationSucceeded(result: androidx.biometric.BiometricPrompt.AuthenticationResult) {
                                                     super.onAuthenticationSucceeded(result)
-                                                    Toast.makeText(context, "Biometric verified! Now set your fallback PIN.", Toast.LENGTH_SHORT).show()
+                                                    UiMessage.show("Biometric verified! Now set your fallback PIN.")
                                                     pendingBiometricEnable = true
                                                     newPinInput = ""
                                                     showPinDialog = true
                                                 }
                                                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                                                     super.onAuthenticationError(errorCode, errString)
-                                                    Toast.makeText(context, "Authentication failed: $errString", Toast.LENGTH_SHORT).show()
+                                                    UiMessage.show("Authentication failed: $errString")
                                                 }
                                             }
                                         )
@@ -134,7 +134,7 @@ fun SecuritySettingsScreen(
                                     }
                                 } else {
                                     viewModel.toggleBiometricLock(false)
-                                    Toast.makeText(context, "Biometric lock disabled", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("Biometric lock disabled")
                                 }
                             }
                         )
@@ -232,7 +232,7 @@ fun SecuritySettingsScreen(
                 try {
                     context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                 } catch (_: Exception) {
-                    Toast.makeText(context, "Unable to open Notification Access settings", Toast.LENGTH_SHORT).show()
+                    UiMessage.show("Unable to open Notification Access settings")
                 }
             },
             onDismiss = { showNotificationDisclosure = false }
@@ -290,9 +290,9 @@ fun SecuritySettingsScreen(
                                 if (pendingBiometricEnable) {
                                     viewModel.toggleBiometricLock(true)
                                     pendingBiometricEnable = false
-                                    Toast.makeText(context, "Biometric lock & fallback PIN activated successfully!", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("Biometric lock & fallback PIN activated successfully!")
                                 } else {
-                                    Toast.makeText(context, "Security PIN updated & hashed successfully!", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("Security PIN updated & hashed successfully!")
                                 }
                                 showPinDialog = false
                                 newPinInput = ""

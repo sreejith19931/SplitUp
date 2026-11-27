@@ -45,6 +45,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.launch
+import com.finance.splitup.data.UiMessage
 
 class LiveReceiptAnalyzer(
     private val onBoundsDetected: (LiveReceiptBounds?) -> Unit
@@ -184,10 +185,10 @@ fun ReceiptScannerScreen(
                 if (bitmap != null) {
                     capturedBitmap = bitmap
                 } else {
-                    android.widget.Toast.makeText(context, "Couldn't load that image — try another photo", android.widget.Toast.LENGTH_SHORT).show()
+                    UiMessage.show("Couldn't load that image — try another photo")
                 }
             } catch (_: Exception) {
-                android.widget.Toast.makeText(context, "Couldn't load that image — try another photo", android.widget.Toast.LENGTH_SHORT).show()
+                UiMessage.show("Couldn't load that image — try another photo")
             }
         }
     }
@@ -388,11 +389,7 @@ fun ReceiptScannerScreen(
                                                 override fun onError(exception: ImageCaptureException) {
                                                     isProcessing = false
                                                     coroutineScope.launch {
-                                                        android.widget.Toast.makeText(
-                                                            context,
-                                                            "Capture failed — please try again",
-                                                            android.widget.Toast.LENGTH_SHORT
-                                                        ).show()
+                                                        UiMessage.show("Capture failed — please try again")
                                                     }
                                                 }
                                             }

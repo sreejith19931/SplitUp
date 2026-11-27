@@ -42,6 +42,7 @@ import com.finance.splitup.ui.navigation.*
 import com.finance.splitup.ui.screens.*
 import com.finance.splitup.ui.theme.SplitUpTheme
 import com.finance.splitup.viewmodel.FinanceViewModel
+import com.finance.splitup.data.UiMessage
 
 class MainActivity : FragmentActivity() {
     private val currentIntentState = mutableStateOf<android.content.Intent?>(null)
@@ -270,7 +271,7 @@ fun SplitUpApp(
             } else if (!userEmail.isNullOrBlank()) {
                 viewModel.addRecentFriend(userName, userEmail)
                 backStack.add(FindFriendsRoute)
-                android.widget.Toast.makeText(context, "Added $userName to friends!", android.widget.Toast.LENGTH_SHORT).show()
+                UiMessage.show("Added $userName to friends!")
                 return@LaunchedEffect
             }
         }
@@ -396,6 +397,13 @@ fun SplitUpApp(
         warningMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
             viewModel.clearBudgetWarning()
+        }
+    }
+
+    // Render app-wide UiMessage broadcasts (replacing Toasts) as snackbars.
+    LaunchedEffect(Unit) {
+        com.finance.splitup.data.UiMessage.messages.collect { msg ->
+            snackbarHostState.showSnackbar(msg, duration = androidx.compose.material3.SnackbarDuration.Short)
         }
     }
 

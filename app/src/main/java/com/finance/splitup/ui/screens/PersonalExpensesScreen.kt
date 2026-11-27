@@ -1,7 +1,6 @@
 package com.finance.splitup.ui.screens
 
 import android.content.Intent
-import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -36,6 +35,7 @@ import com.finance.splitup.ui.theme.*
 import com.finance.splitup.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.finance.splitup.data.UiMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,10 +138,10 @@ fun PersonalExpensesScreen(
                                             }
                                             context.startActivity(Intent.createChooser(intent, "Export Financial Statement PDF"))
                                         } else {
-                                            Toast.makeText(context, "Failed to generate report", Toast.LENGTH_SHORT).show()
+                                            UiMessage.show("Failed to generate report")
                                         }
                                     } catch (e: Exception) {
-                                        Toast.makeText(context, "Export error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                        UiMessage.show("Export error: ${e.localizedMessage}")
                                     }
                                 },
                                 leadingIcon = { Icon(Icons.Rounded.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
@@ -161,7 +161,7 @@ fun PersonalExpensesScreen(
                                         }
                                         context.startActivity(Intent.createChooser(intent, "Export Personal Expenses CSV"))
                                     } catch (e: Exception) {
-                                        Toast.makeText(context, "CSV export error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                        UiMessage.show("CSV export error: ${e.localizedMessage}")
                                     }
                                 },
                                 leadingIcon = { Icon(Icons.Rounded.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
@@ -181,7 +181,7 @@ fun PersonalExpensesScreen(
                                         }
                                         context.startActivity(Intent.createChooser(intent, "Export Investments Portfolio CSV"))
                                     } catch (e: Exception) {
-                                        Toast.makeText(context, "CSV export error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                        UiMessage.show("CSV export error: ${e.localizedMessage}")
                                     }
                                 },
                                 leadingIcon = { Icon(Icons.Rounded.TrendingUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }

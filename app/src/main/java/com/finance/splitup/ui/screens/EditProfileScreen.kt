@@ -1,6 +1,5 @@
 package com.finance.splitup.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.finance.splitup.viewmodel.AuthViewModel
 import com.finance.splitup.viewmodel.FinanceViewModel
+import com.finance.splitup.data.UiMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -226,7 +226,7 @@ fun EditProfileScreen(
                                 val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                 val clip = android.content.ClipData.newPlainText("UPI VPA", upiVpa)
                                 clipboard.setPrimaryClip(clip)
-                                Toast.makeText(context, "UPI VPA copied to clipboard", Toast.LENGTH_SHORT).show()
+                                UiMessage.show("UPI VPA copied to clipboard")
                             }
                         ) {
                             Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy UPI VPA", modifier = Modifier.size(18.dp))
@@ -255,7 +255,7 @@ fun EditProfileScreen(
                                     val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                     val clip = android.content.ClipData.newPlainText("PayPal Handle", paypalHandle)
                                     clipboard.setPrimaryClip(clip)
-                                    Toast.makeText(context, "PayPal handle copied to clipboard", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("PayPal handle copied to clipboard")
                                 },
                                 modifier = Modifier.size(48.dp)
                             ) {
@@ -333,27 +333,27 @@ fun EditProfileScreen(
                                                     "Your SplitUp password was changed.${if (sendEmailOnPasswordChange) " Confirmation email sent." else ""}",
                                                     FinanceViewModel.CHANNEL_SECURITY_ALERTS
                                                 )
-                                                Toast.makeText(context, "Profile and password updated successfully!", Toast.LENGTH_SHORT).show()
+                                                UiMessage.show("Profile and password updated successfully!")
                                                 onBack()
                                             },
                                             onError = { err ->
                                                 isLoading = false
-                                                Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+                                                UiMessage.showLong(err)
                                             }
                                         )
                                     } else {
                                         isLoading = false
-                                        Toast.makeText(context, "Passwords do not match.", Toast.LENGTH_SHORT).show()
+                                        UiMessage.show("Passwords do not match.")
                                     }
                                 } else {
                                     isLoading = false
-                                    Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("Profile updated successfully!")
                                     onBack()
                                 }
                             },
                             onError = { err ->
                                 isLoading = false
-                                Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+                                UiMessage.showLong(err)
                             }
                         )
                     } else if (!isGoogleUser && newPassword.isNotBlank()) {
@@ -368,21 +368,21 @@ fun EditProfileScreen(
                                         "Your SplitUp password was changed.${if (sendEmailOnPasswordChange) " Confirmation email sent." else ""}",
                                         FinanceViewModel.CHANNEL_SECURITY_ALERTS
                                     )
-                                    Toast.makeText(context, "Password updated successfully!", Toast.LENGTH_SHORT).show()
+                                    UiMessage.show("Password updated successfully!")
                                     onBack()
                                 },
                                 onError = { err ->
                                     isLoading = false
-                                    Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+                                    UiMessage.showLong(err)
                                 }
                             )
                         } else {
                             isLoading = false
-                            Toast.makeText(context, "Passwords do not match.", Toast.LENGTH_SHORT).show()
+                            UiMessage.show("Passwords do not match.")
                         }
                     } else {
                         isLoading = false
-                        Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                        UiMessage.show("Profile updated successfully!")
                         onBack()
                     }
                 },

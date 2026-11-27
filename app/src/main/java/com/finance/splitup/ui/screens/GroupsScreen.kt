@@ -37,6 +37,7 @@ import com.finance.splitup.ui.theme.*
 import com.finance.splitup.viewmodel.FinanceViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.finance.splitup.data.UiMessage
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -136,7 +137,7 @@ fun GroupsScreen(
                                         onNavigateToGroupDetail(groupId)
                                     },
                                     onError = { err ->
-                                        android.widget.Toast.makeText(context, err, android.widget.Toast.LENGTH_SHORT).show()
+                                        UiMessage.show(err)
                                     }
                                 )
                             }

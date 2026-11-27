@@ -1,6 +1,5 @@
 package com.finance.splitup.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +24,7 @@ import com.finance.splitup.data.ExpenseCategories
 import com.finance.splitup.data.db.RecurringExpenseEntity
 import com.finance.splitup.viewmodel.FinanceViewModel
 import java.util.Locale
+import com.finance.splitup.data.UiMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -196,11 +196,11 @@ fun SubscriptionsScreen(
                                 currency = item.currency,
                                 paymentMethod = "Debit Card"
                             )
-                            Toast.makeText(context, "Logged '${item.title}' as personal expense!", Toast.LENGTH_SHORT).show()
+                            UiMessage.show("Logged '${item.title}' as personal expense!")
                         },
                         onDelete = {
                             viewModel.deleteRecurringExpense(item.id)
-                            Toast.makeText(context, "Subscription removed.", Toast.LENGTH_SHORT).show()
+                            UiMessage.show("Subscription removed.")
                         }
                     )
                 }
@@ -225,7 +225,7 @@ fun SubscriptionsScreen(
                         currency = viewModel.defaultCurrency,
                         isIncome = false
                     )
-                    Toast.makeText(context, "Updated '$title'!", Toast.LENGTH_SHORT).show()
+                    UiMessage.show("Updated '$title'!")
                 } else {
                     viewModel.addRecurringExpense(
                         title = title,
@@ -236,7 +236,7 @@ fun SubscriptionsScreen(
                         currency = viewModel.defaultCurrency,
                         isIncome = false
                     )
-                    Toast.makeText(context, "Added '$title' to subscriptions!", Toast.LENGTH_SHORT).show()
+                    UiMessage.show("Added '$title' to subscriptions!")
                 }
                 showAddDialog = false
                 editingSubscription = null

@@ -1,7 +1,6 @@
 package com.finance.splitup.ui.screens
 
 import android.content.Intent
-import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -39,6 +38,7 @@ import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import com.finance.splitup.data.UiMessage
 
 /**
  * One-shot confetti burst used by celebratory dialogs. Runs for ~1.4s,
@@ -530,7 +530,7 @@ fun WhatsAppInviteDialog(
                         .padding(top = 4.dp)
                         .clickable {
                             clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(inviteUrl))
-                            Toast.makeText(context, "Invite link copied to clipboard!", Toast.LENGTH_SHORT).show()
+                            UiMessage.show("Invite link copied to clipboard!")
                         }
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -805,7 +805,7 @@ fun PayPalLoginDialog(
                         try {
                             context.startActivity(intent)
                         } catch (_: Exception) {
-                            Toast.makeText(context, "Could not open web browser", Toast.LENGTH_SHORT).show()
+                            UiMessage.show("Could not open web browser")
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -828,7 +828,7 @@ fun PayPalLoginDialog(
                             "paypal.me/${paypalEmailInput.trim().removePrefix("@")}"
                         }
                         onPayPalHandleRetrieved(handle)
-                        Toast.makeText(context, "PayPal account '$handle' connected!", Toast.LENGTH_SHORT).show()
+                        UiMessage.show("PayPal account '$handle' connected!")
                         onDismiss()
                     }
                 },

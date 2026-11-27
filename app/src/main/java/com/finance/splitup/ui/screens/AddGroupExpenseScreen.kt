@@ -520,7 +520,7 @@ fun AddGroupExpenseScreen(
 
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = if (isFullyAllocated) EmeraldSuccess.copy(alpha = 0.15f) else CrimsonDanger.copy(alpha = 0.15f),
+                    color = if (isFullyAllocated) EmeraldSuccess.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(

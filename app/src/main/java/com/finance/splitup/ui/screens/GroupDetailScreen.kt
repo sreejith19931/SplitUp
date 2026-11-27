@@ -457,7 +457,7 @@ fun GroupDetailContent(
                                     shape = RoundedCornerShape(8.dp),
                                     color = when {
                                         bal > 0.01 -> EmeraldSuccess.copy(alpha = 0.15f)
-                                        bal < -0.01 -> CrimsonDanger.copy(alpha = 0.15f)
+                                        bal < -0.01 -> MaterialTheme.colorScheme.surface
                                         else -> EmeraldSuccess.copy(alpha = 0.15f)
                                     }
                                 ) {
@@ -711,7 +711,7 @@ fun GroupDetailContent(
                                             )
                                             Surface(
                                                 shape = RoundedCornerShape(8.dp),
-                                                color = if (isMyDebt) CrimsonDanger.copy(alpha = 0.12f) else if (isOwedToMe) EmeraldSuccess.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                color = if (isMyDebt) MaterialTheme.colorScheme.surface else if (isOwedToMe) EmeraldSuccess.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                             ) {
                                                 Text(text = "$currencySymbol${String.format(Locale.US, "%.2f", settlement.amount)}", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = SplitUpType.ChipLabel, color = if (isMyDebt) CrimsonDanger else if (isOwedToMe) EmeraldSuccess else MaterialTheme.colorScheme.primary)
                                             }
@@ -723,7 +723,7 @@ fun GroupDetailContent(
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
                                             color = when {
-                                                isMyDebt -> CrimsonDanger.copy(alpha = 0.12f)
+                                                isMyDebt -> MaterialTheme.colorScheme.surface
                                                 isOwedToMe -> EmeraldSuccess.copy(alpha = 0.12f)
                                                 else -> MaterialTheme.colorScheme.surfaceVariant
                                             }

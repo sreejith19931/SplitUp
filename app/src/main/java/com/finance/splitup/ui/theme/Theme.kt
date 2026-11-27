@@ -36,7 +36,21 @@ private val LightColorScheme = lightColorScheme(
     error = CrimsonDanger,
     onError = Color.White,
     errorContainer = Color(0xFFF1F5F9),      // Neutral Slate 100
-    onErrorContainer = CrimsonDanger
+    onErrorContainer = CrimsonDanger,
+    // Slots below complete the scheme so M3 components (bottom sheets, menus,
+    // date/time pickers, snackbars) never fall back to the baseline
+    // pink/lavender palette.
+    inversePrimary = Color(0xFF93C5FD),      // LogoLightBlue
+    inverseSurface = Color(0xFF1E293B),      // Slate 800
+    inverseOnSurface = Color(0xFFF1F5F9),    // Slate 100 (snackbar text bg)
+    surfaceDim = Color(0xFFE5E7EB),          // Grey 200
+    surfaceBright = Color(0xFFFFFFFF),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF9FAFB), // Grey 50
+    surfaceContainer = Color(0xFFF3F4F6),    // Grey 100
+    surfaceContainerHigh = Color(0xFFE5E7EB),// Grey 200
+    surfaceContainerHighest = Color(0xFFE2E8F0), // Slate 200
+    scrim = Color(0xFF000000)
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -64,7 +78,19 @@ private val DarkColorScheme = darkColorScheme(
     error = Color(0xFFF87171),               // Red 400 for dark mode error
     onError = Color(0xFF450A0A),
     errorContainer = Color(0xFF7F1D1D),
-    onErrorContainer = Color(0xFFFEE2E2)
+    onErrorContainer = Color(0xFFFEE2E2),
+    // Complete the scheme — no M3 baseline pink/lavender fallbacks.
+    inversePrimary = Color(0xFF1D4ED8),      // LogoPrimaryBlue
+    inverseSurface = Color(0xFFF8FAFC),      // Slate 50 (snackbar bg)
+    inverseOnSurface = Color(0xFF1E293B),    // Slate 800 (snackbar text)
+    surfaceDim = Color(0xFF0F172A),          // Slate 900
+    surfaceBright = Color(0xFF334155),       // Slate 700
+    surfaceContainerLowest = Color(0xFF0F172A),
+    surfaceContainerLow = Color(0xFF1A2537), // Between Slate 900 and 800
+    surfaceContainer = Color(0xFF1E293B),    // Slate 800
+    surfaceContainerHigh = Color(0xFF263348),
+    surfaceContainerHighest = Color(0xFF334155), // Slate 700
+    scrim = Color(0xFF000000)
 )
 
 @Composable

@@ -455,7 +455,7 @@ fun GroupCard(
                         shape = RoundedCornerShape(6.dp),
                         color = when {
                             userBalance > 0.01 -> EmeraldSuccess.copy(alpha = 0.15f)
-                            userBalance < -0.01 -> CrimsonDanger.copy(alpha = 0.15f)
+                            userBalance < -0.01 -> MaterialTheme.colorScheme.surface
                             else -> MaterialTheme.colorScheme.surfaceVariant
                         }
                     ) {

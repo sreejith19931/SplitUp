@@ -548,8 +548,8 @@ fun NotificationsScreen(
                         }
 
                         val iconContainerColor = when (item) {
-                            is AlertItem.GroupBalance -> if (item.isOwed) EmeraldSuccess.copy(alpha = 0.15f) else CrimsonDanger.copy(alpha = 0.15f)
-                            is AlertItem.Budget -> if (item.isExceeded) CrimsonDanger.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer
+                            is AlertItem.GroupBalance -> if (item.isOwed) EmeraldSuccess.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface
+                            is AlertItem.Budget -> if (item.isExceeded) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer
                             is AlertItem.Subscription -> if (item.isIncome) EmeraldSuccess.copy(alpha = 0.15f) else MaterialTheme.colorScheme.tertiaryContainer
                         }
 

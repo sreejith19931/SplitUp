@@ -403,6 +403,7 @@ fun NotificationsScreen(
                 }
                 items(filteredApprovalRequests, key = { "req_${it.id}" }) { req ->
                     AnimatedVisibility(
+                        modifier = Modifier.animateItem(),
                         visible = !isClearingAll,
                         exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
                     ) {
@@ -523,6 +524,7 @@ fun NotificationsScreen(
 
                 items(filteredAlertItems, key = { it.key }) { item ->
                     AnimatedVisibility(
+                        modifier = Modifier.animateItem(),
                         visible = !isClearingAll,
                         exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
                     ) {

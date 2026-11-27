@@ -435,7 +435,9 @@ fun PersonalExpensesScreen(
                 } else {
                     items(incomes, key = { it.id }) { income ->
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .animateItem()
+                                .fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
@@ -520,7 +522,9 @@ fun PersonalExpensesScreen(
                 } else {
                     items(recurringIncomes, key = { it.id }) { recInc ->
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .animateItem()
+                                .fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
@@ -642,6 +646,7 @@ fun PersonalExpensesScreen(
                     items(investments, key = { it.id }) { inv ->
                         Card(
                             modifier = Modifier
+                                .animateItem()
                                 .fillMaxWidth()
                                 .clickable { onNavigateToEditInvestment(inv.id) },
                             shape = RoundedCornerShape(16.dp),
@@ -842,6 +847,7 @@ fun PersonalExpensesScreen(
                         }
                         items(dateExpenses, key = { it.id }) { expense ->
                             ExpenseItemCard(
+                                modifier = Modifier.animateItem(),
                                 expense = expense,
                                 viewModel = viewModel,
                                 onDelete = {

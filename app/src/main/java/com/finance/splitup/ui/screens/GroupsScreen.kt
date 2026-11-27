@@ -222,7 +222,9 @@ fun GroupsScreen(
                                 }
                                 items(pendingInvitationGroups, key = { "pending_${it.id}" }) { group ->
                                     Card(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .animateItem()
+                                            .fillMaxWidth(),
                                         shape = RoundedCornerShape(16.dp),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                                     ) {
@@ -321,6 +323,7 @@ fun GroupsScreen(
                             } else {
                                 items(filteredGroups) { group ->
                                     GroupCard(
+                                        modifier = Modifier.animateItem(),
                                         group = group,
                                         viewModel = viewModel,
                                         onClick = {
@@ -372,7 +375,8 @@ fun GroupsScreen(
 fun GroupCard(
     group: Group,
     viewModel: FinanceViewModel,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val userBalance = viewModel.getUserNetBalance(group, viewModel.defaultCurrency)
     val settlements = viewModel.calculateSettlements(group, viewModel.defaultCurrency)
@@ -392,7 +396,7 @@ fun GroupCard(
     }
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .graphicsLayer(alpha = if (group.isArchived) 0.7f else 1.0f),

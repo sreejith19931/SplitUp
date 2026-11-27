@@ -2,6 +2,7 @@ package com.finance.splitup.ui.screens
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -29,7 +30,60 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import java.util.Locale
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+
+/**
+ * One-shot confetti burst used by celebratory dialogs. Runs for ~1.4s,
+ * particles launch outward with gravity and fade; never loops.
+ */
+@Composable
+fun ConfettiBurst(modifier: Modifier = Modifier) {
+    val palette = listOf(
+        Color(0xFF3B82F6), Color(0xFF22C55E), Color(0xFFFACC15),
+        Color(0xFFF97316), Color(0xFFEC4899), Color(0xFF8B5CF6)
+    )
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        progress.animateTo(1f, animationSpec = tween(durationMillis = 1400, easing = LinearOutSlowInEasing))
+    }
+    val particles = remember {
+        List(36) { i ->
+            val angle = ((i / 36f) * 2.0 * PI + 0.35 * sin(i * 7.13)).toFloat()
+            val speed = (0.62 + 0.38 * kotlin.math.abs(cos(i * 13.7))).toFloat()
+            Triple(angle, speed, palette[i % palette.size])
+        }
+    }
+    Canvas(modifier = modifier) {
+        drawConfettiParticles(progress.value, particles)
+    }
+}
+
+private fun DrawScope.drawConfettiParticles(
+    t: Float,
+    particles: List<Triple<Float, Float, Color>>
+) {
+    if (t >= 1f) return
+    val alpha = (1f - t).coerceIn(0f, 1f)
+    val baseRadius = 4.dp.toPx()
+    particles.forEach { (angle, speed, color) ->
+        val dist = t * speed * size.height * 0.85f
+        val x = size.width / 2f + cos(angle) * dist * 0.75f
+        val y = size.height * 0.3f + sin(angle) * dist * 0.75f + t * t * size.height * 0.55f
+        drawCircle(
+            color = color.copy(alpha = alpha),
+            radius = baseRadius * (1f - 0.45f * t),
+            center = Offset(x, y)
+        )
+    }
+}
 
 fun getInitials(name: String): String {
     val parts = name.trim().split("\\s+".toRegex())

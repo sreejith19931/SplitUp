@@ -3,6 +3,7 @@ package com.finance.splitup.ui.screens
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -17,6 +18,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
@@ -708,6 +711,7 @@ fun DashboardScreen(
                     val cats = listOf("All", ExpenseCategories.FOOD, ExpenseCategories.TRANSPORT, ExpenseCategories.SHOPPING, ExpenseCategories.BILLS, ExpenseCategories.ENTERTAINMENT)
                     items(cats, key = { it }) { cat ->
                         FilterChip(
+                            modifier = Modifier.animateItem(),
                             selected = selectedDashboardCategory == cat,
                             onClick = { selectedDashboardCategory = cat },
                             label = { Text(cat) }
@@ -760,6 +764,7 @@ fun DashboardScreen(
                     }
                     items(dateExpenses, key = { it.id }) { expense ->
                         ExpenseItemCard(
+                            modifier = Modifier.animateItem(),
                             expense = expense,
                             viewModel = viewModel,
                             onDelete = { viewModel.deleteExpense(expense.id) },
@@ -800,6 +805,7 @@ fun DashboardScreen(
             } else {
                 items(sortedGroups.take(3), key = { it.id }) { group ->
                     GroupCard(
+                        modifier = Modifier.animateItem(),
                         group = group,
                         viewModel = viewModel,
                         onClick = { onNavigateToGroupDetail(group.id, 0) }
@@ -866,6 +872,7 @@ fun DashboardScreen(
                         items(groups, key = { it.id }) { group ->
                             Surface(
                                 modifier = Modifier
+                                    .animateItem()
                                     .fillMaxWidth()
                                     .clickable {
                                         showGroupPickerForExpense = false
@@ -1011,6 +1018,7 @@ fun NotificationTraySheet(
                         items(pendingApprovalRequests, key = { "req_${it.id}" }) { req ->
                             Card(
                                 modifier = Modifier
+                                    .animateItem()
                                     .fillMaxWidth()
                                     .clickable { onNavigateToGroupDetail(req.groupId, 1) },
                                 shape = RoundedCornerShape(16.dp),
@@ -1072,6 +1080,7 @@ fun NotificationTraySheet(
                             val matchingGroup = groups.find { note.contains("'${it.name}'", ignoreCase = true) }
                             Surface(
                                 modifier = Modifier
+                                    .animateItem()
                                     .fillMaxWidth()
                                     .let { mod ->
                                         if (matchingGroup != null) {
@@ -1127,6 +1136,13 @@ fun SpeedDialFabMenu(
         targetValue = if (isExpanded) 45f else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "fabRotation"
+    )
+    val fabInteraction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val fabPressed by fabInteraction.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (fabPressed) 0.9f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "fabPressScale"
     )
 
     Box(contentAlignment = Alignment.BottomEnd) {
@@ -1198,6 +1214,7 @@ fun SpeedDialFabMenu(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onToggle()
                 },
+                interactionSource = fabInteraction,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp),
@@ -1208,7 +1225,11 @@ fun SpeedDialFabMenu(
                 Icon(
                     imageVector = Icons.Rounded.Add,
                     contentDescription = "Add Expense",
-                    modifier = Modifier.graphicsLayer(rotationZ = rotation)
+                    modifier = Modifier.graphicsLayer {
+                        rotationZ = rotation
+                        scaleX = pressScale
+                        scaleY = pressScale
+                    }
                 )
             }
         }
@@ -1252,7 +1273,7 @@ fun SpeedDialActionItem(
 }
 
 @Composable
-fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () -> Unit, onEdit: () -> Unit) {
+fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () -> Unit, onEdit: () -> Unit, modifier: Modifier = Modifier) {
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var isExpanded by remember { mutableStateOf(false) }
 
@@ -1260,7 +1281,8 @@ fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () 
 
     SwipeableItemContainer(
         onDelete = { showDeleteConfirmDialog = true },
-        onEdit = onEdit
+        onEdit = onEdit,
+        modifier = modifier
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -1274,6 +1296,7 @@ fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () 
                     .clickable(enabled = expense.lineItems.isNotEmpty()) {
                         isExpanded = !isExpanded
                     }
+                    .animateContentSize(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow))
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -1353,7 +1376,11 @@ fun ExpenseItemCard(expense: Expense, viewModel: FinanceViewModel, onDelete: () 
                         )
                     }
 
-                    if (isExpanded) {
+                    AnimatedVisibility(
+                        visible = isExpanded,
+                        enter = expandVertically(animationSpec = tween(250)) + fadeIn(animationSpec = tween(250)),
+                        exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(animationSpec = tween(150))
+                    ) {
                         ReceiptLineItemsBreakdownView(
                             lineItems = expense.lineItems,
                             currencySymbol = Currencies.getSymbol(expense.currency)

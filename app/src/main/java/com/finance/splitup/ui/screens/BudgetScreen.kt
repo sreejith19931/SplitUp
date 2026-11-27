@@ -121,16 +121,20 @@ fun BudgetScreen(
                 }
             }
 
-            items(categories) { category ->
+            items(categories, key = { it }) { category ->
                 val spent = spendingByCategory[category] ?: 0.0
-                val limit = budgets[category] ?: 200.0
+                // No limit set for this category yet: show "no budget" instead of
+                // inventing a phantom 200.00 default.
+                val hasBudget = budgets.containsKey(category) && (budgets[category] ?: 0.0) > 0.0
+                val limit = budgets[category] ?: 0.0
                 val ratio = if (limit > 0.0) (spent / limit).toFloat() else 0f
-                val isExceeded = spent > limit
+                val isExceeded = hasBudget && spent > limit
 
                 Surface(
                     modifier = Modifier
+                        .animateItem()
                         .fillMaxWidth()
-                        .semantics { contentDescription = "Budget for $category: Spent $currencySymbol$spent of $currencySymbol$limit" },
+                        .semantics { contentDescription = if (hasBudget) "Budget for $category: Spent $currencySymbol$spent of $currencySymbol$limit" else "Budget for $category: Spent $currencySymbol$spent, no limit set" },
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surface,
                     border = BorderStroke(1.dp, if (isExceeded) MaterialTheme.colorScheme.error.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
@@ -164,7 +168,7 @@ fun BudgetScreen(
                                 Column {
                                     Text(ExpenseCategories.getDisplayName(category), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                     Text(
-                                        "$currencySymbol${String.format(Locale.US, "%.2f", spent)} spent of $currencySymbol${String.format(Locale.US, "%.2f", limit)} limit",
+                                        if (hasBudget) "$currencySymbol${String.format(Locale.US, "%.2f", spent)} spent of $currencySymbol${String.format(Locale.US, "%.2f", limit)} limit" else "$currencySymbol${String.format(Locale.US, "%.2f", spent)} spent · no budget set",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = if (isExceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -183,12 +187,26 @@ fun BudgetScreen(
                             }
                         }
 
+                        val animatedRatio by androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = ratio.coerceIn(0f, 1f),
+                            animationSpec = androidx.compose.animation.core.tween(
+                                durationMillis = 900,
+                                delayMillis = 120,
+                                easing = androidx.compose.animation.core.FastOutSlowInEasing
+                            ),
+                            label = "budgetFill"
+                        )
+                        val barColor by androidx.compose.animation.animateColorAsState(
+                            targetValue = if (isExceeded) MaterialTheme.colorScheme.error else getCategoryColor(category),
+                            animationSpec = androidx.compose.animation.core.tween(400),
+                            label = "budgetBarColor"
+                        )
                         LinearProgressIndicator(
-                            progress = { ratio.coerceIn(0f, 1f) },
+                            progress = { animatedRatio },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(6.dp),
-                            color = if (isExceeded) MaterialTheme.colorScheme.error else getCategoryColor(category),
+                            color = barColor,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
 

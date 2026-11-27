@@ -241,7 +241,7 @@ fun GlobalSearchScreen(
                     }
                     items(matchedPersonalExpenses, key = { "per_${it.id}" }) { expense ->
                         Surface(
-                            modifier = Modifier.fillMaxWidth().clickable { onNavigateToEditExpense(expense.id) },
+                            modifier = Modifier.animateItem().fillMaxWidth().clickable { onNavigateToEditExpense(expense.id) },
                             shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
@@ -288,7 +288,7 @@ fun GlobalSearchScreen(
                     }
                     items(matchedGroups, key = { "grp_${it.id}" }) { group ->
                         Surface(
-                            modifier = Modifier.fillMaxWidth().clickable { onNavigateToGroupDetail(group.id) },
+                            modifier = Modifier.animateItem().fillMaxWidth().clickable { onNavigateToGroupDetail(group.id) },
                             shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
@@ -329,7 +329,7 @@ fun GlobalSearchScreen(
                     }
                     items(matchedGroupExpenses, key = { "gexp_${it.second.id}" }) { (group, ge) ->
                         Surface(
-                            modifier = Modifier.fillMaxWidth().clickable { onNavigateToGroupDetail(group.id) },
+                            modifier = Modifier.animateItem().fillMaxWidth().clickable { onNavigateToGroupDetail(group.id) },
                             shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))

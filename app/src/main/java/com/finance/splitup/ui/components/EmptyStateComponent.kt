@@ -1,9 +1,13 @@
 package com.finance.splitup.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,6 +27,16 @@ fun EmptyStateComponent(
     secondaryActionText: String? = null,
     onSecondaryAction: (() -> Unit)? = null
 ) {
+    // Gentle entrance so empty states feel designed rather than abrupt.
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    androidx.compose.animation.AnimatedVisibility(
+        visible = shown,
+        enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
+            initialOffsetY = { it / 12 },
+            animationSpec = tween(300)
+        )
+    ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -89,5 +103,6 @@ fun EmptyStateComponent(
                 }
             }
         }
+    }
     }
 }

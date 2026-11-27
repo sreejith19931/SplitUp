@@ -520,6 +520,13 @@ fun SplitUpApp(
                         targetOffsetY = { fullHeight -> -fullHeight / 4 },
                         animationSpec = tween(350)
                     ) + fadeOut(animationSpec = tween(300))
+                } else if (isTopLevelTabTransition(initialState.key, targetState.key)) {
+                    // Bottom-nav tab switches should feel like tabs (fade-through),
+                    // not like drilling into a detail page.
+                    fadeIn(animationSpec = tween(220, delayMillis = 70)) + scaleIn(
+                        initialScale = 0.94f,
+                        animationSpec = tween(220, delayMillis = 70)
+                    ) togetherWith fadeOut(animationSpec = tween(90))
                 } else {
                     slideInHorizontally(
                         initialOffsetX = { fullWidth -> fullWidth },
@@ -542,6 +549,11 @@ fun SplitUpApp(
                         targetOffsetY = { fullHeight -> fullHeight },
                         animationSpec = tween(350)
                     ) + fadeOut(animationSpec = tween(300))
+                } else if (isTopLevelTabTransition(initialState.key, targetState.key)) {
+                    fadeIn(animationSpec = tween(220, delayMillis = 70)) + scaleIn(
+                        initialScale = 0.94f,
+                        animationSpec = tween(220, delayMillis = 70)
+                    ) togetherWith fadeOut(animationSpec = tween(90))
                 } else {
                     slideInHorizontally(
                         initialOffsetX = { fullWidth -> -fullWidth / 3 },
@@ -564,6 +576,11 @@ fun SplitUpApp(
                         targetOffsetY = { fullHeight -> fullHeight },
                         animationSpec = tween(350)
                     ) + fadeOut(animationSpec = tween(300))
+                } else if (isTopLevelTabTransition(initialState.key, targetState.key)) {
+                    fadeIn(animationSpec = tween(220, delayMillis = 70)) + scaleIn(
+                        initialScale = 0.94f,
+                        animationSpec = tween(220, delayMillis = 70)
+                    ) togetherWith fadeOut(animationSpec = tween(90))
                 } else {
                     slideInHorizontally(
                         initialOffsetX = { fullWidth -> -fullWidth / 3 },
@@ -1090,6 +1107,15 @@ fun SplitUpApp(
 }
 
 fun hashSecurityPin(pin: String): String = com.finance.splitup.data.PinSecurity.legacyHash(pin)
+
+/**
+ * True when both the current and target destinations are bottom-navigation
+ * tabs, so the switch uses a fade-through instead of a push-style slide.
+ */
+private fun isTopLevelTabTransition(from: Any, to: Any): Boolean {
+    val topLevel = setOf<Any>(DashboardRoute, PersonalExpensesRoute(), GroupsRoute, SettingsRoute)
+    return from in topLevel && to in topLevel
+}
 
 @Composable
 fun BiometricLockOverlay(onUnlocked: () -> Unit) {

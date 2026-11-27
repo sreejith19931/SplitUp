@@ -4,8 +4,17 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.ui.draw.alpha
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -33,6 +42,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -663,7 +673,9 @@ fun GroupDetailContent(
                         val isOwedToMe = settlement.to == "You" || settlement.to.equals(selfName, ignoreCase = true)
 
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .animateItem()
+                                .fillMaxWidth(),
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = when {
@@ -862,7 +874,8 @@ fun GroupDetailContent(
 
                         SwipeableItemContainer(
                             onDelete = { viewModel.deleteGroupExpense(group.id, expense.id) },
-                            onEdit = { onEditGroupExpense(group.id, expense.id) }
+                            onEdit = { onEditGroupExpense(group.id, expense.id) },
+                            modifier = Modifier.animateItem()
                         ) {
                             Card(
                                 modifier = Modifier
@@ -877,6 +890,7 @@ fun GroupDetailContent(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .animateContentSize(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow))
                                         .padding(16.dp),
                                     verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
@@ -997,7 +1011,11 @@ fun GroupDetailContent(
                                         }
                                     }
 
-                                    if (isExpanded) {
+                                    AnimatedVisibility(
+                                        visible = isExpanded,
+                                        enter = expandVertically(animationSpec = tween(250)) + fadeIn(animationSpec = tween(250)),
+                                        exit = shrinkVertically(animationSpec = tween(200)) + fadeOut(animationSpec = tween(150))
+                                    ) {
                                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), modifier = Modifier.padding(vertical = 2.dp))
                                         
                                         Column(
@@ -1066,7 +1084,9 @@ fun GroupDetailContent(
                     }
                     items(groupPendingReqs, key = { "req_${it.id}" }) { req ->
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .animateItem()
+                                .fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                         ) {
@@ -1153,7 +1173,9 @@ fun GroupDetailContent(
                             }
                         }
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .animateItem()
+                                .fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
@@ -1737,7 +1759,32 @@ fun GroupDetailContent(
             onDismissRequest = { showSettlementCelebration = false },
             title = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (isSettlementPendingApproval) "✉️" else "🎉", fontSize = 48.sp)
+                    var emojiShown by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) { emojiShown = true }
+                    val emojiScale by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (emojiShown) 1f else 0.3f,
+                        animationSpec = androidx.compose.animation.core.spring(
+                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+                        ),
+                        label = "celebrationEmojiScale"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(72.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ConfettiBurst(modifier = Modifier.fillMaxSize())
+                        Text(
+                            if (isSettlementPendingApproval) "✉️" else "🎉",
+                            fontSize = 48.sp,
+                            modifier = Modifier.graphicsLayer {
+                                scaleX = emojiScale
+                                scaleY = emojiScale
+                            }
+                        )
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         if (isSettlementPendingApproval) "Settlement Request Sent!" else "Settlement Recorded!",
@@ -2001,6 +2048,7 @@ fun MemberSearchAndAddDialog(
                         items(recentFiltered, key = { "recent_${it.email}" }) { contact ->
                             Surface(
                                 modifier = Modifier
+                                    .animateItem()
                                     .fillMaxWidth()
                                     .clickable {
                                         viewModel.addRecentFriend(contact.name, contact.email)
@@ -2127,6 +2175,7 @@ fun MemberSearchAndAddDialog(
 
                         Surface(
                             modifier = Modifier
+                                .animateItem()
                                 .fillMaxWidth()
                                 .clickable {
                                     if (!isAlreadyMember) {

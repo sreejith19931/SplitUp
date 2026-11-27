@@ -107,15 +107,30 @@ fun InsightsScreen(
                         ) {
                             Column {
                                 Text("Total Spending", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalSpent)}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                AnimatedAmountText(
+                                    targetAmount = totalSpent,
+                                    currencySymbol = currencySymbol,
+                                    fontSize = 18.sp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                             }
                             Column {
                                 Text("Total Income", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalIncome)}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = EmeraldSuccess)
+                                AnimatedAmountText(
+                                    targetAmount = totalIncome,
+                                    currencySymbol = currencySymbol,
+                                    fontSize = 18.sp,
+                                    color = EmeraldSuccess
+                                )
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text("Investments", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-                                Text("$currencySymbol${String.format(Locale.US, "%.2f", totalPortfolio)}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+                                AnimatedAmountText(
+                                    targetAmount = totalPortfolio,
+                                    currencySymbol = currencySymbol,
+                                    fontSize = 18.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
                     }
@@ -131,7 +146,7 @@ fun InsightsScreen(
                 items(investmentBreakdown) { (category, amount) ->
                     val percentage = if (totalPortfolio > 0.0) (amount / totalPortfolio).toFloat() else 0f
                     Surface(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.animateItem().fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
@@ -188,6 +203,7 @@ fun InsightsScreen(
                     val percentage = if (totalSpent > 0.0) (amount / totalSpent).toFloat() else 0f
                     Surface(
                         modifier = Modifier
+                            .animateItem()
                             .fillMaxWidth()
                             .semantics { contentDescription = "Category $category: $currencySymbol$amount" },
                         shape = RoundedCornerShape(14.dp),

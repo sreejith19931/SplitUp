@@ -150,9 +150,9 @@ fun FindFriendsScreen(
                     }
                     items(onSplitUp, key = { it.email }) { contact ->
                         Surface(
+                            modifier = Modifier.animateItem().fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                            modifier = Modifier.fillMaxWidth()
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -192,9 +192,9 @@ fun FindFriendsScreen(
                     }
                     items(inviteOthers, key = { it.email }) { contact ->
                         Surface(
+                            modifier = Modifier.animateItem().fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.fillMaxWidth()
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         ) {
                             Row(
                                 modifier = Modifier

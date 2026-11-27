@@ -102,9 +102,10 @@ fun SubscriptionsScreen(
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                 )
-                                Text(
-                                    "${Currencies.getSymbol(viewModel.defaultCurrency)}${String.format(Locale.US, "%.2f", totalMonthlyCommitment)}/mo",
-                                    fontWeight = FontWeight.Bold,
+                                AnimatedAmountText(
+                                    targetAmount = totalMonthlyCommitment,
+                                    currencySymbol = Currencies.getSymbol(viewModel.defaultCurrency),
+                                    suffix = "/mo",
                                     fontSize = 24.sp,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -180,6 +181,7 @@ fun SubscriptionsScreen(
             } else {
                 items(expenseSubscriptions, key = { it.id }) { item ->
                     SubscriptionCard(
+                        modifier = Modifier.animateItem(),
                         item = item,
                         defaultCurrency = viewModel.defaultCurrency,
                         onClick = { editingSubscription = item },
@@ -249,11 +251,12 @@ fun SubscriptionCard(
     defaultCurrency: String,
     onClick: () -> Unit,
     onLogExpense: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val symbol = Currencies.getSymbol(item.currency.ifBlank { defaultCurrency })
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),

@@ -2510,63 +2510,6 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         const val CHANNEL_SECURITY_ALERTS = "splitup_security_alerts"
     }
 
-    private fun createAllNotificationChannels(manager: android.app.NotificationManager) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val channels = listOf(
-                android.app.NotificationChannel(
-                    CHANNEL_GROUP_ACTIVITY,
-                    "Group Activity & Shared Expenses",
-                    android.app.NotificationManager.IMPORTANCE_HIGH
-                ).apply { 
-                    description = "Notifications for new group expenses, settlements, and member updates"
-                    enableVibration(true)
-                    enableLights(true)
-                },
-                android.app.NotificationChannel(
-                    CHANNEL_FINANCIAL_ALERTS,
-                    "Budget & Spending Alerts",
-                    android.app.NotificationManager.IMPORTANCE_HIGH
-                ).apply { 
-                    description = "Alerts when budget thresholds are reached or high-value expenses are logged"
-                    enableVibration(true)
-                    enableLights(true)
-                },
-                android.app.NotificationChannel(
-                    CHANNEL_RECURRING_BILLS,
-                    "Subscriptions & Recurring Bills",
-                    android.app.NotificationManager.IMPORTANCE_HIGH
-                ).apply { 
-                    description = "Notifications for auto-logged subscriptions and bill reminders"
-                    enableVibration(true)
-                },
-                android.app.NotificationChannel(
-                    CHANNEL_PAYMENT_DETECTION,
-                    "Payment Auto-Detector",
-                    android.app.NotificationManager.IMPORTANCE_HIGH
-                ).apply { 
-                    description = "Prompts when bank/wallet transaction notifications are detected"
-                    enableVibration(true)
-                },
-                android.app.NotificationChannel(
-                    CHANNEL_EXPORTS_INSIGHTS,
-                    "Reports & AI Insights",
-                    android.app.NotificationManager.IMPORTANCE_LOW
-                ).apply { description = "Notifications when PDF reports are generated or AI advice is ready" },
-                android.app.NotificationChannel(
-                    CHANNEL_SECURITY_ALERTS,
-                    "Account & Security Alerts",
-                    android.app.NotificationManager.IMPORTANCE_HIGH
-                ).apply { 
-                    description = "Alerts for password updates and account security changes"
-                    enableVibration(true)
-                }
-            )
-            for (ch in channels) {
-                manager.createNotificationChannel(ch)
-            }
-        }
-    }
-
     @android.annotation.SuppressLint("MissingPermission")
     fun postSystemNotification(
         title: String,
@@ -2580,106 +2523,17 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
     ) {
         val app = getApplication<Application>()
         if (app is DummyApplication) return
-        try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                if (androidx.core.content.ContextCompat.checkSelfPermission(
-                        app,
-                        android.Manifest.permission.POST_NOTIFICATIONS
-                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-                ) {
-                    return
-                }
-            }
-
-            val notificationManager = app.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
-            if (notificationManager != null) {
-                createAllNotificationChannels(notificationManager)
-            }
-
-            val finalTargetScreen = targetScreen ?: when {
-                !groupId.isNullOrBlank() -> "group_detail"
-                !category.isNullOrBlank() -> "personal_expenses"
-                channelId == CHANNEL_GROUP_ACTIVITY -> "groups"
-                channelId == CHANNEL_SECURITY_ALERTS -> "settings"
-                channelId == CHANNEL_FINANCIAL_ALERTS -> "personal_expenses"
-                else -> "dashboard"
-            }
-
-            val intent = android.content.Intent(app, com.finance.splitup.MainActivity::class.java).apply {
-                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("extra_target_screen", finalTargetScreen)
-                if (!groupId.isNullOrBlank()) putExtra("extra_group_id", groupId)
-                if (!category.isNullOrBlank()) putExtra("extra_category", category)
-            }
-
-            val flags = android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-
-            val effectivePendingIntent = pendingIntent ?: android.app.PendingIntent.getActivity(
-                app,
-                System.currentTimeMillis().toInt() + (0..1000).random(),
-                intent,
-                flags
-            )
-
-            val builder = androidx.core.app.NotificationCompat.Builder(app, channelId)
-                .setSmallIcon(com.finance.splitup.R.mipmap.ic_launcher_round)
-                .setLargeIcon(android.graphics.BitmapFactory.decodeResource(app.resources, com.finance.splitup.R.mipmap.ic_launcher_round))
-                .setContentTitle(title)
-                .setContentText(message)
-                .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(message))
-                .setAutoCancel(true)
-                .setContentIntent(effectivePendingIntent)
-                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
-                .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_ALL)
-
-            val notificationId = System.currentTimeMillis().toInt() + (0..1000).random()
-
-            if ((channelId == CHANNEL_GROUP_ACTIVITY || title.contains("Approval Needed", ignoreCase = true)) && !requestId.isNullOrBlank()) {
-                val approveIntent = android.content.Intent(app, com.finance.splitup.data.NotificationActionReceiver::class.java).apply {
-                    action = "ACTION_APPROVE_REQUEST"
-                    putExtra("request_id", requestId)
-                    if (!groupId.isNullOrBlank()) putExtra("group_id", groupId)
-                    putExtra("notification_id", notificationId)
-                }
-                val approvePendingIntent = android.app.PendingIntent.getBroadcast(
-                    app,
-                    (System.currentTimeMillis() + 1).toInt(),
-                    approveIntent,
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                )
-                builder.addAction(
-                    androidx.core.app.NotificationCompat.Action(
-                        android.R.drawable.ic_input_add,
-                        "Approve",
-                        approvePendingIntent
-                    )
-                )
-
-                val declineIntent = android.content.Intent(app, com.finance.splitup.data.NotificationActionReceiver::class.java).apply {
-                    action = "ACTION_DECLINE_REQUEST"
-                    putExtra("request_id", requestId)
-                    if (!groupId.isNullOrBlank()) putExtra("group_id", groupId)
-                    putExtra("notification_id", notificationId)
-                }
-                val declinePendingIntent = android.app.PendingIntent.getBroadcast(
-                    app,
-                    (System.currentTimeMillis() + 2).toInt(),
-                    declineIntent,
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                )
-                builder.addAction(
-                    androidx.core.app.NotificationCompat.Action(
-                        android.R.drawable.ic_delete,
-                        "Decline",
-                        declinePendingIntent
-                    )
-                )
-            }
-
-            androidx.core.app.NotificationManagerCompat.from(app).notify(notificationId, builder.build())
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        com.finance.splitup.data.NotificationHelper.post(
+            context = app,
+            title = title,
+            message = message,
+            channelId = channelId,
+            targetScreen = targetScreen,
+            groupId = groupId,
+            category = category,
+            pendingIntent = pendingIntent,
+            requestId = requestId
+        )
     }
 
     override fun onCleared() {

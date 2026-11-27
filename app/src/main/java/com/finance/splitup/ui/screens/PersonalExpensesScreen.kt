@@ -14,11 +14,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.automirrored.rounded.CallReceived
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.finance.splitup.ui.components.EmptyStateComponent
 import com.finance.splitup.ui.components.tourTarget
 import com.finance.splitup.ui.components.TourHighlightArea
 import androidx.compose.ui.platform.LocalContext
@@ -422,15 +424,13 @@ fun PersonalExpensesScreen(
 
                 if (incomes.isEmpty()) {
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        ) {
-                            Box(modifier = Modifier.padding(20.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("No direct income sources recorded yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
+                        EmptyStateComponent(
+                            icon = Icons.AutoMirrored.Rounded.CallReceived,
+                            title = "No income recorded yet",
+                            description = "Log salary, freelance, or side income to see your complete financial picture.",
+                            primaryActionText = "Add Income",
+                            onPrimaryAction = { onNavigateToAddExpense(null, true) }
+                        )
                     }
                 } else {
                     items(incomes, key = { it.id }) { income ->
@@ -509,15 +509,11 @@ fun PersonalExpensesScreen(
                 val recurringIncomes = recurringExpenses.filter { it.isIncome || it.category == ExpenseCategories.INCOME }
                 if (recurringIncomes.isEmpty()) {
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        ) {
-                            Box(modifier = Modifier.padding(20.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("No recurring incomes configured. Enable 'Recurring' when adding income.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
+                        EmptyStateComponent(
+                            icon = Icons.Rounded.Repeat,
+                            title = "No recurring incomes configured",
+                            description = "Enable 'Recurring' when adding income and SplitUp will track it every month automatically."
+                        )
                     }
                 } else {
                     items(recurringIncomes, key = { it.id }) { recInc ->
@@ -622,25 +618,13 @@ fun PersonalExpensesScreen(
 
                 if (investments.isEmpty()) {
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "No investments logged yet. Tap 'Add Investment' above to track stocks, crypto, mutual funds, or real estate.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
-                            }
-                        }
+                        EmptyStateComponent(
+                            icon = Icons.Rounded.TrendingUp,
+                            title = "No investments logged yet",
+                            description = "Track stocks, crypto, mutual funds, or real estate to watch your portfolio grow.",
+                            primaryActionText = "Add Investment",
+                            onPrimaryAction = { onNavigateToEditInvestment(null) }
+                        )
                     }
                 } else {
                     items(investments, key = { it.id }) { inv ->
@@ -797,18 +781,13 @@ fun PersonalExpensesScreen(
 
                 if (filteredExpenses.isEmpty()) {
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No personal expenses logged yet.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        EmptyStateComponent(
+                            icon = Icons.AutoMirrored.Rounded.ReceiptLong,
+                            title = if (selectedCategoryFilter != null) "Nothing in $selectedCategoryFilter" else "No personal expenses yet",
+                            description = if (selectedCategoryFilter != null) "Try another category or log a new expense under it." else "Log your first expense to start tracking your spending.",
+                            primaryActionText = "Add Expense",
+                            onPrimaryAction = { onNavigateToAddExpense(null, false) }
+                        )
                     }
                 } else {
                     val groupedPersonalExpenses = filteredExpenses.groupBy {

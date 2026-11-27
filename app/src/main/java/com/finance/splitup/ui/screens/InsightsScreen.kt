@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
+import com.finance.splitup.ui.components.EmptyStateComponent
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -194,9 +195,11 @@ fun InsightsScreen(
 
             if (categoryBreakdown.isEmpty()) {
                 item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Text("No spending records found to generate insights.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    EmptyStateComponent(
+                        icon = Icons.Rounded.PieChart,
+                        title = "No spending to analyze yet",
+                        description = "Log a few expenses and your category insights, trends and charts will appear here."
+                    )
                 }
             } else {
                 items(categoryBreakdown) { (category, amount) ->

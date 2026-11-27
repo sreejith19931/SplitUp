@@ -100,7 +100,11 @@ fun NotificationsScreen(
     var selectedFilter by remember { mutableStateOf(NotificationFilter.ALL) }
     val coroutineScope = rememberCoroutineScope()
 
-    val parsedAlertItems = remember(groups, recurringExpenses, budgets, expenses, viewModel, dismissedNotifications) {
+    // NOTE: `viewModel` is deliberately NOT a key here — it is stable within
+    // this screen, and using it as a remember key made every recomposition
+    // re-parse all alerts (unstable identity). The data keys below cover all
+    // inputs that can change the parsed list.
+    val parsedAlertItems = remember(groups, recurringExpenses, budgets, expenses, dismissedNotifications) {
         val list = mutableListOf<AlertItem>()
         groups.forEach { g ->
             val myBal = viewModel.getUserNetBalance(g)
@@ -528,6 +532,39 @@ fun NotificationsScreen(
                         visible = !isClearingAll,
                         exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
                     ) {
+                        // Swipe right-to-left to dismiss, same action as the X button.
+                        val swipeState = rememberSwipeToDismissBoxState()
+                        LaunchedEffect(swipeState.targetValue) {
+                            if (swipeState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                                viewModel.dismissNotifications(listOf(item.key))
+                            }
+                        }
+                        SwipeToDismissBox(
+                            state = swipeState,
+                            enableDismissFromStartToEnd = false,
+                            backgroundContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(18.dp),
+                                        color = MaterialTheme.colorScheme.errorContainer
+                                    ) {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
+                                            Icon(
+                                                Icons.Rounded.DeleteOutline,
+                                                contentDescription = "Dismiss notification",
+                                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                                modifier = Modifier.padding(end = 20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        ) {
                         val onClickCard: () -> Unit = {
                             when (item) {
                                 is AlertItem.GroupBalance -> onNavigateToGroupDetail(item.groupId, 0)
@@ -617,6 +654,7 @@ fun NotificationsScreen(
                                     )
                                 }
                             }
+                        }
                         }
                     }
                 }

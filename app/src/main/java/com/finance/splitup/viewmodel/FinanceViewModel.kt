@@ -988,6 +988,18 @@ class FinanceViewModel(application: Application? = null) : AndroidViewModel(appl
         }
     }
 
+    /** True when the local Room DB already holds user-created data (used to skip
+     *  re-onboarding for a guest who just signed up and transferred their data). */
+    suspend fun hasLocalData(): Boolean {
+        val repo = repository ?: return false
+        return try {
+            repo.getExpenseCount() > 0 || repo.getGroupCount() > 0 ||
+                repo.getBudgetCount() > 0 || repo.getIncomeCount() > 0
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun triggerCloudSync() {
         if (repository != null) {
             viewModelScope.launch {

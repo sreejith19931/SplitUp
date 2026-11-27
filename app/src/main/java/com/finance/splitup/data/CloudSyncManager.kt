@@ -666,11 +666,18 @@ object CloudSyncManager {
                     // plain SharedPreferences — mixing corrupts the file and triggers wipes.
                     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     val lastUid = prefs.getString("last_sync_uid", null)
-                        if (lastUid != null && lastUid != uid) {
+                    // A guest who just signed up keeps their local data and transfers it to the new
+                    // account: the flag below is set by MainActivity when leaving LocalDemo, so the
+                    // uid-change wipe (meant for switching between two real accounts) must not run.
+                    val guestTransfer = prefs.getBoolean("pending_guest_transfer", false)
+                        if (lastUid != null && lastUid != uid && !guestTransfer) {
                             repository.clearAllLocalData()
                             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
                         }
-                        prefs.edit().putString("last_sync_uid", uid).apply()
+                        prefs.edit()
+                            .putString("last_sync_uid", uid)
+                            .putBoolean("pending_guest_transfer", false)
+                            .apply()
                     }
 
                     // Push local dirty changes first

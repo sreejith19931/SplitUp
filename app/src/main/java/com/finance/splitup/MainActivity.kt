@@ -92,20 +92,58 @@ class MainActivity : FragmentActivity() {
                             hasCompletedOnboarding = true
                         }
                     } catch (_: Exception) {}
+                    // Guest-to-account transfer: the new account has no cloud doc yet, but the
+                    // local DB already holds the guest's data — skip re-onboarding.
+                    if (!hasCompletedOnboarding) {
+                        val transferredGuestData = try {
+                            viewModel.hasLocalData()
+                        } catch (_: Exception) {
+                            false
+                        }
+                        if (transferredGuestData) {
+                            prefs.edit()
+                                .putBoolean("has_completed_onboarding_$currentUserId", true)
+                                .putBoolean("has_completed_onboarding", true)
+                                .apply()
+                            hasCompletedOnboarding = true
+                        }
+                    }
                     isCheckingCloudOnboarding = false
                 } else {
                     isCheckingCloudOnboarding = false
                 }
             }
 
+            var hadAuthenticatedSession by remember { mutableStateOf(false) }
+            // Track the previous auth state so a guest (LocalDemo) who signs up / signs in
+            // can have their local data transferred instead of wiped by the uid-change
+            // guard inside CloudSyncManager.
+            var previousAuthState by remember { mutableStateOf<com.finance.splitup.viewmodel.AuthState?>(null) }
             LaunchedEffect(authState) {
+                val previous = previousAuthState
+                if (previous is com.finance.splitup.viewmodel.AuthState.LocalDemo &&
+                    authState !is com.finance.splitup.viewmodel.AuthState.LocalDemo
+                ) {
+                    try {
+                        context.getSharedPreferences("splitup_sync_prefs", android.content.Context.MODE_PRIVATE)
+                            .edit().putBoolean("pending_guest_transfer", true).apply()
+                    } catch (_: Exception) {}
+                }
+                previousAuthState = authState
                 when (authState) {
                     is com.finance.splitup.viewmodel.AuthState.Authenticated -> {
+                        hadAuthenticatedSession = true
                         viewModel.triggerCloudSync()
                         com.finance.splitup.data.SplitUpMessagingService.uploadTokenToFirestore()
                     }
                     is com.finance.splitup.viewmodel.AuthState.Unauthenticated -> {
-                        viewModel.clearLocalDataOnSignOut()
+                        // Only wipe local data for a real sign-out (an authenticated session that
+                        // ended in this process). At cold start with no Firebase user this must NOT
+                        // run, otherwise a returning guest's local data is destroyed on every app
+                        // update before the guest session is restored.
+                        if (hadAuthenticatedSession) {
+                            viewModel.clearLocalDataOnSignOut()
+                        }
                     }
                     else -> {}
                 }

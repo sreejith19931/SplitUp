@@ -457,7 +457,7 @@ fun GroupDetailContent(
                                     shape = RoundedCornerShape(8.dp),
                                     color = when {
                                         bal > 0.01 -> EmeraldSuccess.copy(alpha = 0.15f)
-                                        bal < -0.01 -> MaterialTheme.colorScheme.surface
+                                        bal < -0.01 -> CrimsonDanger.copy(alpha = 0.15f)
                                         else -> EmeraldSuccess.copy(alpha = 0.15f)
                                     }
                                 ) {
@@ -671,8 +671,8 @@ fun GroupDetailContent(
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = when {
-                                    isMyDebt -> MaterialTheme.colorScheme.surface
-                                    isOwedToMe -> MaterialTheme.colorScheme.surface
+                                    isMyDebt -> CrimsonDanger.copy(alpha = 0.12f)
+                                    isOwedToMe -> EmeraldSuccess.copy(alpha = 0.12f)
                                     else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                 }
                             ),
@@ -711,7 +711,7 @@ fun GroupDetailContent(
                                             )
                                             Surface(
                                                 shape = RoundedCornerShape(8.dp),
-                                                color = if (isMyDebt) MaterialTheme.colorScheme.surface else if (isOwedToMe) EmeraldSuccess.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                color = if (isMyDebt) CrimsonDanger.copy(alpha = 0.12f) else if (isOwedToMe) EmeraldSuccess.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                             ) {
                                                 Text(text = "$currencySymbol${String.format(Locale.US, "%.2f", settlement.amount)}", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = SplitUpType.ChipLabel, color = if (isMyDebt) CrimsonDanger else if (isOwedToMe) EmeraldSuccess else MaterialTheme.colorScheme.primary)
                                             }
@@ -723,7 +723,7 @@ fun GroupDetailContent(
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
                                             color = when {
-                                                isMyDebt -> MaterialTheme.colorScheme.surface
+                                                isMyDebt -> CrimsonDanger.copy(alpha = 0.12f)
                                                 isOwedToMe -> EmeraldSuccess.copy(alpha = 0.12f)
                                                 else -> MaterialTheme.colorScheme.surfaceVariant
                                             }

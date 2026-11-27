@@ -454,7 +454,7 @@ fun BudgetAndCategoryAnalyticsCard(
                                             if (rawProgress >= 1.0f) {
                                                 Surface(
                                                     shape = RoundedCornerShape(4.dp),
-                                                    color = MaterialTheme.colorScheme.surface
+                                                    color = CrimsonDanger.copy(alpha = 0.15f)
                                                 ) {
                                                     Text(text = "Exceeded", style = SplitUpType.MicroLabel, color = CrimsonDanger, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                                 }
